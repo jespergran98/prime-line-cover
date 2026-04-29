@@ -2,6 +2,10 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+**[Problem](#problem) · [Performance](#performance) · [Solver Features](#solver-features) · [Results](#results) · [Quick Start](#quick-start-ubuntu--wsl) · [Output](#understanding-the-output) · [Configuration](#configuration-options) · [Files](#file-descriptions) · [Citation](#citation)**
+
+---
+
 ## Problem
 
 Imagine you write down the first few prime numbers:
