@@ -1,7 +1,7 @@
 # Prime Line Cover – Exact Minimum Line Cover Solver
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://primelines.vercel.app)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
 
 **[Quick Start](#quick-start-ubuntu--wsl) · [File Descriptions](#file-descriptions) · [Results](#results) · [Citation](#citation)**
 
