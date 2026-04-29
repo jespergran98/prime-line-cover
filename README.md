@@ -1,9 +1,3 @@
-I've cleaned up the formatting and removed the duplicate commentary, leaving only the polished **Problem** and **Performance** sections as they should appear in the final `README.md`. The placeholder for the 1024 run now reads “approximately two weeks” (the figure you mentioned earlier). If you prefer “in progress” instead, just replace that sentence.
-
-Here is the final intro as you would paste it into the README:
-
----
-
 # Prime Line Cover – Exact Minimum Line Cover Solver
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -23,7 +17,7 @@ Imagine you write down the first few prime numbers:
 | …     | …     |
 
 Now plot these as points on a piece of graph paper:  
-point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point 4 at (4, 7), and so on.
+point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point 4 at (4, 7), and so on.
 
 **The goal:** Draw as few straight lines as possible so that every point lies on at least one line.
 
@@ -32,55 +26,52 @@ point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point�
 - The only restriction is that each line must be straight (no curves).
 - Lines may overlap, and multiple lines can cross the same prime point.
 
-**Example:** For the first 5 points (N = 5), you can cover all of them with just **2 lines**:
+**Example:** For the first 5 points (N = 5), you can cover all of them with just **2 lines**:
 
-- One line passes through (1, 2) and (5, 11).
-- Another line passes through (2, 3), (3, 5), and (4, 7) – three points on one straight line.
+- One line passes through (1, 2) and (5, 11).
+- Another line passes through (2, 3), (3, 5), and (4, 7) – three points on one straight line.
 
-That’s the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**.
+That's the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**.
 
-**Performance:** Despite the enormous number of possible line combinations (which grows exponentially with N), this solver computes the optimal cover for the first 800 prime points in **less than 60 seconds** on a 10‑year‑old laptop.  
+## Performance
 
-On a high‑end machine, it reaches the previous world‑record boundary at N = 861 in **just 22 minutes** – obliterating the prior certified record, which required **282 hours** using a general‑purpose mixed‑integer programming (MIP) solver.  
+Despite the enormous number of possible line combinations (which grows exponentially with N), this solver computes the optimal cover for the first 800 prime points in **less than 60 seconds** on a 10-year-old laptop.
 
-For larger N up to about 900, the hardest instances take a few hours on modern hardware – but the incremental sweep is so efficient that most N are solved in milliseconds or microseconds. The final push to N = 1024 was completed on a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB memory) and took approximately **two weeks** to reach the 1024th prime.
+On a high-end machine, it reaches the previous world-record boundary at N = 861 in **just 22 minutes** – obliterating the prior certified record, which required **282 hours** using a general-purpose mixed-integer programming (MIP) solver.
 
-**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 1024 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On‑Line Encyclopedia of Integer Sequences (OEIS).
+For larger N up to about 900, the hardest instances take a few hours on modern hardware – but the incremental sweep is so efficient that most N are solved in milliseconds or microseconds. The current certified world record stands at **N = 919**, computed on a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB memory). The run to N = 1024 is currently in progress.
 
----
+**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 919 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS).
 
 ## Solver Features
 
 Two versions are provided:
 
-- **`primecover1024.cpp`** – core solver, outputs compact statistics for each \(N\) (time, search nodes, bounds, etc.).
+- **`primecover1024.cpp`** – core solver, outputs compact statistics for each N (time, search nodes, bounds, etc.).
 - **`primecover1024_line_coordinates.cpp`** – identical solver that additionally writes out the exact coordinates of every line in the optimal cover (for full reproducibility and visualisation).
 
 Both implement the exact algorithm described in the accompanying paper [`incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf). Key features:
 
-- **Heavy‑line enumeration** – all lines containing at least three points of the final horizon are pre‑computed once.
-- **Bitmask representation** – supports up to \(N = 1024\) points using 16×64‑bit words.
+- **Heavy-line enumeration** – all lines containing at least three points of the final horizon are pre-computed once.
+- **Bitmask representation** – supports up to N = 1024 points using 16x64-bit words.
 - **Exclusive Dependency Rule** – unconditional forcing of certain heavy lines (proved optimal).
-- **Lagrangian relaxation** – provides tight upper bounds for pruning, with projected subgradient ascent and coordinate‑descent polish.
+- **Lagrangian relaxation** – provides tight upper bounds for pruning, with projected subgradient ascent and coordinate-descent polish.
 - **Frontier decomposition** – the search tree is split into many independent tasks and processed in parallel over all CPU cores.
-- **Incremental warm‑start** – carries a witness cover, a warm heavy‑line set, and a warm dual seed from one \(N\) to the next, making the sweep extremely efficient.
+- **Incremental warm-start** – carries a witness cover, a warm heavy-line set, and a warm dual seed from one N to the next, making the sweep extremely efficient.
 
-The solver is optimised for **\(N \le 1024\)** (hence the `1024` in the filename).  
-It has been used to compute the optimal cover for all \(N\) up to **882**, and the run to \(N = 1024\) is currently in progress.
+The solver is optimised for **N <= 1024** (hence the `1024` in the filename).
 
 ## Results
 
-The repository contains three files recording the computed cover costs (all for \(N = 1\) to \(882\)):
+The repository contains three files recording the computed cover costs (all for N = 1 to 919):
 
-- **`b373813.txt`** – simple two‑column format: `N` and the optimal number of lines (easy for plotting).
-- **`b373813_stats.txt`** – detailed statistics for each \(N\) (time, search nodes, bounds, etc.).  
+- **`b373813.txt`** – simple two-column format: `N` and the optimal number of lines (easy for plotting).
+- **`b373813_stats.txt`** – detailed statistics for each N (time, search nodes, bounds, etc.).  
   Generated by `primecover1024.cpp`.
 - **`b373813_line_coordinates.txt`** – the full list of line coordinates (in `(x, y)` format) for each optimal cover.  
   Generated by `primecover1024_line_coordinates.cpp`.
 
-The paper [`incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf) contains full tables and analysis of these results, including the identification of awkward primes (indices where the cover size increases) – the latest being \(N = 864, 871, 875\).
-
-Below is the updated **Quick Start** section with a new **Step 5** that gives a single command to copy, compile, and run in one go. The numbering has been adjusted accordingly.
+The paper [`incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf) contains full tables and analysis of these results, including the identification of **awkward primes** (indices where the cover size increases). The eight new awkward primes discovered in this work are at N = 864, 871, 875, 883, 893, 895, 908, and 918.
 
 ---
 
@@ -96,13 +87,13 @@ sudo apt install g++-14 -y
 
 ### 2. Get the source code
 
-If you have the file on your Windows drive (e.g., `C:\math\prime-line-cover\primecover1024.cpp`), copy it into WSL:
+If you have the file on your Windows drive (e.g., `C:\path\to\primecover1024.cpp`), copy it into WSL:
 
 ```bash
-cp /mnt/c/math/prime-line-cover/primecover1024.cpp ~/primecover.cpp
+cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp
 ```
 
-Or create the file manually (`nano primecover.cpp`) and paste the code – more work, but fine if you don’t have the file on Windows.
+Or create the file manually (`nano primecover.cpp`) and paste the code.
 
 ### 3. Compile
 
@@ -112,7 +103,7 @@ For the standard solver (statistics only):
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover
 ```
 
-For the line‑coordinates version (replace `primecover1024_line_coordinates.cpp` accordingly):
+For the line-coordinates version:
 
 ```bash
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o primecover
@@ -126,29 +117,27 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecove
 ./primecover
 ```
 
-### 5. All‑in‑one command (copy, compile, run)
+### 5. All-in-one command (copy, compile, run)
 
-If your source file is at `C:\math\prime-line-cover\primecover1024.cpp`, run this single line:
+Replace the path with the actual location of your source file:
 
 ```bash
-cp /mnt/c/math/prime-line-cover/primecover1024.cpp ~/primecover.cpp && \
+cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover && \
 ./primecover
 ```
 
-For the line‑coordinates version, replace the file name accordingly:
+For the line-coordinates version:
 
 ```bash
-cp /mnt/c/math/prime-line-cover/primecover1024_line_coordinates.cpp ~/primecover.cpp && \
+cp /mnt/c/path/to/primecover1024_line_coordinates.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover && \
 ./primecover
 ```
-
-This copies the file from your Windows drive, compiles it, and immediately starts the solver – ideal for a quick test or a long run.
 
 ---
 
-By default it solves \(N\) from 1 up to 1024. To change that, edit the constants `kStartN` and `kExecutionLimit` at the top of the source file.
+By default the solver runs from N = 1 up to N = 1024. To change that, edit the constants `kStartN` and `kExecutionLimit` at the top of the source file.
 
 ## Understanding the Output
 
@@ -158,46 +147,45 @@ Each line of output looks like this:
 N=862 prime=6689 lines=123 time=0.016016s mode=R active=9254 ...
 ```
 
-- `lines` – the optimal cover cost \(f(N)\).
-- `mode` – how the solution was obtained:  
-  - **W** = witness hit (inherited from previous prefix, constant‑time)  
-  - **R** = root closed (bounds closed without DFS)  
-  - **D** = depth‑first search (full branch‑and‑bound needed)
-- `active` – number of active heavy lines at step \(N\).
+- `lines` – the optimal cover cost f(N).
+- `mode` – how the solution was obtained:
+  - **W** = witness hit (inherited from previous prefix, constant-time)
+  - **R** = root closed (bounds closed without DFS)
+  - **D** = depth-first search (full branch-and-bound needed)
+- `active` – number of active heavy lines at step N.
 - Other fields (`ub0`, `lb_cov`, `lb`, `gap`, `nodes`, …) are detailed diagnostics – see the paper for their meaning.
 
-For the line‑coordinates version, each statistics line is followed by a `Cover:` block listing all lines in the optimal cover (each line as a list of `(x, y)` points).
+For the line-coordinates version, each statistics line is followed by a `Cover:` block listing all lines in the optimal cover (each line as a list of `(x, y)` points).
 
 ## Configuration Options
 
-The solver’s behaviour can be adjusted by modifying constants in the `config` namespace inside `primecover1024.cpp`:
+The solver's behaviour can be adjusted by modifying constants in the `config` namespace inside `primecover1024.cpp`:
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `kBitCapacity`          | 1024 | Hard limit on \(N\) (bitset size). Do not increase beyond 1024 without changing the bitmask type. |
-| `kStartN`               | 0  | Starting \(N\) for the sweep. Set to 1 to begin from the beginning. |
-| `kExecutionLimit`       | 1024  | Maximum \(N\) to compute (capped by `kBitCapacity`). |
-| `kPerNTimeLimitSeconds` | 0  | Per‑instance time limit in seconds (0 = no limit). If exceeded, the solver prints `[stopped]` and exits. |
+| `kBitCapacity`          | 1024 | Hard limit on N (bitset size). Do not increase beyond 1024 without changing the bitmask type. |
+| `kStartN`               | 0    | Starting N for the sweep. Set to 1 to begin from the beginning. |
+| `kExecutionLimit`       | 1024 | Maximum N to compute (capped by `kBitCapacity`). |
+| `kPerNTimeLimitSeconds` | 0    | Per-instance time limit in seconds (0 = no limit). If exceeded, the solver prints `[stopped]` and exits. |
 
 ## Performance Tuning
 
 - The solver uses all CPU cores (`std::thread::hardware_concurrency()`).
-- The **frontier multiplier** (see extensive comments in the source) controls how many parallel tasks are generated. This is tuned automatically based on the current best cost and your available RAM. For high‑memory machines (≥30 GB), you can increase the top multiplier to `131072U` for better parallelism.
+- The **frontier multiplier** (see extensive comments in the source) controls how many parallel tasks are generated. This is tuned automatically based on the current best cost and your available RAM. For high-memory machines (>=30 GB), you can increase the top multiplier to `131072U` for better parallelism.
 - To give WSL higher CPU priority on Windows, open **PowerShell as Administrator** while the solver is running and execute:
   ```powershell
   (Get-Process vmmem*).PriorityClass = 'High'
   ```
 
-
 ## File Descriptions
 
 | File | Description |
 |------|-------------|
-| `primecover1024.cpp` | Main solver source code (stats‑only output). |
+| `primecover1024.cpp` | Main solver source code (stats-only output). |
 | `primecover1024_line_coordinates.cpp` | Same solver, but outputs full line coordinates. |
-| `b373813.txt` | Two‑column `N` and optimal lines (space‑separated). |
-| `b373813_stats.txt` | Detailed statistics line for each \(N\) (from `primecover1024.cpp`). |
-| `b373813_line_coordinates.txt` | Full line‑by‑line coordinates of each optimal cover (from `primecover1024_line_coordinates.cpp`). |
+| `b373813.txt` | Two-column `N` and optimal lines (space-separated), N = 1..919. |
+| `b373813_stats.txt` | Detailed statistics line for each N (from `primecover1024.cpp`). |
+| `b373813_line_coordinates.txt` | Full line-by-line coordinates of each optimal cover (from `primecover1024_line_coordinates.cpp`). |
 | `incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
 
 ## Citation
