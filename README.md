@@ -160,7 +160,7 @@ The solver's behaviour can be adjusted by modifying constants in the `config` na
 
 ## Old Solvers
 
-The `old_solvers/` folder contains earlier variants of the solver, preserved for reproducibility and to document the development history leading to the current version. They are provided as-is and are not actively maintained.
+The `old_solvers/` folder contains earlier milestone variants of the solver used during development, preserved for reproducibility and to document the development history leading to the current version. They are provided as-is and are not actively maintained.
 
 ## Citation
 
