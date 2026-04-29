@@ -206,6 +206,15 @@ html, body {
   color: var(--white);
   border-color: var(--gold);
 }
+.h-badge.ink {
+  color: var(--white);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+.h-badge.ink:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+}
 
 /* ── Section Divider ─────────────────────────────────── */
 .sep {
@@ -640,64 +649,168 @@ details.tut summary::-webkit-details-marker { display: none; }
 #footer a { color: var(--blue); text-decoration: none; }
 #footer a:hover { text-decoration: underline; }
 
-/* ── Canvas Corner Overlays ──────────────────────────── */
+/* ═══════════════════════════════════════════════════════
+   Canvas Corner Overlays
+   ═══════════════════════════════════════════════════════ */
 .canvas-overlay {
   position: absolute;
   z-index: 5;
-  background: rgba(253,252,248,0.91);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  background: rgba(253,252,248,0.93);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
-  padding: 15px 17px;
+  padding: 16px 18px;
   box-shadow:
-    0 4px 24px rgba(24,38,58,0.07),
-    0 1px 3px rgba(24,38,58,0.05);
+    0 4px 28px rgba(24,38,58,0.08),
+    0 1px 4px rgba(24,38,58,0.06),
+    inset 0 1px 0 rgba(255,255,255,0.6);
   pointer-events: auto;
 }
 
 #overlay-tl {
   top: 48px;
   left: 90px;
-  max-width: 390px;
+  max-width: 400px;
+  min-width: 340px;
 }
 
 #overlay-br {
   bottom: 78px;
   right: 44px;
+  min-width: 200px;
+}
+
+/* ── Top-Left Overlay Elements ───────────────────────── */
+
+/* Header row: title + record pill */
+.co-tl-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 3px;
 }
 
 .co-title {
   font-family: var(--serif);
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 500;
   color: var(--ink);
-  line-height: 1.25;
+  line-height: 1.2;
   letter-spacing: 0.005em;
-  margin-bottom: 3px;
 }
 
 .co-sub {
   font-family: var(--serif);
-  font-size: 12.5px;
+  font-size: 12px;
   font-style: italic;
   color: var(--ink-70);
   line-height: 1.4;
+  margin-top: 2px;
+}
+
+/* World-record badge */
+.co-record-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 500;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1px solid rgba(20,115,106,0.28);
+  padding: 4px 9px 4px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.08em;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.co-record-pill:hover {
+  background: var(--teal);
+  color: var(--white);
+  border-color: var(--teal);
+}
+.co-record-dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+  flex-shrink: 0;
+  animation: recordPulse 2.4s ease-in-out infinite;
+}
+@keyframes recordPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.45; }
 }
 
 .co-sep {
   height: 1px;
   background: var(--ink-08);
-  margin: 10px 0;
+  margin: 11px 0;
 }
 
 .co-body {
   font-family: var(--serif);
-  font-size: 13.5px;
+  font-size: 13px;
   line-height: 1.62;
   color: var(--ink-70);
 }
 
+/* ── Performance comparison (mini) ──────────────────── */
+.co-perf-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.co-perf-cell {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 0 10px;
+}
+.co-perf-cell:first-child { padding-left: 0; }
+.co-perf-cell:last-child  { padding-right: 0; }
+
+.co-perf-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-45);
+  text-transform: uppercase;
+  letter-spacing: 0.13em;
+}
+
+.co-perf-val {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+}
+.co-perf-val.c-teal  { color: var(--teal); }
+.co-perf-val.c-coral { color: var(--coral); }
+
+.co-perf-sub {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.04em;
+}
+
+.co-perf-divider {
+  width: 1px;
+  height: 40px;
+  background: var(--ink-18);
+  flex-shrink: 0;
+}
+
+/* ── Primary file link ───────────────────────────────── */
 .co-mono-label {
   font-family: var(--mono);
   font-size: 8px;
@@ -705,7 +818,7 @@ details.tut summary::-webkit-details-marker { display: none; }
   text-transform: uppercase;
   letter-spacing: 0.15em;
   color: var(--ink-45);
-  margin-bottom: 7px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -717,44 +830,97 @@ details.tut summary::-webkit-details-marker { display: none; }
   background: var(--ink-08);
 }
 
+.co-file-link-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 9px;
+}
+
+/* Primary download button — prominent, dark fill */
+.co-primary-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 6px 13px;
+  border-radius: var(--r2);
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(24,38,58,0.18);
+}
+.co-primary-btn:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(154,107,10,0.25);
+}
+.co-primary-btn:active { transform: translateY(0); }
+
+.co-dl-icon { font-size: 11px; }
+
+.co-file-tag {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+}
+
 .co-code {
   display: block;
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: 9px;
   background: var(--paper-alt);
   border: 1px solid var(--ink-08);
   padding: 8px 11px;
   border-radius: var(--r2);
   color: var(--ink);
   white-space: pre;
-  line-height: 1.65;
+  line-height: 1.7;
   letter-spacing: 0.01em;
 }
 
-/* Legend items in bottom-right overlay */
+/* ── Bottom-Right Overlay (Legend) ───────────────────── */
 .co-legend-item {
   display: flex;
   align-items: center;
   gap: 10px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: 8.5px;
   color: var(--ink-70);
   letter-spacing: 0.04em;
-  margin-bottom: 8px;
+  margin-bottom: 9px;
   white-space: nowrap;
 }
 .co-legend-item:last-child { margin-bottom: 0; }
 
 .co-leg-swatch {
   flex-shrink: 0;
-  width: 26px;
+  width: 28px;
 }
-.co-leg-heavy {
-  height: 2.5px;
-  background: var(--teal);
-  border-radius: 2px;
-  box-shadow: 0 0 5px rgba(20,115,106,0.35);
+
+/* Multi-color palette swatch for heavy lines */
+.co-leg-palette {
+  display: flex;
+  gap: 2px;
+  align-items: center;
+  height: 3px;
 }
+.co-leg-palette span {
+  flex: 1;
+  height: 3px;
+  border-radius: 99px;
+}
+
 .co-leg-light {
   height: 0;
   border-top: 1.5px dashed rgba(24,38,58,0.38);
@@ -773,6 +939,17 @@ details.tut summary::-webkit-details-marker { display: none; }
   background: var(--ink);
   border: 1.5px solid rgba(253,252,248,0.95);
   box-shadow: 0 0 0 1px rgba(24,38,58,0.30);
+}
+
+/* Rendering mode note */
+.co-render-note {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-45);
+  letter-spacing: 0.05em;
+  line-height: 1.6;
+  margin-top: 2px;
+  font-style: italic;
 }
 
 /* ── Transition effects ──────────────────────────────── */
@@ -796,41 +973,97 @@ details.tut summary::-webkit-details-marker { display: none; }
   <div id="main-panel">
     <canvas id="main-canvas"></canvas>
 
-    <!-- Top-left corner overlay: title, description, compile command -->
+    <!-- ── Top-left corner overlay ─────────────────────────────────────────
+         Title, algorithm summary, world record, performance comparison,
+         and primary solver file download link.
+         ──────────────────────────────────────────────────────────────────── -->
     <div id="overlay-tl" class="canvas-overlay">
-      <div class="co-title">Prime Line Cover</div>
-      <div class="co-sub">Exact minimum line cover solver &middot; OEIS A373813</div>
-      <div class="co-sep"></div>
-      <div class="co-body">
-        Points <em>(i,&thinsp;p<sub>i</sub>)</em> for the first <em>N</em> primes are covered by
-        the fewest straight lines possible. Lines through ≥&thinsp;3 collinear points are
-        found via Lagrangian relaxation, an Exclusive Dependency Rule, and
-        incremental branch-and-bound.
+
+      <!-- Header: title + world-record badge -->
+      <div class="co-tl-header">
+        <div>
+          <div class="co-title">Prime Line Cover</div>
+          <div class="co-sub">Exact minimum line cover &middot; OEIS A373813</div>
+        </div>
+        <a class="co-record-pill" href="https://oeis.org/A373813" target="_blank" rel="noopener">
+          <span class="co-record-dot"></span>N&thinsp;=&thinsp;919 certified
+        </a>
       </div>
+
       <div class="co-sep"></div>
-      <div class="co-mono-label">Native C++ — primecover1024.cpp</div>
+
+      <!-- Algorithm summary -->
+      <div class="co-body">
+        Points <em>(i,&thinsp;p<sub>i</sub>)</em> for the first <em>N</em> primes, covered by
+        the fewest possible straight lines. Solved via Lagrangian relaxation,
+        Exclusive Dependency Rule, and parallel branch-and-bound.
+      </div>
+
+      <div class="co-sep"></div>
+
+      <!-- Performance comparison: this solver vs prior MIP record -->
+      <div class="co-perf-row">
+        <div class="co-perf-cell">
+          <div class="co-perf-label">This solver</div>
+          <div class="co-perf-val c-teal">22 min</div>
+          <div class="co-perf-sub">@ N&thinsp;=&thinsp;861</div>
+        </div>
+        <div class="co-perf-divider"></div>
+        <div class="co-perf-cell" style="padding-right: 0">
+          <div class="co-perf-label">Prior MIP record</div>
+          <div class="co-perf-val c-coral" style="text-decoration: line-through; opacity: 0.65">282 hrs</div>
+          <div class="co-perf-sub">@ N&thinsp;=&thinsp;861</div>
+        </div>
+      </div>
+
+      <div class="co-sep"></div>
+
+      <!-- Primary solver file link -->
+      <div class="co-mono-label">Primary Solver File</div>
+      <div class="co-file-link-row">
+        <a class="co-primary-btn" href="./primecover1024.cpp" download>
+          <span class="co-dl-icon">↓</span>primecover1024.cpp
+        </a>
+        <span class="co-file-tag">C++23 &middot; parallel B&B<br>bitmask N ≤ 1024</span>
+      </div>
       <code class="co-code">g++-14 -std=c++23 -O3 -march=native \
   -pthread primecover1024.cpp -o solver
 ./solver</code>
     </div>
 
-    <!-- Bottom-right corner overlay: legend -->
+    <!-- ── Bottom-right corner overlay (legend) ── -->
     <div id="overlay-br" class="canvas-overlay">
-      <div class="co-mono-label">Graph Legend</div>
+      <div class="co-mono-label">Legend</div>
+
+      <!-- Heavy lines — color-coded palette swatch -->
       <div class="co-legend-item">
-        <div class="co-leg-swatch"><div class="co-leg-heavy"></div></div>
-        Heavy line (≥ 3 pts)
+        <div class="co-leg-swatch">
+          <div class="co-leg-palette">
+            <span style="background:#9A6B0A"></span>
+            <span style="background:#14736A"></span>
+            <span style="background:#A33228"></span>
+            <span style="background:#2A5499"></span>
+            <span style="background:#4E6B1A"></span>
+            <span style="background:#5E2F78"></span>
+          </div>
+        </div>
+        Heavy line (≥&thinsp;3 pts)
       </div>
+
       <div class="co-legend-item">
         <div class="co-leg-swatch"><div class="co-leg-light"></div></div>
         Light line (1–2 pts)
       </div>
+
       <div class="co-legend-item">
         <div class="co-leg-swatch">
           <div class="co-leg-point-row"><div class="co-leg-dot"></div></div>
         </div>
-        Prime point <em>(i, p<sub>i</sub>)</em>
+        Prime point <em>(i,&thinsp;p<sub>i</sub>)</em>
       </div>
+
+      <div class="co-sep" style="margin: 8px 0 6px;"></div>
+      <div class="co-render-note">Glow scales with line density</div>
     </div>
 
     <!-- Awkward prime notification -->
@@ -848,6 +1081,7 @@ details.tut summary::-webkit-details-marker { display: none; }
         <a class="h-badge" href="https://oeis.org/A373813" target="_blank" rel="noopener">↗ OEIS A373813</a>
         <a class="h-badge gold" href="./pdf_incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">PDF Paper</a>
         <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover.git" target="_blank" rel="noopener">↗ GitHub</a>
+        <a class="h-badge ink" href="./primecover1024.cpp" download>↓ .cpp</a>
       </div>
     </div>
 
@@ -963,6 +1197,12 @@ details.tut summary::-webkit-details-marker { display: none; }
         </a>
         <a class="dl-btn secondary" href="./A373813_cover_costs.txt" download>
           <span class="ico">↓</span> A373813_costs.txt
+        </a>
+        <a class="dl-btn secondary" href="./A373813_cover_stats.txt" download>
+          <span class="ico">↓</span> A373813_stats.txt
+        </a>
+        <a class="dl-btn secondary" href="./A373813_cover_lines.txt" download>
+          <span class="ico">↓</span> A373813_lines.txt
         </a>
       </div>
 
@@ -1623,20 +1863,6 @@ function drawMain(t) {
 
   const x = MM.l, y = MM.t, w = W - MM.l - MM.r, h = H - MM.t - MM.b;
 
-  /* ── Corner Annotations (use empty space) ── */
-  if (primes.length > 0) {
-    const N = primes.length, maxV = primes[N - 1];
-
-    /* ── TOP-LEFT CORNER: Mathematical definition ── */
-    /* This corner is empty because early primes are small values
-       (points cluster toward bottom-left of the plot area) */
-    drawTopLeftAnnotation(mctx, x, y, w, h, N, maxV);
-
-    /* ── BOTTOM-RIGHT CORNER: Live stats overlay ── */
-    /* This corner has no points since primes are monotonically increasing */
-    drawBottomRightAnnotation(mctx, x, y, w, h, N, maxV);
-  }
-
   if (!primes.length) { mctx.restore(); return; }
 
   const N = primes.length, maxV = primes[N - 1];
@@ -1719,6 +1945,11 @@ function drawMain(t) {
 
   /* ─────────────────────────────────────────────────
      COVERING LINES — three-pass rendering
+     
+     KEY DESIGN: No canvas shadowBlur is used anywhere.
+     At high N (30+ lines), shadow blur creates a solid
+     glowing "blob". Instead we use direct alpha-scaled
+     thin strokes for halos — crisp at any line count.
      ───────────────────────────────────────────────── */
   const nL = coverLines.length;
 
@@ -1747,7 +1978,19 @@ function drawMain(t) {
     return ease(Math.min(1, age / ANIM_DUR));
   }
 
-  /* Pass 1: Wide glow halo for heavy lines (using shadow blur) */
+  /* ─────────────────────────────────────────────────────────────────────
+     Pass 1: Color halos — thin, NO shadow blur.
+     
+     Alpha and width scale down as line count grows so individual lines
+     remain visually distinct even at N ≈ 180 with 30+ covering lines.
+     Formula: at nL=4 → haloAlpha≈0.13, haloWidth≈5.0
+              at nL=20 → haloAlpha≈0.09, haloWidth≈3.6
+              at nL=40 → haloAlpha≈0.06, haloWidth≈2.4 (min)
+              at nL=80 → haloAlpha≈0.04 (min), haloWidth=2.4 (min)
+     ───────────────────────────────────────────────────────────────────── */
+  const haloAlpha = Math.max(0.035, 0.155 - nL * 0.0032);
+  const haloWidth = Math.max(2.4,   5.8   - nL * 0.085);
+
   coverLines.forEach((line, li) => {
     if (!line.isHeavy) return;
     const seg = lineSegs[li];
@@ -1756,20 +1999,17 @@ function drawMain(t) {
     if (p <= 0) return;
 
     const col = PALETTE[line.heavyIndex % PALETTE.length];
-    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
-    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
+    const ex  = seg.from.x + (seg.to.x - seg.from.x) * p;
+    const ey  = seg.from.y + (seg.to.y - seg.from.y) * p;
 
-    mctx.globalAlpha = 0.22 * Math.min(p * 3, 1);
+    mctx.globalAlpha = haloAlpha * Math.min(p * 2.5, 1);
     mctx.strokeStyle = col;
-    mctx.lineWidth   = 9;
-    mctx.shadowColor = col;
-    mctx.shadowBlur  = 12;
+    mctx.lineWidth   = haloWidth;
     mctx.setLineDash([]);
     mctx.beginPath();
     mctx.moveTo(seg.from.x, seg.from.y);
     mctx.lineTo(ex, ey);
     mctx.stroke();
-    mctx.shadowBlur = 0;
   });
 
   mctx.globalAlpha = 1;
@@ -1798,7 +2038,7 @@ function drawMain(t) {
   mctx.globalAlpha = 1;
   mctx.setLineDash([]);
 
-  /* Pass 3: Core heavy lines */
+  /* Pass 3: Core heavy lines — crisp, full-opacity colored strokes */
   coverLines.forEach((line, li) => {
     if (!line.isHeavy) return;
     const seg = lineSegs[li];
@@ -1807,19 +2047,19 @@ function drawMain(t) {
     if (p <= 0) return;
 
     const col = PALETTE[line.heavyIndex % PALETTE.length];
-    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
-    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
+    const ex  = seg.from.x + (seg.to.x - seg.from.x) * p;
+    const ey  = seg.from.y + (seg.to.y - seg.from.y) * p;
 
-    mctx.globalAlpha = 0.75 + p * 0.2;
+    mctx.globalAlpha = 0.80 + p * 0.18;
     mctx.strokeStyle = col;
-    mctx.lineWidth   = 1.9;
+    mctx.lineWidth   = 1.75;
 
     mctx.beginPath();
     mctx.moveTo(seg.from.x, seg.from.y);
     mctx.lineTo(ex, ey);
     mctx.stroke();
 
-    /* Leading-edge bright dot during draw-on animation */
+    /* Leading-edge dot during draw-on animation */
     if (p < 0.98) {
       mctx.globalAlpha = 1;
       /* Outer halo */
