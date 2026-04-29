@@ -110,7 +110,7 @@ html, body {
 #awkward-flash {
   position: absolute;
   top: 38%;
-  left: 40%;
+  left: 45%;
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 8;
@@ -392,6 +392,7 @@ html, body {
 
 input[type=range] {
   -webkit-appearance: none;
+  appearance: none;
   width: 100%;
   background: transparent;
   cursor: pointer;
@@ -889,6 +890,117 @@ details.tut summary::-webkit-details-marker { display: none; }
   letter-spacing: 0.01em;
 }
 
+/* ── Paper Overlay ───────────────────────────────────── */
+#overlay-paper {
+  top: 48px;
+  left: 510px;
+  width: 258px;
+}
+
+.paper-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 13px;
+}
+
+.paper-icon-wrap { flex-shrink: 0; margin-top: 1px; }
+
+.paper-header-text { flex: 1; min-width: 0; }
+
+.paper-eyebrow {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 500;
+  color: var(--gold);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.paper-title {
+  font-family: var(--serif);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink);
+  line-height: 1.38;
+  letter-spacing: 0.003em;
+}
+
+.paper-author {
+  font-family: var(--serif);
+  font-size: 11px;
+  color: var(--ink-45);
+  margin-top: 7px;
+  line-height: 1.45;
+  letter-spacing: 0.01em;
+}
+
+.paper-abstract-excerpt {
+  font-family: var(--serif);
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--ink-70);
+  line-height: 1.58;
+}
+
+.paper-topics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.paper-topic {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-45);
+  background: var(--paper-alt);
+  border: 1px solid var(--ink-08);
+  padding: 2px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.paper-read-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--gold);
+  border: 1px solid var(--gold);
+  padding: 8px 14px;
+  border-radius: var(--r2);
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+  box-shadow: 0 2px 8px rgba(154,107,10,0.22);
+  margin-bottom: 9px;
+  box-sizing: border-box;
+}
+.paper-read-btn:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(24,38,58,0.20);
+}
+.paper-read-btn:active { transform: translateY(0); }
+
+.paper-msc {
+  font-family: var(--mono);
+  font-size: 7px;
+  color: var(--ink-45);
+  letter-spacing: 0.04em;
+  text-align: center;
+  line-height: 1.5;
+}
+
 /* ── Bottom-Right Overlay (Legend) ───────────────────── */
 .co-legend-item {
   display: flex;
@@ -950,6 +1062,52 @@ details.tut summary::-webkit-details-marker { display: none; }
   line-height: 1.6;
   margin-top: 2px;
   font-style: italic;
+}
+
+/* ── JS runtime badge (inline with section labels) ───── */
+.js-badge {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 500;
+  color: var(--blue);
+  background: var(--blue-light);
+  border: 1px solid rgba(42,84,153,0.22);
+  padding: 2px 7px;
+  border-radius: 99px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  vertical-align: middle;
+  position: relative;
+}
+
+/* ── "Download required" callout in C++ section ──────── */
+.dl-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: var(--gold-light);
+  border: 1px solid rgba(154,107,10,0.22);
+  border-left: 3px solid var(--gold);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 8px 11px;
+  margin-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-70);
+  letter-spacing: 0.02em;
+  line-height: 1.65;
+}
+.dl-callout-icon {
+  font-size: 13px;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+  opacity: 0.75;
+}
+.dl-callout strong {
+  font-weight: 500;
+  color: var(--ink);
 }
 
 /* ── Transition effects ──────────────────────────────── */
@@ -1031,6 +1189,45 @@ details.tut summary::-webkit-details-marker { display: none; }
 ./solver</code>
     </div>
 
+    <!-- ── Paper overlay ──────────────────────────────────────────────────
+         Research paper citation card, positioned to the right of
+         overlay-tl. Gives the accompanying paper its own prominent
+         presence on the canvas.
+         ──────────────────────────────────────────────────────────────── -->
+    <div id="overlay-paper" class="canvas-overlay">
+
+      <div class="paper-header">
+        <div class="paper-icon-wrap">
+          <svg width="36" height="44" viewBox="0 0 36 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <rect x="2.5" y="2.5" width="31" height="41" rx="2" fill="rgba(24,38,58,0.07)"/>
+            <path d="M1 1 H26 L35 10 V42 Q35 44 33 44 H3 Q1 44 1 42 V3 Q1 1 3 1 Z" fill="#F5F2E9" stroke="rgba(24,38,58,0.20)" stroke-width="0.75"/>
+            <path d="M26 1 L35 10 H28 Q26 10 26 8 V1 Z" fill="rgba(154,107,10,0.20)" stroke="rgba(154,107,10,0.38)" stroke-width="0.5"/>
+            <line x1="7" y1="17" x2="29" y2="17" stroke="rgba(24,38,58,0.28)" stroke-width="1.4" stroke-linecap="round"/>
+            <line x1="7" y1="22" x2="29" y2="22" stroke="rgba(24,38,58,0.15)" stroke-width="1"   stroke-linecap="round"/>
+            <line x1="7" y1="27" x2="29" y2="27" stroke="rgba(24,38,58,0.15)" stroke-width="1"   stroke-linecap="round"/>
+            <line x1="7" y1="32" x2="21" y2="32" stroke="rgba(24,38,58,0.15)" stroke-width="1"   stroke-linecap="round"/>
+            <text x="7" y="40.5" font-family="Georgia,serif" font-style="italic" font-size="6.5" fill="rgba(154,107,10,0.70)" letter-spacing="0.5">f(N) min</text>
+          </svg>
+        </div>
+        <div class="paper-header-text">
+          <div class="paper-eyebrow">Preprint &middot; April 2026</div>
+          <div class="paper-title">An Incremental Exact Solver for the Minimum Line Cover of Prime Points</div>
+          <div class="paper-author">Jesper Gran Mikkelsen &middot; Norway</div>
+        </div>
+      </div>
+
+      <div class="co-sep" style="margin: 10px 0 9px;"></div>
+
+      <a class="paper-read-btn" href="./pdf_incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">
+        <svg width="11" height="13" viewBox="0 0 11 13" fill="none" aria-hidden="true">
+          <path d="M1 9 L1 11.5 Q1 12 1.5 12 L9.5 12 Q10 12 10 11.5 L10 9" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M5.5 1 L5.5 9 M3 6.5 L5.5 9 L8 6.5"                     stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Read Paper — PDF
+      </a>
+
+    </div>
+
     <!-- ── Bottom-right corner overlay (legend) ── -->
     <div id="overlay-br" class="canvas-overlay">
       <div class="co-mono-label">Legend</div>
@@ -1087,7 +1284,7 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     <!-- Solver state block -->
     <div class="panel-block">
-      <div class="section-label">Solver State</div>
+      <div class="section-label">Solver State &ensp;<span class="js-badge">JavaScript</span></div>
 
       <div class="stat-primary">
         <div class="sp-cell">
@@ -1188,6 +1385,11 @@ details.tut summary::-webkit-details-marker { display: none; }
         </div>
       </div>
 
+      <div class="dl-callout">
+        <span class="dl-callout-icon">↓</span>
+        <span>This entire site runs a <strong>JavaScript port</strong> — fast enough to explore, but not for record-breaking runs. To use the actual world-record solver, download <strong>primecover1024.cpp</strong> (stats output) or <strong>primecover1024_line_coordinates.cpp</strong> (also writes exact line coordinates) and compile locally.</span>
+      </div>
+
       <div class="dl-row">
         <a class="dl-btn" href="./primecover1024.cpp" download>
           <span class="ico">↓</span> primecover1024.cpp
@@ -1209,26 +1411,32 @@ details.tut summary::-webkit-details-marker { display: none; }
       <details class="tut">
         <summary>Quick Start — Ubuntu / WSL</summary>
         <div class="tut-body">
-          <p>Install GCC 14, then compile and run in one step:</p>
+          <p>1. Install GCC 14:</p>
           <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo apt update && sudo apt install g++-14 -y
-
-g++-14 -std=c++23 -O3 -march=native \
+sudo apt update && sudo apt install g++-14 -y</pre>
+          <p>2. Compile and run:</p>
+          <pre>g++-14 -std=c++23 -O3 -march=native \
   -pthread -fno-exceptions -fno-rtti \
   primecover1024.cpp -o primecover
 
 ./primecover</pre>
+          <p>Each output line reports the optimal cover for one N:</p>
+          <pre>N=42 prime=181 lines=8 time=0.000s mode=W active=312</pre>
           <p>
-            Output lines look like:<br>
-            <code style="font-size:8px">N=42 prime=181 lines=8 time=0.000s mode=W active=312</code><br>
-            Where <code>mode=W</code> = witness hit (instant), <code>R</code> = root closed,
-            <code>D</code> = full branch-and-bound.
+            <code>mode</code> shows how the solution was reached —
+            <code>W</code> = witness hit (inherited from the previous prefix, near-instant),
+            <code>R</code> = root closed (bounds closed without search),
+            <code>D</code> = full branch-and-bound required.
           </p>
           <p>
-            Edit <code>kStartN</code> and <code>kExecutionLimit</code> at the top of the
-            file to control the sweep range. For AMD Zen 5, use <code>-march=znver5</code>
-            for a small extra gain. On Windows, run inside WSL and boost CPU priority with:
-            <code>(Get-Process vmmem*).PriorityClass = 'High'</code> in an elevated PowerShell.
+            By default the solver sweeps N = 1 to 1024. To change the range,
+            edit <code>kStartN</code> and <code>kExecutionLimit</code> at the top of the source file.
+          </p>
+          <p>
+            <code>-march=native</code> targets your CPU automatically. On AMD Zen 5, substitute
+            <code>-march=znver5</code> for a small additional gain. On Windows, run inside WSL —
+            and while the solver is running, boost its CPU priority from an elevated PowerShell with:<br>
+            <code>(Get-Process vmmem*).PriorityClass = 'High'</code>
           </p>
         </div>
       </details>
@@ -1956,9 +2164,8 @@ function drawMain(t) {
   /* Pre-compute screen positions */
   const lineSegs = coverLines.map((line) => {
     if (line.singlePoint) {
-      const sp    = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
-      const dashW = Math.min(w * 0.07, 32);
-      return { from: { x: sp.x - dashW, y: sp.y }, to: { x: sp.x + dashW, y: sp.y } };
+      const sp = toScreen(line.indices[0], line.p1.y, w, h, x, y, N, maxV);
+      return { from: { x: x, y: sp.y }, to: { x: x + w, y: sp.y } };
     }
     const sp1 = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
     const sp2 = toScreen(line.p2.x, line.p2.y, w, h, x, y, N, maxV);
