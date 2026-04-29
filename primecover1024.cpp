@@ -49,11 +49,11 @@ namespace {
 namespace config {
     constexpr int    kBitCapacity          = 1024; // DO NOT CHANGE - the core solver relies on this for fixed-size bitmask operations.
     constexpr int    kBitWords             = kBitCapacity / 64; // DO NOT CHANGE - derived from kBitCapacity.
-    constexpr int    kStartN               = 0; // Starting N for the sweep; 0 to start from 1
+    constexpr int    kStartN               = 0; // Move freely - Starting N for the sweep; 0 to start from 1
     constexpr int    kExecutionLimit       = 1024; // Move freely - the solver stops when it reaches this N. (1024 limit)
     
     // Wall-clock timeout limit per N in seconds. Set to 0 for no limit.
-    constexpr double kPerNTimeLimitSeconds = 0;
+    constexpr double kPerNTimeLimitSeconds = 0; // Move freely
 } // namespace config
 
 // ===========================================================================
