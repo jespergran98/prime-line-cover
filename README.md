@@ -159,9 +159,9 @@ The solver's behaviour can be adjusted by modifying constants in the `config` na
 |------|-------------|
 | `primecover1024.cpp` | Main solver source code (stats-only output). |
 | `primecover1024_line_coordinates.cpp` | Same solver, but outputs full line coordinates. |
-| `b373813.txt` | Two-column `N` and optimal lines (space-separated), N = 1..919. |
-| `b373813_stats.txt` | Detailed statistics line for each N (from `primecover1024.cpp`). |
-| `b373813_line_coordinates.txt` | Full line-by-line coordinates of each optimal cover (from `primecover1024_line_coordinates.cpp`). |
+| `A373813_cover_costs.txt` | Two-column `N` and optimal lines (space-separated), N = 1..919. |
+| `A373813_cover_stats.txt` | Detailed statistics for each N (time, search nodes, bounds, etc.), from `primecover1024.cpp`. |
+| `A373813_cover_lines.txt` | Full line-by-line coordinates of each optimal cover, from `primecover1024_line_coordinates.cpp`. |
 | `incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
 
 ## Old Solvers
