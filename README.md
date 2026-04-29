@@ -158,6 +158,10 @@ The solver's behaviour can be adjusted by modifying constants in the `config` na
 | `b373813_line_coordinates.txt` | Full line-by-line coordinates of each optimal cover (from `primecover1024_line_coordinates.cpp`). |
 | `incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
 
+## Old Solvers
+
+The `old_solvers/` folder contains earlier variants of the solver, preserved for reproducibility and to document the development history leading to the current version. They are provided as-is and are not actively maintained.
+
 ## Citation
 
 If you use this code or the computed results in your work, please cite the accompanying paper:
