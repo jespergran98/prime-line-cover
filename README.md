@@ -77,6 +77,8 @@ The paper [`incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf`
 
 ## Quick Start (Ubuntu / WSL)
 
+> **New to WSL?** If you don't have Ubuntu on Windows yet, [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) first by running `wsl --install` in PowerShell as Administrator, then reopen a Ubuntu terminal before continuing.
+
 ### 1. Install a modern C++ compiler (GCC 14)
 
 ```bash
