@@ -1,0 +1,2121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="favicon.png">
+<title>Prime Line Cover — OEIS A373813</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════
+   Design System — Mathematical Journal Aesthetic
+   ═══════════════════════════════════════════════════════ */
+:root {
+  /* Ink tones */
+  --ink:          #18263A;
+  --ink-70:       rgba(24,38,58,0.70);
+  --ink-45:       rgba(24,38,58,0.45);
+  --ink-18:       rgba(24,38,58,0.18);
+  --ink-08:       rgba(24,38,58,0.08);
+  --ink-04:       rgba(24,38,58,0.04);
+
+  /* Accent palette */
+  --gold:         #9A6B0A;
+  --gold-light:   rgba(154,107,10,0.12);
+  --teal:         #14736A;
+  --teal-light:   rgba(20,115,106,0.10);
+  --coral:        #A33228;
+  --blue:         #2A5499;
+  --blue-light:   rgba(42,84,153,0.10);
+  --olive:        #4E6B1A;
+  --plum:         #5E2F78;
+
+  /* Paper surfaces */
+  --paper:        #F5F2E9;
+  --paper-alt:    #EEE9D9;
+  --paper-deep:   #E7E1CE;
+  --canvas-bg:    #FDFCF8;
+  --white:        #FFFFFF;
+
+  /* Rule lines for paper texture */
+  --rule:         rgba(24,38,58,0.045);
+
+  /* Typography */
+  --serif: 'EB Garamond', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  --mono:  'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
+
+  /* Layout */
+  --side-w: 360px;
+  --r:  2px;
+  --r2: 5px;
+  --r3: 8px;
+
+  /* Animation */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.45, 0, 0.55, 1);
+}
+
+/* ── Reset ───────────────────────────────────────────── */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100vw; height: 100vh;
+  overflow: hidden;
+  background: var(--paper);
+  font-family: var(--serif);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  font-size: 15px;
+}
+
+/* ── App Shell ───────────────────────────────────────── */
+#app { display: flex; width: 100vw; height: 100vh; }
+
+/* ── Main Canvas Panel ───────────────────────────────── */
+#main-panel {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+  background: var(--canvas-bg);
+}
+
+/* Ruled paper lines going horizontal across canvas area */
+#main-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent,
+    transparent 27px,
+    var(--rule) 27px,
+    var(--rule) 28px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+#main-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* ── Awkward-Prime Flash ──────────────────────────────── */
+#awkward-flash {
+  position: absolute;
+  top: 38%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 8;
+  font-family: var(--serif);
+  font-size: 20px;
+  font-style: italic;
+  color: var(--gold);
+  opacity: 0;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+  text-shadow:
+    0 0 32px rgba(154,107,10,0.5),
+    0 0 8px rgba(154,107,10,0.3);
+}
+
+/* ── Side Panel ──────────────────────────────────────── */
+#side {
+  width: var(--side-w);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border-left: 1px solid var(--ink-18);
+  z-index: 10;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--ink-18) transparent;
+}
+#side::-webkit-scrollbar { width: 3px; }
+#side::-webkit-scrollbar-thumb { background: var(--ink-18); border-radius: 2px; }
+
+/* ── Panel Header ────────────────────────────────────── */
+#panel-header {
+  padding: 18px 22px 16px;
+  background: var(--paper);
+  border-bottom: 1px solid var(--ink-18);
+  flex-shrink: 0;
+}
+
+.header-title {
+  font-size: 16.5px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.3;
+  letter-spacing: 0.005em;
+}
+
+.header-sub {
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-70);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.header-links {
+  margin-top: 11px;
+  display: flex;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.h-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--blue);
+  background: var(--blue-light);
+  border: 1px solid rgba(42,84,153,0.25);
+  padding: 3px 10px;
+  border-radius: 99px;
+  letter-spacing: 0.06em;
+  text-decoration: none;
+  transition: background 0.18s, color 0.18s, border-color 0.18s;
+  white-space: nowrap;
+}
+.h-badge:hover {
+  background: var(--blue);
+  color: var(--white);
+  border-color: var(--blue);
+}
+.h-badge.gold {
+  color: var(--gold);
+  background: var(--gold-light);
+  border-color: rgba(154,107,10,0.28);
+}
+.h-badge.gold:hover {
+  background: var(--gold);
+  color: var(--white);
+  border-color: var(--gold);
+}
+
+/* ── Section Divider ─────────────────────────────────── */
+.sep {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--ink-18) 15%, var(--ink-18) 85%, transparent);
+  flex-shrink: 0;
+  margin: 0 14px;
+}
+
+.sep-full {
+  height: 1px;
+  background: var(--ink-18);
+  flex-shrink: 0;
+}
+
+/* ── Panel Block ─────────────────────────────────────── */
+.panel-block { padding: 15px 22px 18px; flex-shrink: 0; }
+
+/* ── Section Label ───────────────────────────────────── */
+.section-label {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--ink-45);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  margin-bottom: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ink-08);
+}
+
+/* ── Big Stat Block ──────────────────────────────────── */
+.stat-primary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2px;
+  margin-bottom: 12px;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r3);
+  overflow: hidden;
+}
+.sp-cell {
+  padding: 11px 14px;
+  background: var(--paper-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  position: relative;
+}
+.sp-cell:nth-child(1) { border-right: 1px solid var(--ink-08); border-bottom: 1px solid var(--ink-08); }
+.sp-cell:nth-child(2) { border-bottom: 1px solid var(--ink-08); }
+.sp-cell:nth-child(3) { border-right: 1px solid var(--ink-08); }
+
+.sp-label {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 400;
+  color: var(--ink-45);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+/* Math notation version */
+.sp-label-math {
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--ink-45);
+}
+
+.sp-val {
+  font-family: var(--mono);
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--ink);
+  line-height: 1;
+  letter-spacing: -0.04em;
+}
+.sp-val.c-blue  { color: var(--blue); }
+.sp-val.c-gold  { color: var(--gold); }
+.sp-val.c-teal  { color: var(--teal); }
+.sp-val.c-coral { color: var(--coral); }
+.sp-val.sm      { font-size: 18px; letter-spacing: -0.02em; }
+
+/* Bump animation for line count increases */
+@keyframes numBump {
+  0%   { transform: scale(1.0); color: var(--coral); }
+  25%  { transform: scale(1.15); }
+  100% { transform: scale(1.0); }
+}
+.sp-val.bump { animation: numBump 0.5s var(--ease-out); }
+
+/* ── Secondary Stats ─────────────────────────────────── */
+.stat-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 12px;
+}
+.stat-table td {
+  padding: 5px 0;
+  border-bottom: 1px solid var(--ink-04);
+  vertical-align: baseline;
+}
+.stat-table tr:last-child td { border-bottom: none; }
+.st-lbl {
+  font-size: 13px;
+  color: var(--ink-70);
+  font-style: italic;
+  width: 60%;
+}
+.st-val {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--ink);
+  text-align: right;
+  font-weight: 400;
+}
+.st-val.awkward {
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+}
+.st-val.awkward::before { content: '↑'; opacity: 0.7; }
+
+/* ── Controls Block ──────────────────────────────────── */
+.controls-block {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.btn {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 400;
+  background: var(--white);
+  border: 1px solid var(--ink-18);
+  color: var(--ink);
+  padding: 7px 14px;
+  cursor: pointer;
+  border-radius: var(--r2);
+  transition: all 0.15s;
+  flex-shrink: 0;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  text-transform: uppercase;
+}
+.btn:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+.btn.active {
+  background: var(--gold);
+  color: var(--white);
+  border-color: var(--gold);
+}
+
+.slider-group { flex: 1; display: flex; flex-direction: column; gap: 5px; }
+.slider-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.04em;
+}
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  background: transparent;
+  cursor: pointer;
+}
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  height: 14px; width: 14px;
+  border-radius: 50%;
+  background: var(--ink);
+  cursor: pointer;
+  margin-top: -5.5px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  transition: background 0.15s, transform 0.15s;
+  border: 2px solid var(--white);
+}
+input[type=range]::-webkit-slider-thumb:hover {
+  background: var(--gold);
+  transform: scale(1.2);
+}
+input[type=range]::-webkit-slider-runnable-track {
+  height: 3px;
+  background: var(--ink-18);
+  border-radius: 2px;
+}
+
+/* ── Status Bar ──────────────────────────────────────── */
+#status {
+  margin-top: 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  text-align: center;
+  padding: 5px 12px;
+  background: var(--paper-alt);
+  border-radius: var(--r2);
+  border: 1px solid var(--ink-08);
+  color: var(--ink-45);
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: 0.04em;
+  transition: color 0.3s;
+}
+
+/* ── Chart Container ─────────────────────────────────── */
+.chart-wrap {
+  position: relative;
+  height: 136px;
+  flex-shrink: 0;
+  background: var(--paper-alt);
+}
+.chart-wrap canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.chart-header {
+  position: absolute;
+  top: 9px;
+  left: 14px;
+  right: 14px;
+  z-index: 2;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart-title {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.chart-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* ── C++ Section ─────────────────────────────────────── */
+.cpp-section { padding: 14px 22px 18px; flex-shrink: 0; }
+
+.cpp-intro {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--ink-70);
+  font-style: italic;
+  margin-bottom: 11px;
+}
+.cpp-intro strong {
+  font-style: normal;
+  color: var(--ink);
+  font-weight: 600;
+}
+.cpp-intro code {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-style: normal;
+  background: var(--paper-deep);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-08);
+  color: var(--ink);
+}
+
+/* Performance highlight box */
+.perf-box {
+  background: var(--paper-alt);
+  border: 1px solid var(--ink-18);
+  border-left: 3px solid var(--teal);
+  border-radius: 0 var(--r2) var(--r2) 0;
+  padding: 9px 12px;
+  margin-bottom: 12px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-70);
+  letter-spacing: 0.03em;
+  line-height: 1.7;
+}
+.perf-box .perf-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+.perf-box .perf-val {
+  color: var(--teal);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.perf-box .perf-val.old {
+  color: var(--coral);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* Download buttons */
+.dl-row { display: flex; gap: 6px; margin-bottom: 11px; flex-wrap: wrap; }
+
+.dl-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 6px 11px;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  background: var(--white);
+  color: var(--blue);
+  text-decoration: none;
+  transition: all 0.15s;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  white-space: nowrap;
+}
+.dl-btn:hover { background: var(--blue); color: var(--white); border-color: var(--blue); }
+.dl-btn .ico { font-size: 11px; opacity: 0.85; }
+
+.dl-btn.secondary { color: var(--ink-70); }
+.dl-btn.secondary:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
+
+/* ── Tutorial collapsible ────────────────────────────── */
+details.tut {
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  overflow: hidden;
+  margin-bottom: 0;
+}
+details.tut summary {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-45);
+  padding: 7px 12px;
+  cursor: pointer;
+  user-select: none;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--paper-alt);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-bottom: 1px solid transparent;
+  transition: background 0.15s, color 0.15s;
+}
+details.tut[open] summary {
+  background: var(--paper-deep);
+  border-bottom-color: var(--ink-08);
+  color: var(--ink-70);
+}
+details.tut summary:hover { color: var(--ink); }
+details.tut summary::after {
+  content: '▾';
+  font-size: 9px;
+  opacity: 0.6;
+  transition: transform 0.2s;
+}
+details.tut[open] summary::after { transform: rotate(180deg); }
+details.tut summary::-webkit-details-marker { display: none; }
+
+.tut-body {
+  padding: 13px 14px;
+  background: var(--white);
+}
+.tut-body p {
+  font-size: 12.5px;
+  color: var(--ink-70);
+  line-height: 1.6;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.tut-body p:last-child { margin-bottom: 0; margin-top: 8px; }
+.tut-body pre {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 300;
+  color: var(--ink);
+  background: var(--paper-alt);
+  padding: 10px 13px;
+  border-radius: var(--r2);
+  border: 1px solid var(--ink-08);
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.9;
+  tab-size: 2;
+}
+.tut-body code {
+  font-family: var(--mono);
+  font-size: 10px;
+  background: var(--paper-alt);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-08);
+}
+
+/* Code comment highlight */
+.tut-body pre .comment { color: var(--ink-45); }
+
+/* ── Footer ──────────────────────────────────────────── */
+#footer {
+  padding: 10px 22px 12px;
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--ink-45);
+  border-top: 1px solid var(--ink-18);
+  line-height: 1.85;
+  flex-shrink: 0;
+  letter-spacing: 0.03em;
+  background: var(--paper-alt);
+}
+#footer a { color: var(--blue); text-decoration: none; }
+#footer a:hover { text-decoration: underline; }
+
+/* ── Canvas Corner Overlays ──────────────────────────── */
+.canvas-overlay {
+  position: absolute;
+  z-index: 5;
+  background: rgba(253,252,248,0.91);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r3);
+  padding: 15px 17px;
+  box-shadow:
+    0 4px 24px rgba(24,38,58,0.07),
+    0 1px 3px rgba(24,38,58,0.05);
+  pointer-events: auto;
+}
+
+#overlay-tl {
+  top: 48px;
+  left: 90px;
+  max-width: 390px;
+}
+
+#overlay-br {
+  bottom: 78px;
+  right: 44px;
+}
+
+.co-title {
+  font-family: var(--serif);
+  font-size: 17px;
+  font-weight: 500;
+  color: var(--ink);
+  line-height: 1.25;
+  letter-spacing: 0.005em;
+  margin-bottom: 3px;
+}
+
+.co-sub {
+  font-family: var(--serif);
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-70);
+  line-height: 1.4;
+}
+
+.co-sep {
+  height: 1px;
+  background: var(--ink-08);
+  margin: 10px 0;
+}
+
+.co-body {
+  font-family: var(--serif);
+  font-size: 13.5px;
+  line-height: 1.62;
+  color: var(--ink-70);
+}
+
+.co-mono-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink-45);
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.co-mono-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ink-08);
+}
+
+.co-code {
+  display: block;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  background: var(--paper-alt);
+  border: 1px solid var(--ink-08);
+  padding: 8px 11px;
+  border-radius: var(--r2);
+  color: var(--ink);
+  white-space: pre;
+  line-height: 1.65;
+  letter-spacing: 0.01em;
+}
+
+/* Legend items in bottom-right overlay */
+.co-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-70);
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+  white-space: nowrap;
+}
+.co-legend-item:last-child { margin-bottom: 0; }
+
+.co-leg-swatch {
+  flex-shrink: 0;
+  width: 26px;
+}
+.co-leg-heavy {
+  height: 2.5px;
+  background: var(--teal);
+  border-radius: 2px;
+  box-shadow: 0 0 5px rgba(20,115,106,0.35);
+}
+.co-leg-light {
+  height: 0;
+  border-top: 1.5px dashed rgba(24,38,58,0.38);
+  margin-top: 0.5px;
+}
+.co-leg-point-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 10px;
+}
+.co-leg-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ink);
+  border: 1.5px solid rgba(253,252,248,0.95);
+  box-shadow: 0 0 0 1px rgba(24,38,58,0.30);
+}
+
+/* ── Transition effects ──────────────────────────────── */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Awkward flash animation */
+@keyframes awkwardIn {
+  0%   { opacity: 0; transform: translate(-50%,-50%) scale(0.94); }
+  15%  { opacity: 1; transform: translate(-50%,-50%) scale(1.02); }
+  100% { opacity: 0; transform: translate(-50%,-58%) scale(1); }
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Main visualisation canvas ── -->
+  <div id="main-panel">
+    <canvas id="main-canvas"></canvas>
+
+    <!-- Top-left corner overlay: title, description, compile command -->
+    <div id="overlay-tl" class="canvas-overlay">
+      <div class="co-title">Prime Line Cover</div>
+      <div class="co-sub">Exact minimum line cover solver &middot; OEIS A373813</div>
+      <div class="co-sep"></div>
+      <div class="co-body">
+        Points <em>(i,&thinsp;p<sub>i</sub>)</em> for the first <em>N</em> primes are covered by
+        the fewest straight lines possible. Lines through ≥&thinsp;3 collinear points are
+        found via Lagrangian relaxation, an Exclusive Dependency Rule, and
+        incremental branch-and-bound.
+      </div>
+      <div class="co-sep"></div>
+      <div class="co-mono-label">Native C++ — primecover1024.cpp</div>
+      <code class="co-code">g++-14 -std=c++23 -O3 -march=native \
+  -pthread primecover1024.cpp -o solver
+./solver</code>
+    </div>
+
+    <!-- Bottom-right corner overlay: legend -->
+    <div id="overlay-br" class="canvas-overlay">
+      <div class="co-mono-label">Graph Legend</div>
+      <div class="co-legend-item">
+        <div class="co-leg-swatch"><div class="co-leg-heavy"></div></div>
+        Heavy line (≥ 3 pts)
+      </div>
+      <div class="co-legend-item">
+        <div class="co-leg-swatch"><div class="co-leg-light"></div></div>
+        Light line (1–2 pts)
+      </div>
+      <div class="co-legend-item">
+        <div class="co-leg-swatch">
+          <div class="co-leg-point-row"><div class="co-leg-dot"></div></div>
+        </div>
+        Prime point <em>(i, p<sub>i</sub>)</em>
+      </div>
+    </div>
+
+    <!-- Awkward prime notification -->
+    <div id="awkward-flash"></div>
+  </div>
+
+  <!-- ── Side panel ── -->
+  <div id="side">
+
+    <!-- Header -->
+    <div id="panel-header">
+      <div class="header-title">Minimum Line Cover of Prime Points</div>
+      <div class="header-sub">Exact solver for OEIS A373813 — visualised live</div>
+      <div class="header-links">
+        <a class="h-badge" href="https://oeis.org/A373813" target="_blank" rel="noopener">↗ OEIS A373813</a>
+        <a class="h-badge gold" href="./pdf_incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">PDF Paper</a>
+        <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover.git" target="_blank" rel="noopener">↗ GitHub</a>
+      </div>
+    </div>
+
+    <!-- Solver state block -->
+    <div class="panel-block">
+      <div class="section-label">Solver State</div>
+
+      <div class="stat-primary">
+        <div class="sp-cell">
+          <div class="sp-label-math">N</div>
+          <div class="sp-val c-blue" id="s-count">0</div>
+        </div>
+        <div class="sp-cell">
+          <div class="sp-label-math">p<sub>N</sub></div>
+          <div class="sp-val" id="s-latest">—</div>
+        </div>
+        <div class="sp-cell">
+          <div class="sp-label-math">f(N)</div>
+          <div class="sp-val c-gold" id="s-lines">0</div>
+        </div>
+        <div class="sp-cell">
+          <div class="sp-label">Compute</div>
+          <div class="sp-val c-coral sm" id="s-time">—</div>
+        </div>
+      </div>
+
+      <table class="stat-table">
+        <tr>
+          <td class="st-lbl">Heavy lines (≥ 3 pts)</td>
+          <td class="st-val" id="s-multi">0</td>
+        </tr>
+        <tr>
+          <td class="st-lbl">Max collinear pts</td>
+          <td class="st-val" id="s-maxcol">—</td>
+        </tr>
+        <tr>
+          <td class="st-lbl">Awkward primes seen</td>
+          <td class="st-val awkward" id="s-awkward">0</td>
+        </tr>
+      </table>
+
+      <div class="controls-block">
+        <button class="btn" id="btn-pause">Pause</button>
+        <div class="slider-group">
+          <div class="slider-row">
+            <span>Step interval</span>
+            <span id="speed-val">1.00 s</span>
+          </div>
+          <input type="range" id="slider-speed" min="50" max="2000" value="1000" step="50">
+        </div>
+      </div>
+
+      <div id="status">[Initialising…]</div>
+    </div>
+
+    <div class="sep-full"></div>
+
+    <!-- f(N) chart -->
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <div class="chart-dot" style="background: var(--teal);"></div>
+        <div class="chart-title">f(N) — optimal lines required</div>
+      </div>
+      <canvas id="lines-canvas"></canvas>
+    </div>
+
+    <div class="sep-full"></div>
+
+    <!-- Compute time chart -->
+    <div class="chart-wrap">
+      <div class="chart-header">
+        <div class="chart-dot" style="background: var(--blue);"></div>
+        <div class="chart-title">Compute time per step</div>
+      </div>
+      <canvas id="time-canvas"></canvas>
+    </div>
+
+    <div class="sep-full"></div>
+
+    <!-- C++ Solver section -->
+    <div class="cpp-section">
+      <div class="section-label">C++ Solver — primecover1024</div>
+
+      <p class="cpp-intro">
+        This JavaScript visualiser is a faithful translation of the exact C++ solver
+        described in the accompanying paper. The <strong>C++ version</strong> reaches
+        the prior world-record boundary (<strong>N = 861</strong>) in just
+        <strong>22 minutes</strong>. The current certified world record stands at
+        <strong>N = 919</strong>, with the run to N = 1024 in progress.
+      </p>
+
+      <div class="perf-box">
+        <div class="perf-row">
+          <span>Prior certified record (MIP solver)</span>
+          <span class="perf-val old">282 hrs @ N=861</span>
+        </div>
+        <div class="perf-row">
+          <span>This solver (high-end machine)</span>
+          <span class="perf-val">22 min @ N=861</span>
+        </div>
+        <div class="perf-row">
+          <span>Current world record</span>
+          <span class="perf-val">N = 919 ✓</span>
+        </div>
+      </div>
+
+      <div class="dl-row">
+        <a class="dl-btn" href="./primecover1024.cpp" download>
+          <span class="ico">↓</span> primecover1024.cpp
+        </a>
+        <a class="dl-btn secondary" href="./primecover1024_line_coordinates.cpp" download>
+          <span class="ico">↓</span> …_line_coords.cpp
+        </a>
+        <a class="dl-btn secondary" href="./A373813_cover_costs.txt" download>
+          <span class="ico">↓</span> A373813_costs.txt
+        </a>
+      </div>
+
+      <details class="tut">
+        <summary>Quick Start — Ubuntu / WSL</summary>
+        <div class="tut-body">
+          <p>Install GCC 14, then compile and run in one step:</p>
+          <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo apt update && sudo apt install g++-14 -y
+
+g++-14 -std=c++23 -O3 -march=native \
+  -pthread -fno-exceptions -fno-rtti \
+  primecover1024.cpp -o primecover
+
+./primecover</pre>
+          <p>
+            Output lines look like:<br>
+            <code style="font-size:8px">N=42 prime=181 lines=8 time=0.000s mode=W active=312</code><br>
+            Where <code>mode=W</code> = witness hit (instant), <code>R</code> = root closed,
+            <code>D</code> = full branch-and-bound.
+          </p>
+          <p>
+            Edit <code>kStartN</code> and <code>kExecutionLimit</code> at the top of the
+            file to control the sweep range. For AMD Zen 5, use <code>-march=znver5</code>
+            for a small extra gain. On Windows, run inside WSL and boost CPU priority with:
+            <code>(Get-Process vmmem*).PriorityClass = 'High'</code> in an elevated PowerShell.
+          </p>
+        </div>
+      </details>
+    </div>
+
+    <div class="sep-full"></div>
+
+    <div id="footer">
+      Jesper Gran Mikkelsen &middot; 2026 &middot;
+      <a href="https://oeis.org/A373813" target="_blank" rel="noopener">OEIS A373813</a>
+      &middot; <a href="./pdf_incremental_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">Paper (PDF)</a>
+      &middot; <a href="https://github.com/jespermp" target="_blank">GitHub</a>
+      &middot; MIT License
+    </div>
+
+  </div><!-- #side -->
+</div><!-- #app -->
+
+<script>
+(function () {
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   WEB WORKER SOURCE — Exact C++ Translation (1024-Bit Fix)
+   ═══════════════════════════════════════════════════════════════════════════ */
+const WORKER_SRC = `
+'use strict';
+
+const WORDS = 32; // Supports up to N = 32 * 32 = 1024
+
+/* ── Fast 32-bit popcount ──────────────────────── */
+function popcount32(n) {
+  n = n >>> 0;
+  n -= (n >>> 1) & 0x55555555;
+  n  = (n & 0x33333333) + ((n >>> 2) & 0x33333333);
+  n  = (n + (n >>> 4)) & 0x0f0f0f0f;
+  return (Math.imul(n, 0x01010101) >>> 24);
+}
+
+/* ── Enumerate Heavy Lines (>= 3 points) ────────────────────────────── */
+function buildCandidates(primes) {
+  var N = primes.length;
+  var lineMap = new Map();
+
+  for (var a = 0; a < N; a++) {
+    for (var b = a + 1; b < N; b++) {
+      var dx = b - a;
+      var dy = primes[b] - primes[a];
+      var cnt = 0;
+      var mask = new Int32Array(WORDS);
+
+      for (var c = 0; c < N; c++) {
+        if ((primes[c] - primes[a]) * dx === dy * (c - a)) {
+          mask[c >> 5] |= (1 << (c & 31));
+          cnt++;
+        }
+      }
+
+      /* Only consider heavy lines (cnt >= 3) for the B&B search */
+      if (cnt >= 3) {
+        var key = mask.join('|');
+        if (!lineMap.has(key)) {
+          var idxs = [];
+          for (var i = 0; i < N; i++) {
+              if (mask[i >> 5] & (1 << (i & 31))) idxs.push(i);
+          }
+          lineMap.set(key, {
+            mask: mask,
+            cnt: cnt,
+            p1: { x: a, y: primes[a] },
+            p2: { x: b, y: primes[b] },
+            indices: idxs
+          });
+        }
+      }
+    }
+  }
+
+  var cands = Array.from(lineMap.values());
+  cands.sort(function(a, b) { return b.cnt - a.cnt; });
+  return cands;
+}
+
+function getGain(mask, cov) {
+    var g = 0;
+    for(var i = 0; i < WORDS; i++) {
+        var active = mask[i] & ~cov[i];
+        if (active) g += popcount32(active);
+    }
+    return g;
+}
+
+/* ── Greedy upper bound & padding cost ────────────────────────────────────── */
+function greedySolve(cands, N) {
+  var cov = new Int32Array(WORDS);
+  var sol = [];
+
+  while (true) {
+    var bestIdx = -1, bestGain = 0;
+    for (var i = 0; i < cands.length; i++) {
+      var g = getGain(cands[i].mask, cov);
+      if (g > bestGain) { bestGain = g; bestIdx = i; }
+    }
+    if (bestGain < 3) break; /* Fallback to 2-point padding */
+    sol.push(cands[bestIdx]);
+    for(var w = 0; w < WORDS; w++) cov[w] |= cands[bestIdx].mask[w];
+  }
+  
+  /* Cost of remaining points is ceil(remaining / 2) */
+  var uncovPop = 0;
+  for(var i = 0; i < N; i++) {
+     if ((cov[i >> 5] & (1 << (i & 31))) === 0) uncovPop++;
+  }
+  var totalCost = sol.length + Math.ceil(uncovPop / 2);
+  
+  return { cost: totalCost, lines: sol, cov: cov };
+}
+
+/* ── Branch-and-bound with Exclusive Dependency Rule & Inequality LB ────── */
+var BB_counts = new Int32Array(1024);
+function coverInequalityLB(cov, cands, candIdx, N) {
+    var sMask = new Int32Array(WORDS);
+    var sPop = 0;
+    for(var i = 0; i < N; i++) {
+        if ((cov[i >> 5] & (1 << (i & 31))) === 0) {
+            sMask[i >> 5] |= (1 << (i & 31));
+            sPop++;
+        }
+    }
+
+    if (sPop <= 2) return Math.ceil(sPop / 2);
+
+    while (true) {
+        BB_counts.fill(0);
+        var numViolated = 0;
+        for (var i = candIdx; i < cands.length; i++) {
+            var c = cands[i];
+            var intersectPop = 0;
+            for(var w = 0; w < WORDS; w++) {
+                var active = c.mask[w] & sMask[w];
+                if (active) intersectPop += popcount32(active);
+            }
+            
+            if (intersectPop >= 3) {
+                numViolated++;
+                for(var k = 0; k < c.indices.length; k++) {
+                    var pt = c.indices[k];
+                    if (sMask[pt >> 5] & (1 << (pt & 31))) {
+                        BB_counts[pt]++;
+                    }
+                }
+            }
+        }
+        
+        if (numViolated === 0) {
+            return Math.ceil(sPop / 2);
+        }
+
+        var maxC = 0, maxP = -1;
+        for (var p = 0; p < N; p++) {
+            if (BB_counts[p] > maxC) {
+                maxC = BB_counts[p];
+                maxP = p;
+            }
+        }
+
+        sMask[maxP >> 5] &= ~(1 << (maxP & 31));
+        sPop--;
+    }
+}
+
+var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
+var BB_nodes = 0;
+var BB_N = 0;
+var BB_NODE_LIMIT = 5000000;
+
+function solve(candIdx, cov) {
+  if (++BB_nodes >= BB_NODE_LIMIT) return;
+  
+  var uncovPop = 0;
+  for(var i = 0; i < BB_N; i++) {
+     if ((cov[i >> 5] & (1 << (i & 31))) === 0) uncovPop++;
+  }
+
+  /* Current assumed cost = chosen heavy lines + perfect padding for remaining */
+  var currentCost = BB_chosen.length + Math.ceil(uncovPop / 2);
+
+  /* If padding right now is strictly better than best known, capture it */
+  if (currentCost < BB_bestCnt) {
+    BB_bestCnt = currentCost;
+    BB_bestSol = BB_chosen.slice();
+  }
+
+  if (candIdx >= BB_cands.length || uncovPop === 0) return;
+
+  var maxG = 0;
+  var remMask = new Int32Array(WORDS);
+  var overlapMask = new Int32Array(WORDS);
+
+  for (var i = candIdx; i < BB_cands.length; i++) {
+    var c = BB_cands[i];
+    var g = 0;
+    for(var w = 0; w < WORDS; w++) {
+       var act = c.mask[w] & ~cov[w];
+       if (act) {
+           g += popcount32(act);
+           overlapMask[w] |= (remMask[w] & c.mask[w]);
+           remMask[w] |= c.mask[w];
+       }
+    }
+    if (g > maxG) maxG = g;
+  }
+
+  /* Early exit if no heavy lines remain */
+  if (maxG < 3) return;
+
+  /* Lower bounds to prune search space effectively */
+  var lbCov = coverInequalityLB(cov, BB_cands, candIdx, BB_N);
+  var lbBasic = Math.ceil(uncovPop / maxG);
+  var lb = BB_chosen.length + Math.max(lbCov, lbBasic);
+
+  if (lb >= BB_bestCnt) return;
+
+  var c = BB_cands[candIdx];
+  var gain = 0;
+  var forcedPop = 0;
+
+  for(var w = 0; w < WORDS; w++) {
+      var uncov = ~cov[w];
+      var act = c.mask[w] & uncov;
+      if (act) gain += popcount32(act);
+      
+      var unique = (remMask[w] ^ overlapMask[w]) & uncov;
+      if (c.mask[w] & unique) forcedPop += popcount32(c.mask[w] & unique);
+  }
+
+  /* Exclusive Dependency Rule (Forced Lines) */
+  var isForced = forcedPop >= 3;
+
+  /* Branch 1: Include candidate (only if it covers >= 3 uncovered points) */
+  if (gain >= 3) {
+    BB_chosen.push(c);
+    var nextCov = new Int32Array(WORDS);
+    for(var w = 0; w < WORDS; w++) nextCov[w] = cov[w] | c.mask[w];
+    solve(candIdx + 1, nextCov);
+    BB_chosen.pop();
+  }
+
+  /* Branch 2: Exclude candidate (skip if mathematically forced) */
+  if (!isForced) {
+    solve(candIdx + 1, cov);
+  }
+}
+
+/* ── Main entry ───────────────────────────────────────────────────────────── */
+function computeCover(primes) {
+  var N = primes.length;
+  BB_N = N;
+  if (N === 0) return { lines: [], pointHues: [] };
+
+  if (N === 1) {
+    var p0 = primes[0];
+    return {
+      lines: [{ indices:[0], p1:{x:0,y:p0}, p2:{x:1,y:p0}, singlePoint:true }],
+      pointHues: []
+    };
+  }
+
+  var cands = buildCandidates(primes);
+  var greedy = greedySolve(cands, N);
+  var ub     = greedy.cost;
+  var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
+  var lb        = Math.ceil(N / maxSingle);
+  var bestSol = greedy.lines;
+
+  if (ub > lb) {
+    BB_cands   = cands;
+    BB_bestCnt = ub;
+    BB_bestSol = greedy.lines;
+    BB_chosen  = [];
+    BB_nodes   = 0;
+    var initCov = new Int32Array(WORDS);
+    solve(0, initCov); 
+    bestSol = BB_bestSol;
+  }
+
+  return finalise(N, primes, bestSol);
+}
+
+function finalise(N, primes, sol) {
+  var lines = [];
+  var covered = new Array(N).fill(false);
+  
+  for (var i = 0; i < sol.length; i++) {
+    var li = sol[i].indices;
+    for (var k = 0; k < li.length; k++) {
+        covered[li[k]] = true;
+    }
+    lines.push({ indices: li, p1: sol[i].p1, p2: sol[i].p2, isHeavy: true, heavyIndex: i });
+  }
+
+  var residuals = [];
+  for(var p = 0; p < N; p++) {
+      if(!covered[p]) residuals.push(p);
+  }
+
+  for(var r = 0; r < residuals.length; r += 2) {
+      if (r + 1 < residuals.length) {
+          var p1 = residuals[r], p2 = residuals[r+1];
+          lines.push({
+              indices: [p1, p2],
+              p1: {x: p1, y: primes[p1]},
+              p2: {x: p2, y: primes[p2]},
+              isHeavy: false
+          });
+      } else {
+          var pSolo = residuals[r];
+          lines.push({
+              indices: [pSolo],
+              p1: {x: pSolo - 0.5, y: primes[pSolo]},
+              p2: {x: pSolo + 0.5, y: primes[pSolo]},
+              isHeavy: false,
+              singlePoint: true
+          });
+      }
+  }
+
+  return { lines: lines };
+}
+
+self.onmessage = function(e) {
+  var result = computeCover(e.data.primes);
+  self.postMessage(result);
+};
+`;
+
+/* ── Worker bootstrap ─────────────────────────────────────────────────────── */
+const workerBlob = new Blob([WORKER_SRC], { type: 'application/javascript' });
+const worker     = new Worker(URL.createObjectURL(workerBlob));
+
+let workerWarmedUp = false;
+worker.postMessage({ primes: [] });
+
+/* ── Canvas refs ──────────────────────────────────────────────────────────── */
+const mcEl = document.getElementById('main-canvas');
+const lcEl = document.getElementById('lines-canvas');
+const tcEl = document.getElementById('time-canvas');
+const mctx = mcEl.getContext('2d');
+const lctx = lcEl.getContext('2d');
+const tctx = tcEl.getContext('2d');
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  const mp  = document.getElementById('main-panel');
+  const lp  = lcEl.parentElement;
+  const tp  = tcEl.parentElement;
+  mcEl.width  = Math.round(mp.offsetWidth  * dpr);
+  mcEl.height = Math.round(mp.offsetHeight * dpr);
+  lcEl.width  = Math.round(lp.offsetWidth  * dpr);
+  lcEl.height = Math.round(lp.offsetHeight * dpr);
+  tcEl.width  = Math.round(tp.offsetWidth  * dpr);
+  tcEl.height = Math.round(tp.offsetHeight * dpr);
+}
+
+/* ── DOM refs ─────────────────────────────────────────────────────────────── */
+const elCount   = document.getElementById('s-count');
+const elLatest  = document.getElementById('s-latest');
+const elLines   = document.getElementById('s-lines');
+const elMulti   = document.getElementById('s-multi');
+const elMaxcol  = document.getElementById('s-maxcol');
+const elTime    = document.getElementById('s-time');
+const elStatus  = document.getElementById('status');
+const elAwkward = document.getElementById('s-awkward');
+const awkFlash  = document.getElementById('awkward-flash');
+
+const btnPause    = document.getElementById('btn-pause');
+const sliderSpeed = document.getElementById('slider-speed');
+const valSpeed    = document.getElementById('speed-val');
+
+/* ── State ────────────────────────────────────────────────────────────────── */
+const MAX_N   = 1024;
+const primes  = [];
+let coverLines = [];
+let history    = [];
+
+let nextCand        = 2;
+let pendingPrime    = null;
+let computeStart    = 0;
+let workerBusy      = false;
+let pendingResult   = null;
+let lastComputeMs   = 0;
+let lastDisplayTime = -Infinity;
+let initialized     = false;
+
+let isPaused = false;
+let INTERVAL = parseInt(sliderSpeed.value, 10);
+
+/* ── ANIMATION SYSTEM: fixed 650ms per line, independent of step interval ── */
+/*    Each line gets its own birth timestamp so animations always complete   */
+const ANIM_DUR = 650;   // ms — fixed duration for line draw-on animation
+const ANIM_STAGGER = 55; // ms between lines
+let linesBirth   = [];   // birth time for each line in coverLines (ms)
+let currentT     = 0;
+let t0           = null;
+let rippleT      = -99999;
+
+/* Awkward prime tracking */
+let prevLineCount = 0;
+let awkwardCount  = 0;
+
+/* Colour palette — academic ink tones */
+const PALETTE = [
+  '#9A6B0A',  // Gold
+  '#14736A',  // Teal
+  '#A33228',  // Coral
+  '#2A5499',  // Blue
+  '#4E6B1A',  // Olive
+  '#5E2F78'   // Plum
+];
+const COLOR_INK = '#18263A';
+
+/* Lighter glow versions */
+const PALETTE_GLOW = [
+  'rgba(154,107,10,0.18)',
+  'rgba(20,115,106,0.18)',
+  'rgba(163,50,40,0.18)',
+  'rgba(42,84,153,0.18)',
+  'rgba(78,107,26,0.18)',
+  'rgba(94,47,120,0.18)'
+];
+
+resize();
+window.addEventListener('resize', resize);
+
+/* ── Controls ─────────────────────────────────────────────────────────────── */
+btnPause.addEventListener('click', () => {
+  isPaused = !isPaused;
+  btnPause.textContent = isPaused ? 'Resume' : 'Pause';
+  btnPause.classList.toggle('active', isPaused);
+  if (!isPaused) {
+    lastDisplayTime = performance.now();
+    setStatus('Resuming…', COLOR_INK);
+  } else {
+    setStatus('[Paused]', '#5E2F78');
+  }
+});
+
+sliderSpeed.addEventListener('input', (e) => {
+  INTERVAL = parseInt(e.target.value, 10);
+  valSpeed.textContent = (INTERVAL / 1000).toFixed(2) + ' s';
+});
+
+/* ── Primality test ──────────────────────────────────────────────────────── */
+function isPrime(n) {
+  if (n < 2) return false;
+  if (n === 2) return true;
+  if (n % 2 === 0) return false;
+  for (let i = 3; i * i <= n; i += 2) if (n % i === 0) return false;
+  return true;
+}
+
+function advancePrime() {
+  while (!isPrime(nextCand)) nextCand++;
+  return nextCand++;
+}
+
+/* ── Worker interface ────────────────────────────────────────────────────── */
+function startCompute() {
+  if (primes.length >= MAX_N) {
+    setStatus('[Complete: N = ' + MAX_N + ']', '#4E6B1A');
+    return;
+  }
+  const p     = advancePrime();
+  pendingPrime  = p;
+  computeStart  = performance.now();
+  workerBusy    = true;
+  pendingResult = null;
+  worker.postMessage({ primes: [...primes, p] });
+}
+
+worker.onmessage = function (e) {
+  if (!workerWarmedUp) { workerWarmedUp = true; return; }
+  lastComputeMs = performance.now() - computeStart;
+  workerBusy    = false;
+  pendingResult = e.data;
+};
+
+function tryApply(now) {
+  if (isPaused || workerBusy || pendingResult === null) return;
+  if (now - lastDisplayTime < INTERVAL) return;
+
+  primes.push(pendingPrime);
+  coverLines = pendingResult.lines;
+
+  let multiPt = 0, maxCol = 0;
+  for (const l of coverLines) {
+    if (l.indices.length >= 3) multiPt++;
+    if (l.indices.length > maxCol) maxCol = l.indices.length;
+  }
+
+  history.push({ n: primes.length, lineCount: coverLines.length, computeMs: lastComputeMs });
+
+  /* Assign birth times for each line — staggered animation regardless of interval */
+  linesBirth = coverLines.map((_, i) => currentT + i * ANIM_STAGGER);
+
+  rippleT = currentT;
+  lastDisplayTime = now;
+
+  /* Detect awkward prime (f(N) stepped up) */
+  const isAwkward = history.length >= 2 &&
+    history[history.length - 1].lineCount > history[history.length - 2].lineCount;
+  if (isAwkward) {
+    awkwardCount++;
+    elAwkward.textContent = awkwardCount;
+    showAwkwardFlash(pendingPrime, coverLines.length);
+  }
+
+  if (isAwkward) {
+    elLines.classList.remove('bump');
+    void elLines.offsetWidth;
+    elLines.classList.add('bump');
+  }
+
+  elCount.textContent  = primes.length;
+  elLatest.textContent = pendingPrime;
+  elLines.textContent  = coverLines.length;
+  elMulti.textContent  = multiPt;
+  elMaxcol.textContent = maxCol || '—';
+  elTime.textContent   = lastComputeMs < 1000
+    ? lastComputeMs.toFixed(0) + ' ms'
+    : (lastComputeMs / 1000).toFixed(2) + ' s';
+
+  pendingPrime  = null;
+  pendingResult = null;
+
+  startCompute();
+}
+
+/* ── Awkward prime flash ─────────────────────────────────────────────────── */
+function showAwkwardFlash(p, fn) {
+  awkFlash.textContent = `f(N) ↑   awkward prime  p = ${p}`;
+  awkFlash.style.animation = 'none';
+  void awkFlash.offsetHeight;
+  awkFlash.style.animation = 'awkwardIn 3s ease-out forwards';
+}
+
+/* ── Status helpers ──────────────────────────────────────────────────────── */
+function setStatus(text, color) {
+  if (elStatus.textContent !== text) elStatus.textContent = text;
+  elStatus.style.color = color;
+}
+
+function updateStatus(now) {
+  if (isPaused) return;
+  if (!initialized) { setStatus('[Initialising…]', '#4E6B1A'); return; }
+  if (primes.length >= MAX_N && !workerBusy && pendingResult === null) return;
+
+  if (!workerBusy && pendingResult !== null) {
+    const wait = Math.max(0, INTERVAL - (now - lastDisplayTime));
+    if (wait > 80) setStatus('Yielding: ' + (wait / 1000).toFixed(2) + ' s', '#2A5499');
+    else           setStatus('Evaluating constraints…', '#9A6B0A');
+  } else {
+    const elapsed = now - computeStart;
+    if (elapsed > INTERVAL)
+      setStatus('Computing… ' + (elapsed / 1000).toFixed(1) + ' s', '#A33228');
+    else {
+      const wait = Math.max(0, INTERVAL - elapsed);
+      setStatus('Yielding: ' + (wait / 1000).toFixed(2) + ' s', '#2A5499');
+    }
+  }
+}
+
+/* ── Coordinate helpers ──────────────────────────────────────────────────── */
+/* Margins: top, right, bottom, left */
+const MM = { t: 60, r: 50, b: 62, l: 72 };
+
+function toScreen(ix, val, w, h, x, y, N, maxV) {
+  const sx = N > 1 ? x + (ix / (N - 1)) * w : x + w / 2;
+  const sy = y + h - (val / maxV) * h;
+  return { x: sx, y: sy };
+}
+
+function clipLine(sp1, sp2, bx, by, bw, bh) {
+  const dx = sp2.x - sp1.x, dy = sp2.y - sp1.y;
+  const EPS = 1e-9, rx = bx + bw, ry = by + bh;
+  const pts = [];
+
+  const addT = t => {
+    const x = sp1.x + t * dx, y = sp1.y + t * dy;
+    if (x >= bx - EPS && x <= rx + EPS && y >= by - EPS && y <= ry + EPS)
+      pts.push({ x: Math.max(bx, Math.min(rx, x)), y: Math.max(by, Math.min(ry, y)) });
+  };
+
+  if (Math.abs(dx) > EPS) { addT((bx - sp1.x) / dx); addT((rx - sp1.x) / dx); }
+  if (Math.abs(dy) > EPS) { addT((by - sp1.y) / dy); addT((ry - sp1.y) / dy); }
+  if (pts.length < 2) return null;
+
+  let md = 0, pa = pts[0], pb = pts[1];
+  for (let i = 0; i < pts.length; i++)
+    for (let j = i + 1; j < pts.length; j++) {
+      const d = (pts[i].x - pts[j].x) ** 2 + (pts[i].y - pts[j].y) ** 2;
+      if (d > md) { md = d; pa = pts[i]; pb = pts[j]; }
+    }
+  return md > 0.25 ? [pa, pb] : null;
+}
+
+/* Smooth ease-in-out */
+function ease(t) { return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MAIN CANVAS DRAW
+   ───────────────────────────────────────────────────────────────────────── */
+function drawMain(t) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = mcEl.width / dpr, H = mcEl.height / dpr;
+  mctx.save();
+  mctx.scale(dpr, dpr);
+
+  /* ── Background: warm off-white ── */
+  mctx.fillStyle = '#FDFCF8';
+  mctx.fillRect(0, 0, W, H);
+
+  /* ── Subtle dot grid ── */
+  const gsp = 28;
+  mctx.fillStyle = 'rgba(24,38,58,0.048)';
+  for (let gx = gsp; gx < W; gx += gsp)
+    for (let gy = gsp; gy < H; gy += gsp) {
+      mctx.beginPath();
+      mctx.arc(gx, gy, 0.7, 0, Math.PI * 2);
+      mctx.fill();
+    }
+
+  const x = MM.l, y = MM.t, w = W - MM.l - MM.r, h = H - MM.t - MM.b;
+
+  /* ── Corner Annotations (use empty space) ── */
+  if (primes.length > 0) {
+    const N = primes.length, maxV = primes[N - 1];
+
+    /* ── TOP-LEFT CORNER: Mathematical definition ── */
+    /* This corner is empty because early primes are small values
+       (points cluster toward bottom-left of the plot area) */
+    drawTopLeftAnnotation(mctx, x, y, w, h, N, maxV);
+
+    /* ── BOTTOM-RIGHT CORNER: Live stats overlay ── */
+    /* This corner has no points since primes are monotonically increasing */
+    drawBottomRightAnnotation(mctx, x, y, w, h, N, maxV);
+  }
+
+  if (!primes.length) { mctx.restore(); return; }
+
+  const N = primes.length, maxV = primes[N - 1];
+  const xStep = Math.max(1, Math.ceil(N / 10));
+
+  /* ── Vertical guide lines ── */
+  mctx.save();
+  mctx.setLineDash([1, 5]);
+  mctx.lineWidth = 0.8;
+  mctx.strokeStyle = 'rgba(24,38,58,0.06)';
+  for (let i = 0; i < N; i += xStep) {
+    const sx = N > 1 ? x + (i / (N - 1)) * w : x + w / 2;
+    mctx.beginPath(); mctx.moveTo(sx, y); mctx.lineTo(sx, y + h); mctx.stroke();
+  }
+  /* Horizontal guide lines */
+  for (let i = 1; i <= 4; i++) {
+    mctx.beginPath();
+    mctx.moveTo(x, y + i / 4 * h);
+    mctx.lineTo(x + w, y + i / 4 * h);
+    mctx.stroke();
+  }
+  mctx.setLineDash([]);
+  mctx.restore();
+
+  /* ── Axes ── */
+  mctx.save();
+  mctx.strokeStyle = COLOR_INK;
+  mctx.lineWidth   = 1.4;
+  mctx.lineCap     = 'round';
+  mctx.beginPath();
+  mctx.moveTo(x, y - 16);
+  mctx.lineTo(x, y + h);
+  mctx.lineTo(x + w + 16, y + h);
+  mctx.stroke();
+
+  /* Arrowheads */
+  mctx.fillStyle = COLOR_INK;
+  mctx.beginPath();
+  mctx.moveTo(x, y - 22); mctx.lineTo(x - 3.5, y - 10); mctx.lineTo(x + 3.5, y - 10);
+  mctx.fill();
+  mctx.beginPath();
+  mctx.moveTo(x + w + 22, y + h);
+  mctx.lineTo(x + w + 10, y + h - 3.5); mctx.lineTo(x + w + 10, y + h + 3.5);
+  mctx.fill();
+  mctx.restore();
+
+  /* ── Tick marks & axis labels ── */
+  mctx.save();
+  mctx.font = '11px "JetBrains Mono", monospace';
+  mctx.fillStyle = 'rgba(24,38,58,0.62)';
+  mctx.strokeStyle = 'rgba(24,38,58,0.5)';
+  mctx.lineWidth = 1;
+  mctx.textAlign = 'right';
+
+  for (let i = 0; i <= 4; i++) {
+    const val = Math.round(i / 4 * maxV);
+    const sy  = y + h - i / 4 * h;
+    mctx.fillText(val, x - 8, sy + 3.5);
+    mctx.beginPath(); mctx.moveTo(x - 4, sy); mctx.lineTo(x, sy); mctx.stroke();
+  }
+
+  mctx.textAlign = 'center';
+  for (let i = 0; i < N; i += xStep) {
+    const sx = N > 1 ? x + (i / (N - 1)) * w : x + w / 2;
+    mctx.fillText(i + 1, sx, y + h + 17);
+    mctx.beginPath(); mctx.moveTo(sx, y + h); mctx.lineTo(sx, y + h + 4); mctx.stroke();
+  }
+
+  /* Axis name labels — italic serif math style */
+  mctx.font = 'italic 14px "EB Garamond", serif';
+  mctx.fillStyle = 'rgba(24,38,58,0.55)';
+  mctx.fillText('i', x + w / 2, y + h + 42);
+
+  mctx.save();
+  mctx.translate(x - 50, y + h / 2);
+  mctx.rotate(-Math.PI / 2);
+  mctx.fillText('p\u1D35', 0, 0); /* p with subscript i */
+  mctx.restore();
+  mctx.restore();
+
+  /* ─────────────────────────────────────────────────
+     COVERING LINES — three-pass rendering
+     ───────────────────────────────────────────────── */
+  const nL = coverLines.length;
+
+  /* Pre-compute screen positions */
+  const lineSegs = coverLines.map((line) => {
+    if (line.singlePoint) {
+      const sp    = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
+      const dashW = Math.min(w * 0.07, 32);
+      return { from: { x: sp.x - dashW, y: sp.y }, to: { x: sp.x + dashW, y: sp.y } };
+    }
+    const sp1 = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
+    const sp2 = toScreen(line.p2.x, line.p2.y, w, h, x, y, N, maxV);
+    const cl  = clipLine(sp1, sp2, x, y, w, h);
+    return cl ? { from: cl[0], to: cl[1] } : null;
+  });
+
+  mctx.save();
+  mctx.lineCap  = 'round';
+  mctx.lineJoin = 'round';
+
+  /* Helper: get animation progress for line i (0..1) */
+  function lineProgress(i) {
+    if (!linesBirth[i] && linesBirth[i] !== 0) return 1;
+    const age = t - linesBirth[i];
+    if (age <= 0) return 0;
+    return ease(Math.min(1, age / ANIM_DUR));
+  }
+
+  /* Pass 1: Wide glow halo for heavy lines (using shadow blur) */
+  coverLines.forEach((line, li) => {
+    if (!line.isHeavy) return;
+    const seg = lineSegs[li];
+    if (!seg) return;
+    const p = lineProgress(li);
+    if (p <= 0) return;
+
+    const col = PALETTE[line.heavyIndex % PALETTE.length];
+    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
+    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
+
+    mctx.globalAlpha = 0.22 * Math.min(p * 3, 1);
+    mctx.strokeStyle = col;
+    mctx.lineWidth   = 9;
+    mctx.shadowColor = col;
+    mctx.shadowBlur  = 12;
+    mctx.setLineDash([]);
+    mctx.beginPath();
+    mctx.moveTo(seg.from.x, seg.from.y);
+    mctx.lineTo(ex, ey);
+    mctx.stroke();
+    mctx.shadowBlur = 0;
+  });
+
+  mctx.globalAlpha = 1;
+
+  /* Pass 2: Light lines (dashed) */
+  coverLines.forEach((line, li) => {
+    if (line.isHeavy) return;
+    const seg = lineSegs[li];
+    if (!seg) return;
+    const p = lineProgress(li);
+    if (p <= 0) return;
+
+    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
+    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
+
+    mctx.globalAlpha = 0.28 + p * 0.28;
+    mctx.strokeStyle = COLOR_INK;
+    mctx.lineWidth   = 1.1;
+    mctx.setLineDash([3, 6]);
+    mctx.beginPath();
+    mctx.moveTo(seg.from.x, seg.from.y);
+    mctx.lineTo(ex, ey);
+    mctx.stroke();
+  });
+
+  mctx.globalAlpha = 1;
+  mctx.setLineDash([]);
+
+  /* Pass 3: Core heavy lines */
+  coverLines.forEach((line, li) => {
+    if (!line.isHeavy) return;
+    const seg = lineSegs[li];
+    if (!seg) return;
+    const p = lineProgress(li);
+    if (p <= 0) return;
+
+    const col = PALETTE[line.heavyIndex % PALETTE.length];
+    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
+    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
+
+    mctx.globalAlpha = 0.75 + p * 0.2;
+    mctx.strokeStyle = col;
+    mctx.lineWidth   = 1.9;
+
+    mctx.beginPath();
+    mctx.moveTo(seg.from.x, seg.from.y);
+    mctx.lineTo(ex, ey);
+    mctx.stroke();
+
+    /* Leading-edge bright dot during draw-on animation */
+    if (p < 0.98) {
+      mctx.globalAlpha = 1;
+      /* Outer halo */
+      mctx.beginPath();
+      mctx.arc(ex, ey, 5.5, 0, Math.PI * 2);
+      mctx.fillStyle = col;
+      mctx.globalAlpha = 0.2;
+      mctx.fill();
+      /* Core dot */
+      mctx.beginPath();
+      mctx.arc(ex, ey, 2.8, 0, Math.PI * 2);
+      mctx.fillStyle = col;
+      mctx.globalAlpha = 1;
+      mctx.fill();
+      /* Tiny bright center */
+      mctx.beginPath();
+      mctx.arc(ex, ey, 1.2, 0, Math.PI * 2);
+      mctx.fillStyle = '#FDFCF8';
+      mctx.fill();
+    }
+  });
+
+  mctx.globalAlpha = 1;
+  mctx.setLineDash([]);
+  mctx.restore();
+
+  /* ─────────────────────────────────────────────────
+     PRIME DOTS
+     ───────────────────────────────────────────────── */
+  const rAge = t - rippleT;
+
+  primes.forEach((pt, i) => {
+    const { x: sx, y: sy } = toScreen(i, pt, w, h, x, y, N, maxV);
+    const isNew = i === N - 1;
+    const r     = isNew ? 5.5 : 3.2;
+
+    /* Ripple rings for newest point */
+    if (isNew && rAge < 2200) {
+      for (let ring = 0; ring < 3; ring++) {
+        const age2  = rAge - ring * 280;
+        if (age2 < 0) continue;
+        const rp    = age2 / 2200;
+        const alpha = (1 - rp) * (ring === 0 ? 0.5 : ring === 1 ? 0.25 : 0.12);
+        mctx.beginPath();
+        mctx.arc(sx, sy, r + rp * 32, 0, Math.PI * 2);
+        mctx.strokeStyle = `rgba(154,107,10,${alpha})`;
+        mctx.lineWidth   = ring === 0 ? 1.4 : 0.8;
+        mctx.stroke();
+      }
+    }
+
+    /* Determine point color from its covering line */
+    let ptColor = COLOR_INK;
+    for (const l of coverLines) {
+      if (l.isHeavy && l.indices.includes(i)) {
+        ptColor = PALETTE[l.heavyIndex % PALETTE.length];
+        break;
+      }
+    }
+
+    /* Draw point shadow/glow */
+    if (isNew) {
+      mctx.beginPath();
+      mctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
+      mctx.fillStyle = ptColor.replace(')', ',0.15)').replace('rgb(', 'rgba(');
+      mctx.globalAlpha = 0.4;
+      mctx.fill();
+      mctx.globalAlpha = 1;
+    }
+
+    /* Outer circle */
+    mctx.beginPath();
+    mctx.arc(sx, sy, r, 0, Math.PI * 2);
+    mctx.fillStyle   = isNew ? '#FDFCF8' : ptColor;
+    mctx.strokeStyle = isNew ? ptColor   : '#FDFCF8';
+    mctx.lineWidth   = isNew ? 2.2       : 1.4;
+    mctx.fill();
+    mctx.stroke();
+
+    /* Inner dot for newest point */
+    if (isNew) {
+      mctx.beginPath();
+      mctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+      mctx.fillStyle = ptColor;
+      mctx.fill();
+    }
+
+    /* Value label */
+    const showLabel = N <= 20 || isNew || i % Math.ceil(N / 8) === 0;
+    if (showLabel) {
+      mctx.font      = isNew
+        ? '500 11px "JetBrains Mono", monospace'
+        : '10px "JetBrains Mono", monospace';
+      mctx.fillStyle = isNew ? ptColor : 'rgba(24,38,58,0.55)';
+      mctx.textAlign = 'center';
+      mctx.fillText(pt, sx, sy - r - 6);
+    }
+  });
+
+  mctx.restore();
+}
+
+/* ── Top-left corner annotation — replaced by #overlay-tl HTML panel ── */
+function drawTopLeftAnnotation(ctx, x, y, w, h, N, maxV) { /* no-op */ }
+
+/* ── Bottom-right corner annotation — replaced by #overlay-br HTML panel ── */
+function drawBottomRightAnnotation(ctx, x, y, w, h, N, maxV) { /* no-op */ }
+
+/* ── Rounded rect helper ─────────────────────────────────────────────────── */
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MINI CHARTS
+   ───────────────────────────────────────────────────────────────────────── */
+function drawMiniGraph(ctx, canvas, dataMapper, formatY, isStep) {
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.width / dpr, H = canvas.height / dpr;
+  ctx.save();
+  ctx.scale(dpr, dpr);
+
+  /* Background */
+  ctx.fillStyle = '#EEE9D9';
+  ctx.fillRect(0, 0, W, H);
+
+  const gx = 42, gy = 26, gw = W - gx - 14, gh = H - gy - 22;
+  if (!history.length) { ctx.restore(); return; }
+
+  const mxN  = history[history.length - 1].n;
+  const maxY = Math.max(...history.map(dataMapper), 2);
+  const niceY = maxY < 10 ? Math.ceil(maxY) : Math.ceil(maxY / 5) * 5;
+
+  function toG(n, val) {
+    return {
+      x: gx + ((n - 1) / Math.max(mxN - 1, 1)) * gw,
+      y: gy + gh - (val / niceY) * gh
+    };
+  }
+
+  /* Grid */
+  ctx.save();
+  ctx.setLineDash([1, 4.5]);
+  ctx.lineWidth    = 0.8;
+  ctx.strokeStyle  = 'rgba(24,38,58,0.09)';
+  for (let i = 0; i <= 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(gx, gy + i / 3 * gh);
+    ctx.lineTo(gx + gw, gy + i / 3 * gh);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  /* Axes */
+  ctx.strokeStyle = 'rgba(24,38,58,0.3)';
+  ctx.lineWidth   = 0.8;
+  ctx.beginPath();
+  ctx.moveTo(gx, gy); ctx.lineTo(gx, gy + gh); ctx.lineTo(gx + gw, gy + gh);
+  ctx.stroke();
+
+  /* Y labels */
+  ctx.fillStyle = 'rgba(24,38,58,0.42)';
+  ctx.font      = '8.5px "JetBrains Mono", monospace';
+  ctx.textAlign = 'right';
+  for (let i = 0; i <= 3; i++) {
+    ctx.fillText(formatY(i / 3 * niceY), gx - 5, gy + gh - i / 3 * gh + 3);
+  }
+
+  /* X labels */
+  ctx.textAlign = 'center';
+  const xl = Math.max(1, Math.floor(mxN / 4));
+  for (let n = 1; n <= mxN; n += xl) {
+    ctx.fillText(n, toG(n, 0).x, gy + gh + 13);
+  }
+
+  if (history.length < 2) { ctx.restore(); return; }
+
+  if (isStep) {
+    /* Step-function chart for f(N) */
+    function stepPath(close) {
+      ctx.beginPath();
+      history.forEach((d, i) => {
+        const pt = toG(d.n, dataMapper(d));
+        if (i === 0) {
+          ctx.moveTo(pt.x, pt.y);
+        } else {
+          const prev = toG(history[i - 1].n, dataMapper(history[i - 1]));
+          ctx.lineTo(pt.x, prev.y);
+          ctx.lineTo(pt.x, pt.y);
+        }
+      });
+      if (close) {
+        const last = toG(history[history.length - 1].n, dataMapper(history[history.length - 1]));
+        ctx.lineTo(last.x, gy + gh);
+        ctx.lineTo(gx, gy + gh);
+        ctx.closePath();
+      }
+    }
+
+    /* Area fill */
+    const gFill = ctx.createLinearGradient(0, gy, 0, gy + gh);
+    gFill.addColorStop(0, 'rgba(20,115,106,0.18)');
+    gFill.addColorStop(1, 'rgba(20,115,106,0.02)');
+    ctx.fillStyle = gFill;
+    stepPath(true);
+    ctx.fill();
+
+    /* Step line */
+    ctx.strokeStyle = '#14736A';
+    ctx.lineWidth   = 1.8;
+    ctx.lineJoin    = 'miter';
+    stepPath(false);
+    ctx.stroke();
+
+    /* Awkward-prime dots (where f increases) */
+    history.forEach((d, i) => {
+      if (i > 0 && dataMapper(d) > dataMapper(history[i - 1])) {
+        const pt = toG(d.n, dataMapper(d));
+        /* Halo */
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
+        ctx.fillStyle = 'rgba(154,107,10,0.2)';
+        ctx.fill();
+        /* Core */
+        ctx.beginPath();
+        ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#9A6B0A';
+        ctx.fill();
+      }
+    });
+
+  } else {
+    /* Area chart for compute time */
+    const gFill = ctx.createLinearGradient(0, gy, 0, gy + gh);
+    gFill.addColorStop(0, 'rgba(42,84,153,0.18)');
+    gFill.addColorStop(1, 'rgba(42,84,153,0.01)');
+    ctx.fillStyle = gFill;
+    ctx.beginPath();
+    history.forEach((d, i) => {
+      const pt = toG(d.n, dataMapper(d));
+      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    });
+    const last = toG(history[history.length - 1].n, dataMapper(history[history.length - 1]));
+    ctx.lineTo(last.x, gy + gh);
+    ctx.lineTo(toG(history[0].n, 0).x, gy + gh);
+    ctx.fill();
+
+    ctx.strokeStyle = '#2A5499';
+    ctx.lineWidth   = 1.6;
+    ctx.lineJoin    = 'round';
+    ctx.beginPath();
+    history.forEach((d, i) => {
+      const pt = toG(d.n, dataMapper(d));
+      i === 0 ? ctx.moveTo(pt.x, pt.y) : ctx.lineTo(pt.x, pt.y);
+    });
+    ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+/* ── Main animation loop ─────────────────────────────────────────────────── */
+function loop(ts) {
+  if (!t0) t0 = ts;
+  currentT = ts - t0;
+
+  if (!initialized) {
+    initialized = true;
+    startCompute();
+  }
+
+  tryApply(ts);
+  updateStatus(ts);
+
+  drawMain(currentT);
+
+  lctx.clearRect(0, 0, lcEl.width, lcEl.height);
+  drawMiniGraph(lctx, lcEl, d => d.lineCount,
+    v => Math.round(v), true);
+
+  tctx.clearRect(0, 0, tcEl.width, tcEl.height);
+  drawMiniGraph(tctx, tcEl, d => d.computeMs,
+    v => v >= 1000 ? (v / 1000).toFixed(1) + 's' : v.toFixed(0) + 'ms', false);
+
+  requestAnimationFrame(loop);
+}
+
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
