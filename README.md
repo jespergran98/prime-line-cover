@@ -4,12 +4,38 @@
 
 ## Problem
 
-Given the first \(N\) primes \(p_1, p_2, \dots, p_N\), consider the points  
-\((1, p_1), (2, p_2), \dots, (N, p_N)\) in the plane.  
-A **line** is determined by any two points (or a single point).  
-The objective is to find the **minimum number of lines** whose union covers all \(N\) points.
+Imagine you write down the first few prime numbers:
 
-This is a special case of the minimum line cover in a finite point set, with the added structure that the \(x\)-coordinates are consecutive integers and the \(y\)-coordinates are primes. The optimal values form OEIS sequence [A373813](https://oeis.org/A373813).
+| Index | Prime |
+|-------|-------|
+| 1     | 2     |
+| 2     | 3     |
+| 3     | 5     |
+| 4     | 7     |
+| 5     | 11    |
+| 6     | 13    |
+| …     | …     |
+
+Now plot these as points on a piece of graph paper:  
+point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point 4 at (4, 7), and so on.
+
+**The goal:** Draw as few straight lines as possible so that every point lies on at least one line.
+
+- A straight line can pass through **one point, two points, or many points** – whatever you need.
+- You may use lines in any direction – vertical, horizontal, or slanted.
+- The only restriction is that each line must be straight (no curves).
+- Lines may overlap, and multiple lines can cross the same prime point.
+
+**Example:** For the first 5 points (N = 5), you can cover all of them with just **2 lines**:
+
+- One line passes through (1, 2) and (5, 11).
+- Another line passes through (2, 3), (3, 5), and (4, 7) – three points on one straight line.
+
+That’s the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**.
+
+**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The known results for N = 1 up to 882 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On‑Line Encyclopedia of Integer Sequences (OEIS).
+
+---
 
 ## Solver Features
 
