@@ -931,36 +931,9 @@ details.tut summary::-webkit-details-marker { display: none; }
   font-family: var(--serif);
   font-size: 11px;
   color: var(--ink-45);
-  margin-top: 7px;
+  margin-top: 4px;
   line-height: 1.45;
   letter-spacing: 0.01em;
-}
-
-.paper-abstract-excerpt {
-  font-family: var(--serif);
-  font-size: 11.5px;
-  font-style: italic;
-  color: var(--ink-70);
-  line-height: 1.58;
-}
-
-.paper-topics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-  margin-bottom: 12px;
-}
-
-.paper-topic {
-  font-family: var(--mono);
-  font-size: 7px;
-  color: var(--ink-45);
-  background: var(--paper-alt);
-  border: 1px solid var(--ink-08);
-  padding: 2px 7px;
-  border-radius: 99px;
-  letter-spacing: 0.07em;
-  white-space: nowrap;
 }
 
 .paper-read-btn {
@@ -991,15 +964,6 @@ details.tut summary::-webkit-details-marker { display: none; }
   box-shadow: 0 4px 14px rgba(24,38,58,0.20);
 }
 .paper-read-btn:active { transform: translateY(0); }
-
-.paper-msc {
-  font-family: var(--mono);
-  font-size: 7px;
-  color: var(--ink-45);
-  letter-spacing: 0.04em;
-  text-align: center;
-  line-height: 1.5;
-}
 
 /* ── Bottom-Right Overlay (Legend) ───────────────────── */
 .co-legend-item {
@@ -1324,10 +1288,11 @@ details.tut summary::-webkit-details-marker { display: none; }
         <button class="btn" id="btn-pause">Pause</button>
         <div class="slider-group">
           <div class="slider-row">
-            <span>Step interval</span>
-            <span id="speed-val">1.00 s</span>
+            <span>Slow</span>
+            <span id="speed-val">2.00 s</span>
+            <span>Fast</span>
           </div>
-          <input type="range" id="slider-speed" min="50" max="2000" value="1000" step="50">
+          <input type="range" id="slider-speed" min="0" max="3000" value="1000" step="50">
         </div>
       </div>
 
@@ -1832,12 +1797,14 @@ let lastDisplayTime = -Infinity;
 let initialized     = false;
 
 let isPaused = false;
-let INTERVAL = parseInt(sliderSpeed.value, 10);
+let INTERVAL = 3000 - parseInt(sliderSpeed.value, 10);
 
-/* ── ANIMATION SYSTEM: fixed 650ms per line, independent of step interval ── */
-/*    Each line gets its own birth timestamp so animations always complete   */
-const ANIM_DUR = 650;   // ms — fixed duration for line draw-on animation
-const ANIM_STAGGER = 55; // ms between lines
+/* ── ANIMATION SYSTEM — adaptive to step interval and line count ── */
+/*    Stagger and duration scale down at high N so all lines finish  */
+/*    before the next prime arrives.                                  */
+const ANIM_DUR_MAX     = 650;  // ms — cap for a single line's draw time
+const ANIM_STAGGER_MAX = 55;   // ms — cap between successive line starts
+let   currentAnimDur   = ANIM_DUR_MAX; // updated each step in tryApply
 let linesBirth   = [];   // birth time for each line in coverLines (ms)
 let currentT     = 0;
 let t0           = null;
@@ -1885,8 +1852,8 @@ btnPause.addEventListener('click', () => {
 });
 
 sliderSpeed.addEventListener('input', (e) => {
-  INTERVAL = parseInt(e.target.value, 10);
-  valSpeed.textContent = (INTERVAL / 1000).toFixed(2) + ' s';
+  INTERVAL = 3000 - parseInt(e.target.value, 10);
+  valSpeed.textContent = INTERVAL === 0 ? 'instant' : (INTERVAL / 1000).toFixed(2) + ' s';
 });
 
 /* ── Primality test ──────────────────────────────────────────────────────── */
@@ -1939,8 +1906,16 @@ function tryApply(now) {
 
   history.push({ n: primes.length, lineCount: coverLines.length, computeMs: lastComputeMs });
 
-  /* Assign birth times for each line — staggered animation regardless of interval */
-  linesBirth = coverLines.map((_, i) => currentT + i * ANIM_STAGGER);
+  /* Adaptive animation: scale stagger + duration so all lines finish within
+     the step interval. At low N they run at full speed; at high N they
+     compress proportionally so nothing is still mid-draw when the next
+     prime lands.                                                          */
+  const nLines      = Math.max(1, coverLines.length);
+  const budget      = INTERVAL * 0.85;                        // 85% of step
+  const ratio       = ANIM_DUR_MAX / ANIM_STAGGER_MAX;        // ≈ 11.8
+  const stagger     = Math.min(ANIM_STAGGER_MAX, budget / (nLines - 1 + ratio));
+  currentAnimDur    = Math.min(ANIM_DUR_MAX, stagger * ratio);
+  linesBirth = coverLines.map((_, i) => currentT + i * stagger);
 
   rippleT = currentT;
   lastDisplayTime = now;
@@ -2170,7 +2145,12 @@ function drawMain(t) {
     const sp1 = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
     const sp2 = toScreen(line.p2.x, line.p2.y, w, h, x, y, N, maxV);
     const cl  = clipLine(sp1, sp2, x, y, w, h);
-    return cl ? { from: cl[0], to: cl[1] } : null;
+    if (!cl) return null;
+    // Always draw left→right (top→bottom for near-verticals) so the
+    // animation never starts from the top-right corner.
+    let [a, b] = cl;
+    if (a.x > b.x || (Math.abs(a.x - b.x) < 1 && a.y > b.y)) { const tmp = a; a = b; b = tmp; }
+    return { from: a, to: b };
   });
 
   mctx.save();
@@ -2182,7 +2162,7 @@ function drawMain(t) {
     if (!linesBirth[i] && linesBirth[i] !== 0) return 1;
     const age = t - linesBirth[i];
     if (age <= 0) return 0;
-    return ease(Math.min(1, age / ANIM_DUR));
+    return ease(Math.min(1, age / currentAnimDur));
   }
 
   /* ─────────────────────────────────────────────────────────────────────
