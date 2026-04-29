@@ -85,39 +85,7 @@ sudo apt update
 sudo apt install g++-14 -y
 ```
 
-### 2. Get the source code
-
-If you have the file on your Windows drive (e.g., `C:\path\to\primecover1024.cpp`), copy it into WSL:
-
-```bash
-cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp
-```
-
-Or create the file manually (`nano primecover.cpp`) and paste the code.
-
-### 3. Compile
-
-For the standard solver (statistics only):
-
-```bash
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover
-```
-
-For the line-coordinates version:
-
-```bash
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o primecover
-```
-
-> **Note:** `-march=native` optimises for your CPU. For **AMD Zen 5** you can use `-march=znver5` for a small extra gain.
-
-### 4. Run
-
-```bash
-./primecover
-```
-
-### 5. All-in-one command (copy, compile, run)
+### 2. Copy, compile, and run
 
 Replace the path with the actual location of your source file:
 
@@ -134,6 +102,8 @@ cp /mnt/c/path/to/primecover1024_line_coordinates.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover && \
 ./primecover
 ```
+
+> **Note:** `-march=native` optimises for your CPU. For **AMD Zen 5** you can use `-march=znver5` for a small extra gain.
 
 ---
 
