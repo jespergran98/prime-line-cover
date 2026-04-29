@@ -150,6 +150,7 @@ The solver’s behaviour can be adjusted by modifying constants in the `config` 
   (Get-Process vmmem*).PriorityClass = 'High'
   ```
 
+
 ## File Descriptions
 
 | File | Description |
