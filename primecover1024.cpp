@@ -1230,43 +1230,49 @@ std::vector<ExactGainSolver::Task> ExactGainSolver::build_frontier(Task root, Wo
     // Google Cloud c4d‑highcpu machines provide 2 vCPUs per physical core.
     // The solver uses worker_count = hardware_concurrency() (vCPUs).
     // Memory scales with instance type: c4d‑highcpu‑8 (15 GB), ‑16 (30 GB), ‑32 (60 GB), etc.
-    // For the world‑record run to N=1024, the best instance is c4d‑highcpu‑32 (32 vCPUs, 60 GB RAM)
-    // or higher, because the peak memory with multiplier 131072U reaches ~52 GB.
-    // With lower memory (e.g., 30 GB), you must reduce the top multiplier or the number of workers.
     //
-    // MEMORY FOOTPRINT (analysis of Task struct, N=1024, heavy lines ≈150):
-    //   - sizeof(Task) = 352 bytes (BitMask1024:128, ints:8, 9 vector control blocks:216)
-    //   - Heap allocations (vector capacities from make_root_task):
-    //        line_cover (300), productive_degree (4096), sole_productive_line (4096),
-    //        available (150), current_choice (600), productive_ids (≤600),
-    //        productive_pos (600), blocked_productive_ids (256), blocked_productive_pos (600)
-    //        → raw heap payload = 11,298 bytes.
-    //   - glibc malloc overhead (~110 bytes) → total per‑task heap ≈ 11,408 bytes.
-    //   - Overall per task ≈ 352 + 11,408 = 11,760 bytes ≈ 11.5 KB (safe bound).
-    //   - Temporary build structures (frontier_best map, frontier vector slack) add ~1 GB peak.
+    // MEMORY REQUIREMENTS (N=1024, about 150 heavy lines):
+    //   Each frontier task consumes roughly 43 KB of heap memory (not counting the
+    //   StateBestMap). The map used for duplicate‑state pruning is the main memory
+    //   bottleneck – it stores many unique states, each with a 128‑byte bitmask and
+    //   a list of blocked lines (up to 150 integers). For large frontiers, this map
+    //   can grow to multiple gigabytes.
     //
-    // For c4d‑highcpu‑32 (32 vCPUs, 60 GB RAM) with 131072U:
-    //   tasks = 32 × 131072 = 4,194,304 → task heap ≈ 48.2 GB → total ~52 GB → safe.
-    // For c4d‑highcpu‑16 (16 vCPUs, 30 GB RAM) with 131072U:
-    //   tasks = 2,097,152 → task heap ≈ 24.1 GB → total ~28 GB → leaves ~2 GB → safe.
-    // For c4d‑highcpu‑8 (8 vCPUs, 15 GB RAM):
-    //   Using 131072U would be tight (~14 GB total, ≤1 GB headroom), which risks OOM.
-    //   Therefore the world‑record run uses 114688U (1.75×65536):
-    //      tasks = 8 × 114688 = 917,504 → task heap ≈ 10.55 GB → total ~12.55 GB,
-    //      leaving ~2.45 GB headroom → safe and stable.
-    //   If you upgrade to an instance with ≥30 GB RAM, you can safely increase the
-    //   top multiplier to 131072U for even finer parallelism.
+    //   Observed behaviour on c4d‑highcpu‑8 (15 GB RAM):
+    //     - multiplier 8192U → 8 × 8192 = 65,536 tasks → works (peak ~12 GB)
+    //     - multiplier 16384U → 131,072 tasks → out‑of‑memory crash at N=925 (cost 133)
+    //   Therefore, the safe limit for a 15 GB instance is multiplier 8192U.
     //
-    // ADAPTATION FOR SMALLER INSTANCES:
-    //   For 15 GB (c4d‑highcpu‑8): recommended top is 114688U (as used below).
-    //   For 30 GB with 16 workers, 131072U is safe.
-    //   For 60 GB with 32 workers, 131072U is also safe.
+    // SAFE MULTIPLIERS (empirically determined):
+    //   - 15 GB (c4d‑highcpu‑8):                 max 8192U
+    //   - 30 GB (c4d‑highcpu‑16):                16384U may work, but test first
+    //   - 60 GB (c4d‑highcpu‑32):                32768U and 131072U may work for long runs
+    //   Always monitor peak memory usage (e.g., with /usr/bin/time -v) and reduce
+    //   the multiplier if the process gets killed.
+    //
+    // MEMORY BREAKDOWN (per Task, N=1024):
+    //   - sizeof(Task) = 352 bytes
+    //   - Heap allocations:
+    //        line_cover (300 ints)                    1.2 KB
+    //        productive_degree (4096 ints)           16 KB
+    //        sole_productive_line (4096 ints)        16 KB
+    //        available (150 bytes)                    0.15 KB
+    //        current_choice (≤600 ints)              2.4 KB
+    //        productive_ids (≤600 ints)              2.4 KB
+    //        productive_pos (≤600 ints)              2.4 KB
+    //        blocked_productive_ids (≤256 ints)      1.0 KB
+    //        blocked_productive_pos (≤600 ints)      2.4 KB
+    //        → total heap ≈ 43 KB per task.
+    //   - StateBestMap overhead per unique state: about 1.5 KB (key + value + hash table).
+    //   For 65k tasks, the map typically stores 20‑50k states → 30–75 MB overhead,
+    //   which is acceptable. For 131k tasks, the map expands beyond the system’s
+    //   memory, causing a crash.
     // -------------------------------------------------------------------------
     const unsigned frontier_multiplier =
-        current_best_cost() >= 143 ? 114688U  // cost ≥143 – weeks‑scale solves (increase to 131072U if memory allows)
-      : current_best_cost() >= 138 ? 32768U   // cost 138–142 – multi‑day to weeks
-      : current_best_cost() >= 133 ? 16384U   // cost 133–137 – days to multi‑day
-      : current_best_cost() >= 128 ?  8192U   // cost 128–132 – 330–5545s (observed)
+    //  current_best_cost() >= 143 ? 131072U  // cost ≥143 – weeks‑scale solves (enable only on ≥120 GB)
+    //: current_best_cost() >= 138 ? 32768U   // cost 138–142 – multi‑day to weeks (enable only on ≥60 GB)
+    //: current_best_cost() >= 133 ? 16384U   // cost 133–137 – days to multi‑day (enable only on ≥30 GB)
+        current_best_cost() >= 128 ?  8192U   // cost 128–132 – 330–5545s (observed, safe for 15 GB)
       : current_best_cost() >= 125 ?  2048U   // cost 125–127 – 133–1253s (observed)
       : current_best_cost() >= 121 ?   512U   // cost 121–124 – 25–515s (observed)
       : current_best_cost() >= 113 ?   128U   // cost 113–120 – 3.5–45s (confirmed)
