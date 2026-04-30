@@ -1430,9 +1430,9 @@ sudo apt update && sudo apt install g++-14 -y</pre>
 const WORKER_SRC = `
 'use strict';
 
-const WORDS = 32; // Supports up to N = 32 * 32 = 1024
+const WORDS = 32; // Supports up to N = 32 × 32 = 1024
 
-/* ── Fast 32-bit popcount ──────────────────────── */
+/* ── Fast 32-bit popcount ──────────────────────────────────────────────── */
 function popcount32(n) {
   n = n >>> 0;
   n -= (n >>> 1) & 0x55555555;
@@ -1441,155 +1441,267 @@ function popcount32(n) {
   return (Math.imul(n, 0x01010101) >>> 24);
 }
 
-/* ── Enumerate Heavy Lines (>= 3 points) ────────────────────────────── */
+/* ── GCD (positive integers, for slope reduction) ──────────────────────── */
+function gcd(a, b) {
+  while (b) { var t = b; b = a % b; a = t; }
+  return a;
+}
+
+/* ── Bit-parallel uncovered-point count ─────────────────────────────────
+   Counts N - popcount(cov) using only the active words.
+   O(uw) = O(N/32) instead of an O(N) per-bit loop.
+   ──────────────────────────────────────────────────────────────────────── */
+function countUncovered(cov, N, uw) {
+  var covPop = 0;
+  var fullWords = N >> 5;
+  for (var w = 0; w < fullWords; w++) covPop += popcount32(cov[w]);
+  var tail = N & 31;
+  if (tail) covPop += popcount32(cov[fullWords] & ((1 << tail) - 1));
+  return N - covPop;
+}
+
+/* ── Gain of a line against current coverage ───────────────────────────── */
+function getGain(mask, cov, uw) {
+  var g = 0;
+  for (var w = 0; w < uw; w++) {
+    var a = mask[w] & ~cov[w];
+    if (a) g += popcount32(a);
+  }
+  return g;
+}
+
+/* ── Enumerate Heavy Lines (>= 3 points) ────────────────────────────────
+   C++ translation: enumerate_heavy_lines() + anchor_is_leftmost_for_slope().
+   Slope-bucket approach: O(N²) per-anchor grouping instead of the O(N³)
+   all-pairs collinearity scan.  Each distinct line is emitted exactly once
+   by its leftmost anchor, eliminating the need for mask-based deduplication.
+   ──────────────────────────────────────────────────────────────────────── */
 function buildCandidates(primes) {
   var N = primes.length;
-  var lineMap = new Map();
+  var lines = [];
 
-  for (var a = 0; a < N; a++) {
-    for (var b = a + 1; b < N; b++) {
-      var dx = b - a;
-      var dy = primes[b] - primes[a];
-      var cnt = 0;
+  for (var i = 0; i < N; i++) {
+    /* Group all j > i by their reduced slope (sdy, sdx). */
+    var slopeMap = new Map();
+    for (var j = i + 1; j < N; j++) {
+      var dx = j - i;                      /* always > 0 */
+      var dy = primes[j] - primes[i];     /* always > 0 (primes strictly increase) */
+      var g  = gcd(dx, dy);
+      var sdx = dx / g;
+      var sdy = dy / g;
+      /* String key is safe: sdx, sdy are both positive integers. */
+      var key = sdy + ',' + sdx;
+      var bucket = slopeMap.get(key);
+      if (!bucket) { slopeMap.set(key, [j]); }
+      else         { bucket.push(j); }
+    }
+
+    for (var [slKey, bucket] of slopeMap) {
+      /* Need at least 2 additional points beyond the anchor for cnt >= 3. */
+      if (bucket.length < 2) continue;
+
+      /* anchor_is_leftmost_for_slope: reject if any earlier point lies on
+         the same line (which would have already emitted this line). */
+      var comma = slKey.indexOf(',');
+      var lsdy  = parseInt(slKey.substring(0, comma), 10);
+      var lsdx  = parseInt(slKey.substring(comma + 1), 10);
+
+      var isLeftmost = true;
+      var expY = primes[i] - lsdy;
+      for (var x = i - lsdx; x >= 0; x -= lsdx, expY -= lsdy) {
+        if (expY < 2) break;           /* primes >= 2; no match possible */
+        if (expY === primes[x]) { isLeftmost = false; break; }
+      }
+      if (!isLeftmost) continue;
+
+      /* Build bitmask and index list (anchor first, then bucket in order). */
       var mask = new Int32Array(WORDS);
-
-      for (var c = 0; c < N; c++) {
-        if ((primes[c] - primes[a]) * dx === dy * (c - a)) {
-          mask[c >> 5] |= (1 << (c & 31));
-          cnt++;
-        }
+      mask[i >> 5] |= (1 << (i & 31));
+      var idxs = [i];
+      for (var k = 0; k < bucket.length; k++) {
+        var p = bucket[k];
+        mask[p >> 5] |= (1 << (p & 31));
+        idxs.push(p);
       }
-
-      /* Only consider heavy lines (cnt >= 3) for the B&B search */
-      if (cnt >= 3) {
-        var key = mask.join('|');
-        if (!lineMap.has(key)) {
-          var idxs = [];
-          for (var i = 0; i < N; i++) {
-              if (mask[i >> 5] & (1 << (i & 31))) idxs.push(i);
-          }
-          lineMap.set(key, {
-            mask: mask,
-            cnt: cnt,
-            p1: { x: a, y: primes[a] },
-            p2: { x: b, y: primes[b] },
-            indices: idxs
-          });
-        }
-      }
+      lines.push({
+        mask:    mask,
+        cnt:     idxs.length,
+        p1:      { x: i,         y: primes[i]         },
+        p2:      { x: bucket[0], y: primes[bucket[0]] },
+        indices: idxs
+      });
     }
   }
 
-  var cands = Array.from(lineMap.values());
-  cands.sort(function(a, b) { return b.cnt - a.cnt; });
-  return cands;
+  /* Sort by point count descending — largest lines first for greedy. */
+  lines.sort(function(a, b) { return b.cnt - a.cnt; });
+  return lines;
 }
 
-function getGain(mask, cov) {
-    var g = 0;
-    for(var i = 0; i < WORDS; i++) {
-        var active = mask[i] & ~cov[i];
-        if (active) g += popcount32(active);
-    }
-    return g;
-}
-
-/* ── Greedy upper bound & padding cost ────────────────────────────────────── */
-function greedySolve(cands, N) {
-  var cov = new Int32Array(WORDS);
+/* ── Greedy upper bound ─────────────────────────────────────────────────
+   Mirrors C++ greedy_upper_bound_solution():
+   Repeatedly picks the heavy line covering the most uncovered points,
+   breaking ties by total point count (more points = preferred).
+   ──────────────────────────────────────────────────────────────────────── */
+function greedySolve(cands, N, initCov, uw) {
+  var cov = initCov ? new Int32Array(initCov) : new Int32Array(WORDS);
   var sol = [];
 
   while (true) {
-    var bestIdx = -1, bestGain = 0;
+    var bestIdx = -1, bestGain = 2, bestCnt = 0;
     for (var i = 0; i < cands.length; i++) {
-      var g = getGain(cands[i].mask, cov);
-      if (g > bestGain) { bestGain = g; bestIdx = i; }
+      var g = getGain(cands[i].mask, cov, uw);
+      if (g > bestGain) {
+        bestGain = g; bestIdx = i; bestCnt = cands[i].cnt;
+      } else if (g === bestGain && g > 2 && cands[i].cnt > bestCnt) {
+        bestIdx = i; bestCnt = cands[i].cnt;
+      }
     }
-    if (bestGain < 3) break; /* Fallback to 2-point padding */
+    if (bestIdx < 0) break;   /* No line covers >= 3 uncovered points */
     sol.push(cands[bestIdx]);
-    for(var w = 0; w < WORDS; w++) cov[w] |= cands[bestIdx].mask[w];
+    for (var w = 0; w < uw; w++) cov[w] |= cands[bestIdx].mask[w];
   }
-  
-  /* Cost of remaining points is ceil(remaining / 2) */
-  var uncovPop = 0;
-  for(var i = 0; i < N; i++) {
-     if ((cov[i >> 5] & (1 << (i & 31))) === 0) uncovPop++;
-  }
-  var totalCost = sol.length + Math.ceil(uncovPop / 2);
-  
-  return { cost: totalCost, lines: sol, cov: cov };
+
+  var uncovPop = countUncovered(cov, N, uw);
+  return { cost: sol.length + Math.ceil(uncovPop / 2), lines: sol, cov: cov };
 }
 
-/* ── Branch-and-bound with Exclusive Dependency Rule & Inequality LB ────── */
+/* ── Exclusive Dependency Rule — root pre-processing ───────────────────
+   C++ translation: apply_root_forced_line_reduction().
+
+   Proved unconditional rule (see C++ source for full proof):
+   If a productive heavy line L has >= 3 active points for which L is
+   their sole available productive heavy line, then L belongs to every
+   optimal cover.  We force all such lines before the DFS begins,
+   reducing the search space without any loss of optimality.
+   Iterates until no further forcing is possible.
+   ──────────────────────────────────────────────────────────────────────── */
+function applyRootForcedReduction(cands, N, initCov, uw) {
+  var cov       = new Int32Array(initCov);
+  var available = new Uint8Array(cands.length);
+  for (var i = 0; i < cands.length; i++) available[i] = 1;
+
+  /* Precompute initial gains for all candidates. */
+  var gains = new Int32Array(cands.length);
+  for (var li = 0; li < cands.length; li++) {
+    gains[li] = getGain(cands[li].mask, cov, uw);
+  }
+
+  var forcedIndices = [];
+
+  while (true) {
+    /* Build sole_productive_line[p]: index of the unique productive line
+       covering point p, or -1 (none) / -2 (multiple).
+       A line is "productive" if it is available and has gain >= 3. */
+    var soleLine = new Int32Array(N).fill(-1);
+    var prodDeg  = new Int32Array(N);
+
+    for (var li = 0; li < cands.length; li++) {
+      if (!available[li] || gains[li] < 3) continue;
+      var c = cands[li];
+      for (var k = 0; k < c.indices.length; k++) {
+        var p = c.indices[k];
+        if (cov[p >> 5] & (1 << (p & 31))) continue; /* already covered */
+        if (prodDeg[p] === 0) { soleLine[p] = li; }
+        else                  { soleLine[p] = -2;  }
+        prodDeg[p]++;
+      }
+    }
+
+    /* Find the best forcing candidate: available, gain >= 3,
+       with the most sole-uncovered points (threshold: >= 3). */
+    var bestLine = -1, bestUnique = 2, bestGain = -1;
+    for (var li = 0; li < cands.length; li++) {
+      if (!available[li] || gains[li] < 3) continue;
+      var c = cands[li];
+      var uniquePts = 0;
+      for (var k = 0; k < c.indices.length; k++) {
+        var p = c.indices[k];
+        if (!(cov[p >> 5] & (1 << (p & 31))) && soleLine[p] === li) uniquePts++;
+      }
+      if (uniquePts < 3) continue;
+      var g = gains[li];
+      /* Tie-break: more unique points > higher gain > lower index (matches C++). */
+      var better = (uniquePts > bestUnique) ||
+                   (uniquePts === bestUnique && g > bestGain) ||
+                   (uniquePts === bestUnique && g === bestGain && (bestLine < 0 || li < bestLine));
+      if (better) { bestLine = li; bestUnique = uniquePts; bestGain = g; }
+    }
+
+    if (bestLine < 0) break; /* No more forced lines */
+
+    /* Force this line: cover its points, mark unavailable, refresh gains. */
+    forcedIndices.push(bestLine);
+    available[bestLine] = 0;
+    var bc = cands[bestLine];
+    for (var w = 0; w < uw; w++) cov[w] |= bc.mask[w];
+    for (var li = 0; li < cands.length; li++) {
+      if (available[li]) gains[li] = getGain(cands[li].mask, cov, uw);
+    }
+  }
+
+  return { forcedIndices: forcedIndices, cov: cov };
+}
+
+/* ── Cover-inequality lower bound ──────────────────────────────────────── */
 var BB_counts = new Int32Array(1024);
-function coverInequalityLB(cov, cands, candIdx, N) {
-    var sMask = new Int32Array(WORDS);
-    var sPop = 0;
-    for(var i = 0; i < N; i++) {
-        if ((cov[i >> 5] & (1 << (i & 31))) === 0) {
-            sMask[i >> 5] |= (1 << (i & 31));
-            sPop++;
+function coverInequalityLB(cov, cands, candIdx, N, uw) {
+  /* Build the set of currently uncovered points. */
+  var sMask     = new Int32Array(WORDS);
+  var fullWords = N >> 5;
+  var tail      = N & 31;
+  for (var w = 0; w < fullWords; w++) sMask[w] = ~cov[w];
+  if (tail) sMask[fullWords] = (~cov[fullWords]) & ((1 << tail) - 1);
+  var sPop = countUncovered(cov, N, uw);
+
+  if (sPop <= 2) return Math.ceil(sPop / 2);
+
+  while (true) {
+    BB_counts.fill(0, 0, N);
+    var numViolated = 0;
+    for (var i = candIdx; i < cands.length; i++) {
+      var c = cands[i];
+      var intersectPop = 0;
+      for (var w = 0; w < uw; w++) {
+        var a = c.mask[w] & sMask[w];
+        if (a) intersectPop += popcount32(a);
+      }
+      if (intersectPop >= 3) {
+        numViolated++;
+        for (var k = 0; k < c.indices.length; k++) {
+          var pt = c.indices[k];
+          if (sMask[pt >> 5] & (1 << (pt & 31))) BB_counts[pt]++;
         }
+      }
     }
 
-    if (sPop <= 2) return Math.ceil(sPop / 2);
+    if (numViolated === 0) return Math.ceil(sPop / 2);
 
-    while (true) {
-        BB_counts.fill(0);
-        var numViolated = 0;
-        for (var i = candIdx; i < cands.length; i++) {
-            var c = cands[i];
-            var intersectPop = 0;
-            for(var w = 0; w < WORDS; w++) {
-                var active = c.mask[w] & sMask[w];
-                if (active) intersectPop += popcount32(active);
-            }
-            
-            if (intersectPop >= 3) {
-                numViolated++;
-                for(var k = 0; k < c.indices.length; k++) {
-                    var pt = c.indices[k];
-                    if (sMask[pt >> 5] & (1 << (pt & 31))) {
-                        BB_counts[pt]++;
-                    }
-                }
-            }
-        }
-        
-        if (numViolated === 0) {
-            return Math.ceil(sPop / 2);
-        }
-
-        var maxC = 0, maxP = -1;
-        for (var p = 0; p < N; p++) {
-            if (BB_counts[p] > maxC) {
-                maxC = BB_counts[p];
-                maxP = p;
-            }
-        }
-
-        sMask[maxP >> 5] &= ~(1 << (maxP & 31));
-        sPop--;
+    var maxC = 0, maxP = -1;
+    for (var p = 0; p < N; p++) {
+      if (BB_counts[p] > maxC) { maxC = BB_counts[p]; maxP = p; }
     }
+
+    sMask[maxP >> 5] &= ~(1 << (maxP & 31));
+    sPop--;
+  }
 }
 
+/* ── Branch-and-bound ──────────────────────────────────────────────────── */
 var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
 var BB_nodes = 0;
-var BB_N = 0;
+var BB_N  = 0;
+var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
 
 function solve(candIdx, cov) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
-  
-  var uncovPop = 0;
-  for(var i = 0; i < BB_N; i++) {
-     if ((cov[i >> 5] & (1 << (i & 31))) === 0) uncovPop++;
-  }
 
-  /* Current assumed cost = chosen heavy lines + perfect padding for remaining */
+  var uw = BB_UW;
+  var uncovPop = countUncovered(cov, BB_N, uw);
+
+  /* Capture the current cost; update incumbent if improved. */
   var currentCost = BB_chosen.length + Math.ceil(uncovPop / 2);
-
-  /* If padding right now is strictly better than best known, capture it */
   if (currentCost < BB_bestCnt) {
     BB_bestCnt = currentCost;
     BB_bestSol = BB_chosen.slice();
@@ -1597,66 +1709,69 @@ function solve(candIdx, cov) {
 
   if (candIdx >= BB_cands.length || uncovPop === 0) return;
 
-  var maxG = 0;
-  var remMask = new Int32Array(WORDS);
+  /* Scan remaining candidates to compute:
+     - maxG:       max gain any remaining line can still yield
+     - remMask:    union of remaining candidates' uncovered bits
+     - overlapMask: bits covered by >= 2 remaining candidates (for isForced)  */
+  var maxG        = 0;
+  var remMask     = new Int32Array(WORDS);
   var overlapMask = new Int32Array(WORDS);
 
   for (var i = candIdx; i < BB_cands.length; i++) {
     var c = BB_cands[i];
     var g = 0;
-    for(var w = 0; w < WORDS; w++) {
-       var act = c.mask[w] & ~cov[w];
-       if (act) {
-           g += popcount32(act);
-           overlapMask[w] |= (remMask[w] & c.mask[w]);
-           remMask[w] |= c.mask[w];
-       }
+    for (var w = 0; w < uw; w++) {
+      var act = c.mask[w] & ~cov[w];
+      if (act) {
+        g += popcount32(act);
+        overlapMask[w] |= (remMask[w] & c.mask[w]);
+        remMask[w]     |= c.mask[w];
+      }
     }
     if (g > maxG) maxG = g;
   }
 
-  /* Early exit if no heavy lines remain */
-  if (maxG < 3) return;
+  if (maxG < 3) return; /* No heavy line can help further */
 
-  /* Lower bounds to prune search space effectively */
-  var lbCov = coverInequalityLB(cov, BB_cands, candIdx, BB_N);
+  /* Lower bounds. */
+  var lbCov   = coverInequalityLB(cov, BB_cands, candIdx, BB_N, uw);
   var lbBasic = Math.ceil(uncovPop / maxG);
-  var lb = BB_chosen.length + Math.max(lbCov, lbBasic);
-
+  var lb      = BB_chosen.length + Math.max(lbCov, lbBasic);
   if (lb >= BB_bestCnt) return;
 
-  var c = BB_cands[candIdx];
-  var gain = 0;
+  var c       = BB_cands[candIdx];
+  var gain    = 0;
   var forcedPop = 0;
 
-  for(var w = 0; w < WORDS; w++) {
-      var uncov = ~cov[w];
-      var act = c.mask[w] & uncov;
-      if (act) gain += popcount32(act);
-      
-      var unique = (remMask[w] ^ overlapMask[w]) & uncov;
-      if (c.mask[w] & unique) forcedPop += popcount32(c.mask[w] & unique);
+  for (var w = 0; w < uw; w++) {
+    var uncov  = ~cov[w];
+    var act    = c.mask[w] & uncov;
+    if (act) gain += popcount32(act);
+    /* unique: uncovered bits covered by exactly this one remaining candidate. */
+    var unique = (remMask[w] ^ overlapMask[w]) & uncov;
+    if (c.mask[w] & unique) forcedPop += popcount32(c.mask[w] & unique);
   }
 
-  /* Exclusive Dependency Rule (Forced Lines) */
+  /* Exclusive Dependency Rule: if this candidate is the sole productive line
+     for >= 3 uncovered points, excluding it cannot yield an optimal solution. */
   var isForced = forcedPop >= 3;
 
-  /* Branch 1: Include candidate (only if it covers >= 3 uncovered points) */
+  /* Branch 1 — Include: only worthwhile when gain >= 3. */
   if (gain >= 3) {
     BB_chosen.push(c);
     var nextCov = new Int32Array(WORDS);
-    for(var w = 0; w < WORDS; w++) nextCov[w] = cov[w] | c.mask[w];
+    for (var w = 0; w < uw; w++) nextCov[w] = cov[w] | c.mask[w];
     solve(candIdx + 1, nextCov);
     BB_chosen.pop();
   }
 
-  /* Branch 2: Exclude candidate (skip if mathematically forced) */
+  /* Branch 2 — Exclude: skipped when the candidate is mathematically forced. */
   if (!isForced) {
     solve(candIdx + 1, cov);
   }
 }
 
-/* ── Main entry ───────────────────────────────────────────────────────────── */
+/* ── Main entry ─────────────────────────────────────────────────────────── */
 function computeCover(primes) {
   var N = primes.length;
   BB_N = N;
@@ -1665,68 +1780,91 @@ function computeCover(primes) {
   if (N === 1) {
     var p0 = primes[0];
     return {
-      lines: [{ indices:[0], p1:{x:0,y:p0}, p2:{x:1,y:p0}, singlePoint:true }],
+      lines: [{ indices: [0], p1: { x: 0, y: p0 }, p2: { x: 1, y: p0 }, singlePoint: true }],
       pointHues: []
     };
   }
 
-  var cands = buildCandidates(primes);
-  var greedy = greedySolve(cands, N);
-  var ub     = greedy.cost;
-  var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
-  var lb        = Math.ceil(N / maxSingle);
-  var bestSol = greedy.lines;
+  /* Number of 32-bit words actually needed for N bits.
+     All hot-path loops use uw instead of the full WORDS=32. */
+  var uw = (N + 31) >> 5;
+  BB_UW = uw;
 
+  /* 1. Enumerate all heavy lines (slope-bucket O(N²)). */
+  var cands = buildCandidates(primes);
+
+  /* 2. Exclusive Dependency Rule pre-processing (root forced-line reduction).
+        Forces all lines that are provably in every optimal cover.
+        Matched to C++ apply_root_forced_line_reduction(). */
+  var forcedResult  = applyRootForcedReduction(cands, N, new Int32Array(WORDS), uw);
+  var forcedCov     = forcedResult.cov;
+  var forcedIndices = forcedResult.forcedIndices;
+  var forcedLines   = forcedIndices.map(function(li) { return cands[li]; });
+
+  /* Remove forced lines from the DFS candidate set — their points are already
+     covered, so they contribute nothing to the remaining search. */
+  var forcedSet   = new Set(forcedIndices);
+  var remainCands = cands.filter(function(_, i) { return !forcedSet.has(i); });
+
+  /* 3. Greedy upper bound on the residual problem (from forced coverage). */
+  var greedy    = greedySolve(remainCands, N, forcedCov, uw);
+  var ub        = forcedLines.length + greedy.cost;
+  var bestSol   = forcedLines.concat(greedy.lines);
+
+  /* Simple lower bound (valid for the whole problem). */
+  var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
+  var lb        = Math.ceil(N / Math.max(maxSingle, 2));
+
+  /* 4. Branch-and-bound on remaining candidates if greedy is not provably optimal. */
   if (ub > lb) {
-    BB_cands   = cands;
+    BB_cands   = remainCands;
     BB_bestCnt = ub;
-    BB_bestSol = greedy.lines;
-    BB_chosen  = [];
+    BB_bestSol = bestSol;
+    /* Seed BB_chosen with forced lines so cost accounting is correct. */
+    BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
-    var initCov = new Int32Array(WORDS);
-    solve(0, initCov); 
+    solve(0, forcedCov);
     bestSol = BB_bestSol;
   }
 
   return finalise(N, primes, bestSol);
 }
 
+/* ── Finalise: add 2-point/1-point residual lines ──────────────────────── */
 function finalise(N, primes, sol) {
-  var lines = [];
+  var lines   = [];
   var covered = new Array(N).fill(false);
-  
+
   for (var i = 0; i < sol.length; i++) {
     var li = sol[i].indices;
-    for (var k = 0; k < li.length; k++) {
-        covered[li[k]] = true;
-    }
+    for (var k = 0; k < li.length; k++) covered[li[k]] = true;
     lines.push({ indices: li, p1: sol[i].p1, p2: sol[i].p2, isHeavy: true, heavyIndex: i });
   }
 
   var residuals = [];
-  for(var p = 0; p < N; p++) {
-      if(!covered[p]) residuals.push(p);
+  for (var p = 0; p < N; p++) {
+    if (!covered[p]) residuals.push(p);
   }
 
-  for(var r = 0; r < residuals.length; r += 2) {
-      if (r + 1 < residuals.length) {
-          var p1 = residuals[r], p2 = residuals[r+1];
-          lines.push({
-              indices: [p1, p2],
-              p1: {x: p1, y: primes[p1]},
-              p2: {x: p2, y: primes[p2]},
-              isHeavy: false
-          });
-      } else {
-          var pSolo = residuals[r];
-          lines.push({
-              indices: [pSolo],
-              p1: {x: pSolo - 0.5, y: primes[pSolo]},
-              p2: {x: pSolo + 0.5, y: primes[pSolo]},
-              isHeavy: false,
-              singlePoint: true
-          });
-      }
+  for (var r = 0; r < residuals.length; r += 2) {
+    if (r + 1 < residuals.length) {
+      var p1 = residuals[r], p2 = residuals[r + 1];
+      lines.push({
+        indices: [p1, p2],
+        p1:      { x: p1, y: primes[p1] },
+        p2:      { x: p2, y: primes[p2] },
+        isHeavy: false
+      });
+    } else {
+      var pSolo = residuals[r];
+      lines.push({
+        indices:     [pSolo],
+        p1:          { x: pSolo - 0.5, y: primes[pSolo] },
+        p2:          { x: pSolo + 0.5, y: primes[pSolo] },
+        isHeavy:     false,
+        singlePoint: true
+      });
+    }
   }
 
   return { lines: lines };
