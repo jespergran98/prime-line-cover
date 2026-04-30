@@ -1646,12 +1646,13 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
 /* ── Cover-inequality lower bound ──────────────────────────────────────── */
 var BB_counts = new Int32Array(1024);
 function coverInequalityLB(cov, cands, candIdx, N, uw) {
-  /* Build the set of currently uncovered points. */
-  var sMask     = new Int32Array(WORDS);
+  /* Build the set of currently uncovered points into BB_sMask (pre-allocated). */
   var fullWords = N >> 5;
   var tail      = N & 31;
-  for (var w = 0; w < fullWords; w++) sMask[w] = ~cov[w];
-  if (tail) sMask[fullWords] = (~cov[fullWords]) & ((1 << tail) - 1);
+  for (var w = 0; w < fullWords; w++) BB_sMask[w] = ~cov[w];
+  if (tail) BB_sMask[fullWords] = (~cov[fullWords]) & ((1 << tail) - 1);
+  /* Zero any words beyond the active range. */
+  for (var w = fullWords + (tail ? 1 : 0); w < uw; w++) BB_sMask[w] = 0;
   var sPop = countUncovered(cov, N, uw);
 
   if (sPop <= 2) return Math.ceil(sPop / 2);
@@ -1663,14 +1664,14 @@ function coverInequalityLB(cov, cands, candIdx, N, uw) {
       var c = cands[i];
       var intersectPop = 0;
       for (var w = 0; w < uw; w++) {
-        var a = c.mask[w] & sMask[w];
+        var a = c.mask[w] & BB_sMask[w];
         if (a) intersectPop += popcount32(a);
       }
       if (intersectPop >= 3) {
         numViolated++;
         for (var k = 0; k < c.indices.length; k++) {
           var pt = c.indices[k];
-          if (sMask[pt >> 5] & (1 << (pt & 31))) BB_counts[pt]++;
+          if (BB_sMask[pt >> 5] & (1 << (pt & 31))) BB_counts[pt]++;
         }
       }
     }
@@ -1682,7 +1683,7 @@ function coverInequalityLB(cov, cands, candIdx, N, uw) {
       if (BB_counts[p] > maxC) { maxC = BB_counts[p]; maxP = p; }
     }
 
-    sMask[maxP >> 5] &= ~(1 << (maxP & 31));
+    BB_sMask[maxP >> 5] &= ~(1 << (maxP & 31));
     sPop--;
   }
 }
@@ -1693,12 +1694,30 @@ var BB_nodes = 0;
 var BB_N  = 0;
 var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
+/* Pre-allocated scratch arrays — avoids per-node Int32Array allocations.
+   Safe to share across the recursive call stack because each caller finishes
+   using these arrays before the recursive call that would overwrite them. */
+var BB_remMask     = new Int32Array(WORDS);
+var BB_overlapMask = new Int32Array(WORDS);
+var BB_sMask       = new Int32Array(WORDS);
 
 function solve(candIdx, cov) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
-  var uncovPop = countUncovered(cov, BB_N, uw);
+  var N  = BB_N;
+
+  /* Advance past non-productive candidates (gain < 3) — mirrors C++ productive_ids.
+     Each non-productive candidate can cover at most 2 uncovered points, offering no
+     advantage over a cheap light line; skipping them avoids wasted stack frames. */
+  while (candIdx < BB_cands.length) {
+    var c0 = BB_cands[candIdx], g0 = 0;
+    for (var w = 0; w < uw; w++) { var a = c0.mask[w] & ~cov[w]; if (a) g0 += popcount32(a); }
+    if (g0 >= 3) break;
+    candIdx++;
+  }
+
+  var uncovPop = countUncovered(cov, N, uw);
 
   /* Capture the current cost; update incumbent if improved. */
   var currentCost = BB_chosen.length + Math.ceil(uncovPop / 2);
@@ -1709,46 +1728,42 @@ function solve(candIdx, cov) {
 
   if (candIdx >= BB_cands.length || uncovPop === 0) return;
 
-  /* Scan remaining candidates to compute:
-     - maxG:       max gain any remaining line can still yield
-     - remMask:    union of remaining candidates' uncovered bits
-     - overlapMask: bits covered by >= 2 remaining candidates (for isForced)  */
-  var maxG        = 0;
-  var remMask     = new Int32Array(WORDS);
-  var overlapMask = new Int32Array(WORDS);
+  /* Scan only productive remaining candidates (gain >= 3) for remMask/overlapMask.
+     Restricting to productive candidates mirrors C++ productive_ids and makes the
+     Exclusive Dependency Rule check consistent: a point is "solely covered" only
+     when exactly one *productive* line still covers it.
+     Uses pre-allocated globals to eliminate per-node Int32Array allocations. */
+  var maxG = 0;
+  for (var w = 0; w < uw; w++) { BB_remMask[w] = 0; BB_overlapMask[w] = 0; }
 
   for (var i = candIdx; i < BB_cands.length; i++) {
-    var c = BB_cands[i];
-    var g = 0;
+    var ci = BB_cands[i], gi = 0;
+    for (var w = 0; w < uw; w++) { var a = ci.mask[w] & ~cov[w]; if (a) gi += popcount32(a); }
+    if (gi < 3) continue;   /* non-productive — only productive_ids count */
+    if (gi > maxG) maxG = gi;
     for (var w = 0; w < uw; w++) {
-      var act = c.mask[w] & ~cov[w];
-      if (act) {
-        g += popcount32(act);
-        overlapMask[w] |= (remMask[w] & c.mask[w]);
-        remMask[w]     |= c.mask[w];
-      }
+      BB_overlapMask[w] |= (BB_remMask[w] & ci.mask[w]);
+      BB_remMask[w]     |= ci.mask[w];
     }
-    if (g > maxG) maxG = g;
   }
 
-  if (maxG < 3) return; /* No heavy line can help further */
+  if (maxG < 3) return;   /* no productive line can help further */
 
   /* Lower bounds. */
-  var lbCov   = coverInequalityLB(cov, BB_cands, candIdx, BB_N, uw);
+  var lbCov   = coverInequalityLB(cov, BB_cands, candIdx, N, uw);
   var lbBasic = Math.ceil(uncovPop / maxG);
   var lb      = BB_chosen.length + Math.max(lbCov, lbBasic);
   if (lb >= BB_bestCnt) return;
 
-  var c       = BB_cands[candIdx];
-  var gain    = 0;
-  var forcedPop = 0;
+  var c = BB_cands[candIdx];
+  var gain = 0, forcedPop = 0;
 
   for (var w = 0; w < uw; w++) {
     var uncov  = ~cov[w];
     var act    = c.mask[w] & uncov;
     if (act) gain += popcount32(act);
-    /* unique: uncovered bits covered by exactly this one remaining candidate. */
-    var unique = (remMask[w] ^ overlapMask[w]) & uncov;
+    /* unique: uncovered bits covered by exactly one productive remaining candidate. */
+    var unique = (BB_remMask[w] ^ BB_overlapMask[w]) & uncov;
     if (c.mask[w] & unique) forcedPop += popcount32(c.mask[w] & unique);
   }
 
@@ -1756,11 +1771,11 @@ function solve(candIdx, cov) {
      for >= 3 uncovered points, excluding it cannot yield an optimal solution. */
   var isForced = forcedPop >= 3;
 
-  /* Branch 1 — Include: only worthwhile when gain >= 3. */
+  /* Branch 1 — Include: candIdx advance guarantees gain >= 3 here. */
   if (gain >= 3) {
     BB_chosen.push(c);
-    var nextCov = new Int32Array(WORDS);
-    for (var w = 0; w < uw; w++) nextCov[w] = cov[w] | c.mask[w];
+    var nextCov = new Int32Array(cov);
+    for (var w = 0; w < uw; w++) nextCov[w] |= c.mask[w];
     solve(candIdx + 1, nextCov);
     BB_chosen.pop();
   }
