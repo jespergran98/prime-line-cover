@@ -667,6 +667,12 @@ details.tut summary::-webkit-details-marker { display: none; }
     0 1px 4px rgba(24,38,58,0.06),
     inset 0 1px 0 rgba(255,255,255,0.6);
   pointer-events: auto;
+  transition: opacity 0.42s var(--ease-out), transform 0.42s var(--ease-out);
+}
+.canvas-overlay.overlays-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(3px);
 }
 
 #overlay-tl {
@@ -1086,6 +1092,78 @@ details.tut summary::-webkit-details-marker { display: none; }
   15%  { opacity: 1; transform: translate(-50%,-50%) scale(1.02); }
   100% { opacity: 0; transform: translate(-50%,-58%) scale(1); }
 }
+
+/* ═══════════════════════════════════════════════════════
+   Overlay Visibility Toggle
+   ═══════════════════════════════════════════════════════ */
+#overlay-vis-toggle {
+  position: absolute;
+  bottom: 26px;
+  left: 26px;
+  z-index: 9;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px 7px 10px;
+  background: rgba(253,252,248,0.93);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--ink-18);
+  border-radius: 99px;
+  box-shadow:
+    0 4px 20px rgba(24,38,58,0.08),
+    0 1px 4px rgba(24,38,58,0.05),
+    inset 0 1px 0 rgba(255,255,255,0.65);
+  cursor: pointer;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 400;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--ink-70);
+  outline: none;
+  user-select: none;
+  transition:
+    background 0.22s var(--ease-out),
+    border-color 0.22s var(--ease-out),
+    color 0.22s var(--ease-out),
+    box-shadow 0.22s var(--ease-out),
+    transform 0.18s var(--ease-out);
+}
+#overlay-vis-toggle:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+  box-shadow:
+    0 6px 28px rgba(24,38,58,0.20),
+    0 2px 6px rgba(24,38,58,0.12);
+  transform: translateY(-1px);
+}
+#overlay-vis-toggle:active {
+  transform: translateY(0px) scale(0.97);
+}
+#overlay-vis-toggle.overlays-off {
+  background: var(--paper-alt);
+  border-color: rgba(24,38,58,0.12);
+  color: var(--ink-45);
+}
+#overlay-vis-toggle.overlays-off:hover {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+}
+
+/* Eye icon layers */
+.vis-eye-open { display: block; }
+.vis-eye-shut  { display: none; }
+#overlay-vis-toggle.overlays-off .vis-eye-open { display: none; }
+#overlay-vis-toggle.overlays-off .vis-eye-shut  { display: block; }
+
+/* Label text swap */
+.vis-lbl-on  { display: inline; }
+.vis-lbl-off { display: none;   }
+#overlay-vis-toggle.overlays-off .vis-lbl-on  { display: none; }
+#overlay-vis-toggle.overlays-off .vis-lbl-off { display: inline; }
 </style>
 </head>
 <body>
@@ -1229,6 +1307,22 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     <!-- Awkward prime notification -->
     <div id="awkward-flash"></div>
+
+    <!-- u2500u2500 Overlay visibility toggle u2500u2500 -->
+    <button id="overlay-vis-toggle" aria-label="Toggle canvas overlays">
+      <svg class="vis-eye-open" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+        <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" fill="none"/>
+        <circle cx="8" cy="5.5" r="0.75" fill="currentColor"/>
+      </svg>
+      <svg class="vis-eye-shut" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-opacity="0.35" fill="none"/>
+        <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35" fill="none"/>
+        <line x1="2.5" y1="1" x2="13.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+      </svg>
+      <span class="vis-lbl-on">Overlays</span>
+      <span class="vis-lbl-off">Show</span>
+    </button>
   </div>
 
   <!-- ── Side panel ── -->
@@ -2695,6 +2789,38 @@ function loop(ts) {
 }
 
 requestAnimationFrame(loop);
+})();
+</script>
+
+<script>
+/* ── Overlay visibility toggle ─────────────────────────────────────────── */
+(function () {
+  const btn      = document.getElementById('overlay-vis-toggle');
+  const overlays = [
+    document.getElementById('overlay-tl'),
+    document.getElementById('overlay-paper'),
+    document.getElementById('overlay-br'),
+  ];
+
+  let visible = true;
+
+  btn.addEventListener('click', function () {
+    visible = !visible;
+
+    overlays.forEach(function (el) {
+      if (visible) {
+        el.classList.remove('overlays-hidden');
+      } else {
+        el.classList.add('overlays-hidden');
+      }
+    });
+
+    if (visible) {
+      btn.classList.remove('overlays-off');
+    } else {
+      btn.classList.add('overlays-off');
+    }
+  });
 })();
 </script>
 </body>
