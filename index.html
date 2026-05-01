@@ -82,9 +82,15 @@ html, body {
   background: var(--canvas-bg);
 }
 
+/* Canvas Wrapper maintains positioning context to easily separate from overlays */
+#canvas-wrapper {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
 /* Ruled paper lines going horizontal across canvas area */
-#main-panel::before {
-  content: '';
+#canvas-bg {
   position: absolute;
   inset: 0;
   background-image: repeating-linear-gradient(
@@ -697,6 +703,7 @@ details.tut summary::-webkit-details-marker { display: none; }
   justify-content: space-between;
   gap: 14px;
   margin-bottom: 3px;
+  flex-wrap: wrap;
 }
 
 .co-title {
@@ -840,6 +847,7 @@ details.tut summary::-webkit-details-marker { display: none; }
 .co-file-link-row {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 9px;
 }
@@ -1164,22 +1172,119 @@ details.tut summary::-webkit-details-marker { display: none; }
 .vis-lbl-off { display: none;   }
 #overlay-vis-toggle.overlays-off .vis-lbl-on  { display: none; }
 #overlay-vis-toggle.overlays-off .vis-lbl-off { display: inline; }
+
+/* ═══════════════════════════════════════════════════════
+   MOBILE / RESPONSIVE OVERHAUL
+   ═══════════════════════════════════════════════════════ */
+@media (max-width: 950px) {
+  html, body {
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+  
+  #app {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  #main-panel {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    min-height: 0;
+    background: var(--paper); /* Blends below the canvas wrapper */
+  }
+  
+  /* Confine the canvas explicitly, ensuring the visual math remains legible */
+  #canvas-wrapper {
+    position: relative;
+    width: 100%;
+    height: 60vh;
+    min-height: 400px;
+    flex-shrink: 0;
+    background: var(--canvas-bg);
+    border-bottom: 1px solid var(--ink-18);
+  }
+
+  /* The overlays now stack cleanly as document flow cards below the canvas */
+  .canvas-overlay {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 16px;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+    box-shadow: 0 4px 20px rgba(24,38,58,0.06), 0 1px 3px rgba(24,38,58,0.04), inset 0 1px 0 rgba(255,255,255,0.6);
+  }
+  
+  #overlay-tl { margin-top: 24px; }
+  #overlay-paper { margin-top: 0; }
+  #overlay-br { margin-top: 0; margin-bottom: 32px; }
+
+  /* Overlay toggle makes no sense when elements flow normally */
+  #overlay-vis-toggle {
+    display: none !important;
+  }
+
+  /* Ensure code block wraps correctly instead of breaking out horizontally */
+  .co-code {
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  #awkward-flash {
+    top: 50%;
+    left: 50%;
+  }
+
+  /* The side panel flows seamlessly as the bottom half of the mobile site */
+  #side {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--ink-18);
+    overflow-y: visible;
+  }
+}
 </style>
 </head>
 <body>
 <div id="app">
 
-  <!-- ── Main visualisation canvas ── -->
   <div id="main-panel">
-    <canvas id="main-canvas"></canvas>
+    
+    <div id="canvas-wrapper">
+      <div id="canvas-bg"></div>
+      <canvas id="main-canvas"></canvas>
+      
+      <div id="awkward-flash"></div>
 
-    <!-- ── Top-left corner overlay ─────────────────────────────────────────
-         Title, algorithm summary, world record, performance comparison,
-         and primary solver file download link.
-         ──────────────────────────────────────────────────────────────────── -->
+      <button id="overlay-vis-toggle" aria-label="Toggle canvas overlays">
+        <svg class="vis-eye-open" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
+          <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          <circle cx="8" cy="5.5" r="0.75" fill="currentColor"/>
+        </svg>
+        <svg class="vis-eye-shut" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-opacity="0.35" fill="none"/>
+          <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35" fill="none"/>
+          <line x1="2.5" y1="1" x2="13.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        </svg>
+        <span class="vis-lbl-on">Overlays</span>
+        <span class="vis-lbl-off">Show</span>
+      </button>
+    </div>
+
     <div id="overlay-tl" class="canvas-overlay">
 
-      <!-- Header: title + world-record badge -->
       <div class="co-tl-header">
         <div>
           <div class="co-title">Prime Line Cover</div>
@@ -1192,7 +1297,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
       <div class="co-sep"></div>
 
-      <!-- Algorithm summary -->
       <div class="co-body">
         Points <em>(i,&thinsp;p<sub>i</sub>)</em> for the first <em>N</em> primes, covered by
         the fewest possible straight lines. Solved via Lagrangian relaxation,
@@ -1201,7 +1305,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
       <div class="co-sep"></div>
 
-      <!-- Performance comparison: this solver vs prior MIP record -->
       <div class="co-perf-row">
         <div class="co-perf-cell">
           <div class="co-perf-label">This solver</div>
@@ -1218,7 +1321,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
       <div class="co-sep"></div>
 
-      <!-- Primary solver file link -->
       <div class="co-mono-label">Primary Solver File</div>
       <div class="co-file-link-row">
         <a class="co-primary-btn" href="./primecover1024.cpp" download>
@@ -1231,11 +1333,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 ./solver</code>
     </div>
 
-    <!-- ── Paper overlay ──────────────────────────────────────────────────
-         Research paper citation card, positioned to the right of
-         overlay-tl. Gives the accompanying paper its own prominent
-         presence on the canvas.
-         ──────────────────────────────────────────────────────────────── -->
     <div id="overlay-paper" class="canvas-overlay">
 
       <div class="paper-header">
@@ -1270,11 +1367,9 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     </div>
 
-    <!-- ── Bottom-right corner overlay (legend) ── -->
     <div id="overlay-br" class="canvas-overlay">
       <div class="co-mono-label">Legend</div>
 
-      <!-- Heavy lines — color-coded palette swatch -->
       <div class="co-legend-item">
         <div class="co-leg-swatch">
           <div class="co-leg-palette">
@@ -1304,31 +1399,10 @@ details.tut summary::-webkit-details-marker { display: none; }
       <div class="co-sep" style="margin: 8px 0 6px;"></div>
       <div class="co-render-note">Glow scales with line density</div>
     </div>
-
-    <!-- Awkward prime notification -->
-    <div id="awkward-flash"></div>
-
-    <!-- u2500u2500 Overlay visibility toggle u2500u2500 -->
-    <button id="overlay-vis-toggle" aria-label="Toggle canvas overlays">
-      <svg class="vis-eye-open" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" fill="none"/>
-        <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" fill="none"/>
-        <circle cx="8" cy="5.5" r="0.75" fill="currentColor"/>
-      </svg>
-      <svg class="vis-eye-shut" width="16" height="11" viewBox="0 0 16 11" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M1 5.5C1 5.5 3.5 1 8 1C12.5 1 15 5.5 15 5.5C15 5.5 12.5 10 8 10C3.5 10 1 5.5 1 5.5Z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round" stroke-opacity="0.35" fill="none"/>
-        <circle cx="8" cy="5.5" r="2.1" stroke="currentColor" stroke-width="1.2" stroke-opacity="0.35" fill="none"/>
-        <line x1="2.5" y1="1" x2="13.5" y2="10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-      </svg>
-      <span class="vis-lbl-on">Overlays</span>
-      <span class="vis-lbl-off">Show</span>
-    </button>
   </div>
 
-  <!-- ── Side panel ── -->
   <div id="side">
 
-    <!-- Header -->
     <div id="panel-header">
       <div class="header-title">Minimum Line Cover of Prime Points</div>
       <div class="header-sub">Exact solver for OEIS A373813 — visualised live</div>
@@ -1340,7 +1414,6 @@ details.tut summary::-webkit-details-marker { display: none; }
       </div>
     </div>
 
-    <!-- Solver state block -->
     <div class="panel-block">
       <div class="section-label">Solver State &ensp;<span class="js-badge">JavaScript</span></div>
 
@@ -1395,7 +1468,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     <div class="sep-full"></div>
 
-    <!-- f(N) chart -->
     <div class="chart-wrap">
       <div class="chart-header">
         <div class="chart-dot" style="background: var(--teal);"></div>
@@ -1406,7 +1478,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     <div class="sep-full"></div>
 
-    <!-- Compute time chart -->
     <div class="chart-wrap">
       <div class="chart-header">
         <div class="chart-dot" style="background: var(--blue);"></div>
@@ -1417,7 +1488,6 @@ details.tut summary::-webkit-details-marker { display: none; }
 
     <div class="sep-full"></div>
 
-    <!-- C++ Solver section -->
     <div class="cpp-section">
       <div class="section-label">C++ Solver — primecover1024</div>
 
@@ -1511,10 +1581,7 @@ sudo apt update && sudo apt install g++-14 -y</pre>
       &middot; MIT License
     </div>
 
-  </div><!-- #side -->
-</div><!-- #app -->
-
-<script>
+  </div></div><script>
 (function () {
 'use strict';
 
@@ -2002,11 +2069,11 @@ const tctx = tcEl.getContext('2d');
 
 function resize() {
   const dpr = window.devicePixelRatio || 1;
-  const mp  = document.getElementById('main-panel');
+  const cw  = document.getElementById('canvas-wrapper'); // Bind strictly to canvas constraints
   const lp  = lcEl.parentElement;
   const tp  = tcEl.parentElement;
-  mcEl.width  = Math.round(mp.offsetWidth  * dpr);
-  mcEl.height = Math.round(mp.offsetHeight * dpr);
+  mcEl.width  = Math.round(cw.offsetWidth  * dpr);
+  mcEl.height = Math.round(cw.offsetHeight * dpr);
   lcEl.width  = Math.round(lp.offsetWidth  * dpr);
   lcEl.height = Math.round(lp.offsetHeight * dpr);
   tcEl.width  = Math.round(tp.offsetWidth  * dpr);
@@ -2047,8 +2114,8 @@ let isPaused = false;
 let INTERVAL = 3000 - parseInt(sliderSpeed.value, 10);
 
 /* ── ANIMATION SYSTEM — adaptive to step interval and line count ── */
-/*    Stagger and duration scale down at high N so all lines finish  */
-/*    before the next prime arrives.                                  */
+/* Stagger and duration scale down at high N so all lines finish  */
+/* before the next prime arrives.                                  */
 const ANIM_DUR_MAX     = 650;  // ms — cap for a single line's draw time
 const ANIM_STAGGER_MAX = 55;   // ms — cap between successive line starts
 let   currentAnimDur   = ANIM_DUR_MAX; // updated each step in tryApply
@@ -2595,12 +2662,6 @@ function drawMain(t) {
 
   mctx.restore();
 }
-
-/* ── Top-left corner annotation — replaced by #overlay-tl HTML panel ── */
-function drawTopLeftAnnotation(ctx, x, y, w, h, N, maxV) { /* no-op */ }
-
-/* ── Bottom-right corner annotation — replaced by #overlay-br HTML panel ── */
-function drawBottomRightAnnotation(ctx, x, y, w, h, N, maxV) { /* no-op */ }
 
 /* ── Rounded rect helper ─────────────────────────────────────────────────── */
 function roundRect(ctx, x, y, w, h, r) {
