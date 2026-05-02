@@ -38,6 +38,16 @@ point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point 4 at (4, 7)
 
 That's the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**.
 
+## Introduction to the Problem
+
+This problem was popularized by a Numberphile video featuring Neil Sloane (OEIS founder) — well worth a watch for an intuitive introduction to the problem:
+
+<a href="https://www.youtube.com/watch?v=VFoIPlUalRY">
+  <img src="https://img.youtube.com/vi/VFoIPlUalRY/maxresdefault.jpg" alt="Awkward Primes – Numberphile" width="400">
+</a>
+
+---
+
 ## Performance
 
 Despite the enormous number of possible line combinations (which grows exponentially with N), this solver computes the optimal cover for the first 800 prime points in **less than 60 seconds** on a 10-year-old laptop.
