@@ -74,7 +74,7 @@ The solver is optimised for **N <= 1024** (hence the `1024` in the filename).
 
 `index.html` in the root of this repository is a complete single-file interactive demo. It is deployed as a static site on Vercel and requires no server – just open it in any modern browser.
 
-The demo runs a faithful **JavaScript port of the C++ solver** (using the same bitmask-based algorithm, heavy-line enumeration, and branch-and-bound logic) directly in a Web Worker so the UI never blocks. It then animates the result step by step, incrementing N one prime at a time.
+The demo runs a faithful **JavaScript port of the C++ solver** (using the same bitmask-based algorithm, heavy-line enumeration, and branch-and-bound logic) directly in a Web Worker so the UI never blocks. It then animates the result step by step, incrementing N one prime at a time. The JavaScript version is able to reach the 200th prime in less than 20 seconds, but struggles beyond N300 (compared to the C++ version getting to N800 in less than a minute).
 
 The JavaScript port is **single-threaded** and therefore slower than the native C++ solver for large N. It is well-suited for exploring and visualising the problem up to moderate N in real time, but is not intended for record-breaking runs. To compute the full certified sequence, use the C++ solver compiled locally.
 
