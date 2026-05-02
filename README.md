@@ -40,7 +40,7 @@ That's the best possible – you cannot cover all five points with only 1 line. 
 
 ## Introduction to the Problem
 
-This problem was popularized by a Numberphile video featuring Neil Sloane (OEIS founder) — well worth a watch for an intuitive introduction to the problem:
+If you're new to the problem, this Numberphile video by Brady Haran — featuring Neil Sloane, founder of the OEIS — is a great place to start:
 
 <a href="https://www.youtube.com/watch?v=VFoIPlUalRY">
   <img src="https://img.youtube.com/vi/VFoIPlUalRY/maxresdefault.jpg" alt="Awkward Primes – Numberphile" width="400">
