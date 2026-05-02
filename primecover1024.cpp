@@ -1227,58 +1227,70 @@ std::vector<ExactGainSolver::Task> ExactGainSolver::build_frontier(Task root, Wo
     // =========================================================================
     // Frontier‑multiplier ladder – target = worker_count × multiplier.
     // =========================================================================
-    // Google Cloud c4d‑highcpu machines provide 2 vCPUs per physical core.
-    // The solver uses worker_count = hardware_concurrency() (vCPUs).
-    // Memory scales with instance type: c4d‑highcpu‑8 (15 GB), ‑16 (30 GB), ‑32 (60 GB), etc.
+    // The solver uses worker_count = hardware_concurrency() (the number of CPU threads).
+    // The frontier size = worker_count × multiplier. Larger multipliers increase
+    // parallelism but also memory usage.
     //
-    // MEMORY REQUIREMENTS (N=1024, about 150 heavy lines):
-    //   Each frontier task consumes roughly 43 KB of heap memory (not counting the
-    //   StateBestMap). The map used for duplicate‑state pruning is the main memory
-    //   bottleneck – it stores many unique states, each with a 128‑byte bitmask and
-    //   a list of blocked lines (up to 150 integers). For large frontiers, this map
-    //   can grow to multiple gigabytes.
+    // -------------------------------------------------------------------------
+    // Measurements from a Google Cloud c4d‑highcpu‑8 machine (8 vCPUs, 15 GB RAM)
+    // running the solver up to N=943:
     //
-    //   Observed behaviour on c4d‑highcpu‑8 (15 GB RAM):
-    //     - multiplier 8192U → 8 × 8192 = 65,536 tasks → works (peak ~12 GB)
-    //     - multiplier 16384U → 131,072 tasks → out‑of‑memory crash at N=925 (cost 133)
-    //   Therefore, the safe limit for a 15 GB instance is multiplier 8192U.
+    //   65,536 tasks (multiplier 8192U) → RSS ≈ 11.6 GB → ~187 KB per task.
+    //  131,072 tasks (multiplier 16384U) → extrapolated RSS ≈ 23.4 GB → unsafe.
     //
-    // SAFE MULTIPLIERS (empirically determined):
-    //   - 15 GB (c4d‑highcpu‑8):                 max 8192U
-    //   - 30 GB (c4d‑highcpu‑16):                16384U may work, but test first
-    //   - 60 GB (c4d‑highcpu‑32):                32768U and 131072U may work for long runs
-    //   Always monitor peak memory usage (e.g., with /usr/bin/time -v) and reduce
-    //   the multiplier if the process gets killed.
+    //   The safe maximum multiplier on this machine is 8192U.
+    //   Multiplier 16384U would need ~23.4 GB and exceeds the 15 GB available.
     //
-    // MEMORY BREAKDOWN (per Task, N=1024):
-    //   - sizeof(Task) = 352 bytes
-    //   - Heap allocations:
-    //        line_cover (300 ints)                    1.2 KB
-    //        productive_degree (4096 ints)           16 KB
-    //        sole_productive_line (4096 ints)        16 KB
-    //        available (150 bytes)                    0.15 KB
-    //        current_choice (≤600 ints)              2.4 KB
-    //        productive_ids (≤600 ints)              2.4 KB
-    //        productive_pos (≤600 ints)              2.4 KB
-    //        blocked_productive_ids (≤256 ints)      1.0 KB
-    //        blocked_productive_pos (≤600 ints)      2.4 KB
-    //        → total heap ≈ 43 KB per task.
-    //   - StateBestMap overhead per unique state: about 1.5 KB (key + value + hash table).
-    //   For 65k tasks, the map typically stores 20‑50k states → 30–75 MB overhead,
-    //   which is acceptable. For 131k tasks, the map expands beyond the system’s
-    //   memory, causing a crash.
+    // -------------------------------------------------------------------------
+    // Per‑task memory varies greatly between different computers. For example:
+    //   - Google Cloud c4d‑highcpu‑8 (15 GB): ~184 KB per task
+    //   - Some personal computers (e.g., i9 9900K with 15 GB RAM) may show
+    //     ~125 KB per task at frontier 8192, making 8192U unsafe (needs ~43 GB).
+    //   Your results will likely be different – always measure.
+    //
+    // -------------------------------------------------------------------------
+    // WHY THE LADDER USES 8192U FOR THE HARDEST PROBLEMS (on c4d‑highcpu‑8):
+    //   Think of the search space as a construction project.
+    //   - A small house (easy N) needs only a few workers – multipliers 4U to 128U.
+    //   - A large building (moderately hard N) needs hundreds of workers – multiplier 2048U.
+    //   - A massive skyscraper (cost 128–132) needs thousands of well‑coordinated
+    //     workers and prefabricated sections – but only if you have enough space
+    //     (RAM) to host them. On the tested cloud machine, 8192U (65k tasks) was
+    //     that "ace in the hole" – enough to saturate all cores without OOM.
+    //   On your hardware, the ideal multiplier may be higher or lower;
+    //   always use the diagnostic command to find the safe maximum.
+    //
+    // -------------------------------------------------------------------------
+    // IMPORTANT TOOL TO FIND YOUR SAFE MULTIPLIER:
+    // Always measure using the diagnostic command (the "Frontier analyzer")
+    // described in the GitHub repository:
+    //   https://github.com/jespergran98/prime-line-cover
+    // It reads the running solver's RSS and the most recent frontier size,
+    // then tells you which multipliers are safe on your hardware.
+    // Do not guess – always use the measured value.
+    //
+    // -------------------------------------------------------------------------
+    // General guidelines for safe multipliers:
+    //   - Multiplier 8192U is safe on many machines with at least 15 GB RAM,
+    //     but not all – always verify with the diagnostic command.
+    //   - Multiplier 16384U may be safe if your measured per‑task memory is low
+    //     enough that the estimated memory usage fits within your available RAM.
+    //     Use the diagnostic command to check before enabling it.
+    //   - Higher multipliers (32768U, 131072U) are rarely practical on typical
+    //     hardware; enable them only after thorough testing with the diagnostic command.
+    //
     // -------------------------------------------------------------------------
     const unsigned frontier_multiplier =
-    //  current_best_cost() >= 143 ? 131072U  // cost ≥143 – weeks‑scale solves (enable only on ≥120 GB)
-    //: current_best_cost() >= 138 ? 32768U   // cost 138–142 – multi‑day to weeks (enable only on ≥60 GB)
-    //: current_best_cost() >= 133 ? 16384U   // cost 133–137 – days to multi‑day (enable only on ≥30 GB)
-        current_best_cost() >= 128 ?  8192U   // cost 128–132 – 330–5545s (observed, safe for 15 GB)
-      : current_best_cost() >= 125 ?  2048U   // cost 125–127 – 133–1253s (observed)
-      : current_best_cost() >= 121 ?   512U   // cost 121–124 – 25–515s (observed)
-      : current_best_cost() >= 113 ?   128U   // cost 113–120 – 3.5–45s (confirmed)
-      : current_best_cost() >= 93  ?    16U   // cost 93–112 – sub‑second
-                                   :     4U;  // trivial
-                                   
+    //  current_best_cost() >= 143 ? 131072U  // rarely feasible (weeks to months estimate)
+    //: current_best_cost() >= 138 ? 32768U   // rarely feasible (days to weeks estimate)
+    //: current_best_cost() >= 133 ? 16384U   // only if your diagnostic command says it is safe (hours to days estimate)
+        current_best_cost() >= 128 ?  8192U   // safe on wr run - c4d‑highcpu‑8 (15 GB) (330–5545s)
+      : current_best_cost() >= 125 ?  2048U   // safe on personal i9 9900k (133–1253s)
+      : current_best_cost() >= 121 ?   512U   // safe on most machines (25–515s)
+      : current_best_cost() >= 113 ?   128U   // safe (3.5–45s)
+      : current_best_cost() >= 93  ?    16U   // safe (sub‑second)
+                                   :     4U;  // trivial (microsecond to decisecond)
+                            
     const std::size_t target = std::max<std::size_t>(1, as_size(worker_count_) * as_size(frontier_multiplier));
     
     StateBestMap frontier_best;
