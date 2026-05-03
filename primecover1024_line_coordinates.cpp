@@ -1822,7 +1822,7 @@ long double ExactGainSolver::lagrangian_upper_bound(const Task& task, WorkerCont
 
     if (maybe_confirm_prune(best)) return confirmed_prune_total;
 
-    const int kCoordinatePolishMaxSweeps = scratch.dual_ready ? 1 : 3;
+    constexpr int kCoordinatePolishMaxSweeps = 1;
     constexpr long double kCoordinatePolishWindow = 0.5L;
     const long double best_total = static_cast<long double>(task.current_gain) + static_cast<long double>(best);
     
