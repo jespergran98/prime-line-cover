@@ -1967,6 +1967,85 @@ function lagrangianUpperBound(cov, cands, candIdx, N, uw, currentGain) {
     }
   }
 
+  /* ── Coordinate-descent polish ─────────────────────────────────────────
+     Mirrors C++ kCoordinatePolishMaxSweeps = 1 (lines 1825-1922 of solver).
+
+     Only activates when the Lagrangian bound is within 0.5 of the pruning
+     threshold — cheap on easy nodes, decisive near tight bounds.
+
+     Rationale: the Lagrangian L(y) is piecewise-linear in each y[p] alone.
+     Fixing all other coordinates, the contribution from line L to the
+     objective (when its slack is positive) decreases linearly in y[p].
+     The coordinate-wise minimum is therefore analytic:
+
+       adjusted_L = wlc[L] + old_y[p]          (slack of L if y[p] were 0)
+       y*[p]      = min(1, second-largest positive adjusted_L over L covering p)
+
+     This is the threshold where the number of tight lines drops from 2 to 1,
+     exactly cancelling the +1 derivative from the sum_p y[p] term.
+     Propagating the delta into wlc[] keeps slacks consistent for subsequent
+     coordinates.  One sweep tightens the bound significantly near the
+     pruning boundary where subgradient steps become small.
+     ──────────────────────────────────────────────────────────────────────── */
+  var bestTotal = currentGain + best;
+  if (bestTotal < gainNeeded + 0.5) {
+    /* Build inverse map: ap → compact line indices (apOff / apFlat).
+       Mirrors C++ ap_offsets / ap_flat construction. */
+    var apOff = new Int32Array(AP + 1);
+    for (var li = 0; li < PL; li++) {
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
+        apOff[plAps[pos] + 1]++;
+      }
+    }
+    for (var ai = 0; ai < AP; ai++) apOff[ai + 1] += apOff[ai];
+
+    var apFlat  = new Int32Array(apOff[AP]);
+    var fillPos = new Int32Array(AP);
+    for (var ai = 0; ai < AP; ai++) fillPos[ai] = apOff[ai];
+    for (var li = 0; li < PL; li++) {
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
+        var ap = plAps[pos];
+        apFlat[fillPos[ap]++] = li;
+      }
+    }
+
+    /* Initialise line slacks from bestY: wlc[L] = rem2[L] - sum_{p in L} bestY[p].
+       Mirrors C++ wls_c initialisation before the polish sweep. */
+    var wlc = new Float64Array(PL);
+    for (var li = 0; li < PL; li++) {
+      var slack = plRem2[li];
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) slack -= bestY[plAps[pos]];
+      wlc[li] = slack;
+    }
+
+    /* Single coordinate-descent sweep (kCoordinatePolishMaxSweeps = 1).
+       For each active point, find the two largest positive adjusted slacks
+       and set y*[p] = min(1, second-largest).  Update wlc[] incrementally. */
+    for (var ai = 0; ai < AP; ai++) {
+      var old     = bestY[ai];
+      var largest = 0.0, second = 0.0;
+      var beg = apOff[ai], end_ = apOff[ai + 1];
+      for (var k = beg; k < end_; k++) {
+        var adjusted = wlc[apFlat[k]] + old;
+        if (adjusted <= 1e-18) continue;
+        if (adjusted >= largest) { second = largest; largest = adjusted; }
+        else if (adjusted > second) { second = adjusted; }
+      }
+      var next = second < 1.0 ? second : 1.0;
+      if (Math.abs(next - old) <= 1e-15) continue;
+      bestY[ai] = next;
+      var delta = next - old;
+      for (var k = beg; k < end_; k++) wlc[apFlat[k]] -= delta;
+    }
+
+    /* Recompute the polished bound and take the min with subgradient best.
+       Mirrors C++ polished_best = min(polished_best, slack_objective()). */
+    var polished = 0.0;
+    for (var ai = 0; ai < AP; ai++) polished += bestY[ai];
+    for (var li = 0; li < PL; li++) { if (wlc[li] > 1e-18) polished += wlc[li]; }
+    if (polished < best) best = polished;
+  }
+
   return best;
 }
 
