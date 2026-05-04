@@ -1748,7 +1748,8 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
     gains[li] = getGain(cands[li].mask, cov, uw);
   }
 
-  var forcedIndices = [];
+  var forcedIndices  = [];
+  var gainFromForced = 0;   /* sum of (active_gain[L] - 2) for each forced line */
 
   while (true) {
     /* Build sole_productive_line[p]: index of the unique productive line
@@ -1793,6 +1794,7 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
 
     /* Force this line: cover its points, mark unavailable, refresh gains. */
     forcedIndices.push(bestLine);
+    gainFromForced += gains[bestLine] - 2;  /* marginal gain = active_pts - 2 */
     available[bestLine] = 0;
     var bc = cands[bestLine];
     for (var w = 0; w < uw; w++) cov[w] |= bc.mask[w];
@@ -1801,7 +1803,7 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
     }
   }
 
-  return { forcedIndices: forcedIndices, cov: cov };
+  return { forcedIndices: forcedIndices, cov: cov, gainFromForced: gainFromForced };
 }
 
 /* ── Cover-inequality lower bound ──────────────────────────────────────── */
@@ -1849,6 +1851,125 @@ function coverInequalityLB(cov, cands, candIdx, N, uw) {
   }
 }
 
+/* ── Lagrangian relaxation upper bound on remaining achievable gain ─────────
+   Mirrors C++ ExactGainSolver::lagrangian_upper_bound().
+
+   The maximum additional gain reachable by selecting any subset of the
+   remaining productive lines (those with >= 3 active/uncovered points) is
+   upper-bounded by the optimal value of the Lagrangian relaxation:
+
+     L*(y) = min_{y ∈ [0,1]^{AP}}
+                sum_{p active} y[p]
+              + sum_{L productive} max(0, rem2[L] − sum_{p∈L active} y[p])
+
+   where rem2[L] = active_pts_on_L − 2  (the marginal gain of selecting L).
+
+   This is the LP dual of the set-cover gain problem: its optimum equals the
+   LP-relaxation gain bound, which dominates all combinatorial bounds.
+
+   Algorithm:
+     1. Map uncovered points to compact indices 0..AP-1.
+     2. Collect productive lines (active coverage >= 3) into a flat structure.
+     3. Initialise y[p] with the density heuristic: for each point p set
+        y[p] = max_{L covers p} rem2[L] / (rem2[L]+2), matching C++.
+     4. Evaluate L(y) and fast-exit if already below the pruning threshold.
+     5. Minimise L(y) via Polyak-step subgradient descent (≤ 48 iterations).
+        g[p] = 1 − #{L : covers p and slack > 0},
+        step = (L(y) − target) / ||g||²,  target = gainNeeded − currentGain.
+   ────────────────────────────────────────────────────────────────────────── */
+function lagrangianUpperBound(cov, cands, candIdx, N, uw, currentGain) {
+  /* 1. Build compact active-point index (uncovered → 0..AP-1). */
+  var AP = 0;
+  var ptToAp = new Int32Array(N);
+  for (var p = 0; p < N; p++) {
+    if (cov[p >> 5] & (1 << (p & 31))) ptToAp[p] = -1;
+    else ptToAp[p] = AP++;
+  }
+  if (AP === 0) return 0;
+
+  /* 2. Collect productive lines (active coverage >= 3) in compact form.
+        plRem2[li] = active_count - 2.
+        plAps      = flat list of compact ap-indices for all productive lines.
+        plOff      = start/end offsets into plAps per line. */
+  var plRem2 = [], plAps = [], plOff = [0];
+  for (var i = candIdx; i < cands.length; i++) {
+    var c = cands[i], st = plAps.length, cnt = 0;
+    for (var k = 0; k < c.indices.length; k++) {
+      var ap = ptToAp[c.indices[k]];
+      if (ap >= 0) { plAps.push(ap); cnt++; }
+    }
+    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); }
+    else          { plAps.length = st; }  /* roll back: not productive */
+  }
+  var PL = plRem2.length;
+  if (PL === 0) return 0;
+
+  /* 3. Density-based dual initialisation (mirrors C++ warm-start heuristic):
+        y[p] = max over productive lines covering p of rem2/(rem2+2). */
+  var y = new Float64Array(AP), bestY = null;
+  for (var li = 0; li < PL; li++) {
+    var density = plRem2[li] / (plRem2[li] + 2);
+    for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
+      if (density > y[plAps[pos]]) y[plAps[pos]] = density;
+    }
+  }
+
+  /* Evaluate L(y); optionally populate subgradient array sg[].
+     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] - sum_{p in L} y[p]). */
+  var sg = new Float64Array(AP);
+  function evalLag(yy, computeSg) {
+    var val = 0;
+    for (var ai = 0; ai < AP; ai++) { val += yy[ai]; if (computeSg) sg[ai] = 1; }
+    for (var li = 0; li < PL; li++) {
+      var sY = 0;
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sY += yy[plAps[pos]];
+      var rc = plRem2[li] - sY;
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg)
+          for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sg[plAps[pos]]--;
+      }
+    }
+    return val;
+  }
+
+  /* 4. Evaluate initial bound and fast-exit if already tight enough to prune. */
+  var best = evalLag(y, false);
+  bestY = new Float64Array(y);
+  var gainNeeded = BB_N - 2 * BB_bestCnt + 2;   /* minimum total gain to beat incumbent */
+  if (currentGain + best + 1e-9 < gainNeeded) return best;  /* fast exit */
+
+  /* 5. Subgradient descent with Polyak step, up to 48 iterations. */
+  for (var iter = 0; iter < 48; iter++) {
+    var val = evalLag(y, true);   /* computes val and fills sg[] */
+
+    if (val < best - 1e-18) {
+      best = val;
+      for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
+      if (currentGain + best + 1e-9 < gainNeeded) return best;   /* tight: exit early */
+    }
+
+    /* Polyak step size: (L(y) - target) / ||g||^2,
+       where target is a lower bound on the dual optimum. */
+    var norm2 = 0;
+    for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
+    if (norm2 < 1e-20) break;   /* subgradient is zero → at optimum */
+
+    var target = Math.max(0, gainNeeded - currentGain);  /* achievable lower bound */
+    var step   = (val - target) / norm2;
+    if (step <= 0) step = 1.0 / (iter + 2);
+    step = Math.min(step, 2.0 / (iter + 1));  /* diminishing cap for convergence safety */
+
+    /* Projected update: y[p] ← clamp(y[p] - step * g[p], 0, 1). */
+    for (var ai = 0; ai < AP; ai++) {
+      var ny = y[ai] - step * sg[ai];
+      y[ai] = ny < 0 ? 0 : (ny > 1 ? 1 : ny);
+    }
+  }
+
+  return best;
+}
+
 /* ── Branch-and-bound ──────────────────────────────────────────────────── */
 var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
 var BB_nodes = 0;
@@ -1862,7 +1983,7 @@ var BB_remMask     = new Int32Array(WORDS);
 var BB_overlapMask = new Int32Array(WORDS);
 var BB_sMask       = new Int32Array(WORDS);
 
-function solve(candIdx, cov) {
+function solve(candIdx, cov, currentGain) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
@@ -1916,6 +2037,16 @@ function solve(candIdx, cov) {
   var lb      = BB_chosen.length + Math.max(lbCov, lbBasic);
   if (lb >= BB_bestCnt) return;
 
+  /* Lagrangian relaxation upper bound on remaining achievable gain.
+     Mirrors C++ lagrangian_upper_bound(): computes the tightest dual bound on
+     max gain reachable from this node via subgradient minimisation of L(y).
+     If even the Lagrangian-optimal total gain cannot beat the incumbent, prune.
+     This dominates the basic ceil(uncovPop/maxG) bound and is the primary
+     pruning mechanism for harder instances. */
+  var lagUB    = lagrangianUpperBound(cov, BB_cands, candIdx, N, uw, currentGain);
+  var gainNeed = BB_N - 2 * BB_bestCnt + 2;
+  if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) return;
+
   var c = BB_cands[candIdx];
   var gain = 0, forcedPop = 0;
 
@@ -1937,13 +2068,13 @@ function solve(candIdx, cov) {
     BB_chosen.push(c);
     var nextCov = new Int32Array(cov);
     for (var w = 0; w < uw; w++) nextCov[w] |= c.mask[w];
-    solve(candIdx + 1, nextCov);
+    solve(candIdx + 1, nextCov, currentGain + (gain - 2));
     BB_chosen.pop();
   }
 
   /* Branch 2 — Exclude: skipped when the candidate is mathematically forced. */
   if (!isForced) {
-    solve(candIdx + 1, cov);
+    solve(candIdx + 1, cov, currentGain);
   }
 }
 
@@ -1999,7 +2130,7 @@ function computeCover(primes) {
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
-    solve(0, forcedCov);
+    solve(0, forcedCov, forcedResult.gainFromForced);
     bestSol = BB_bestSol;
   }
 
