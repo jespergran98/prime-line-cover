@@ -1808,7 +1808,7 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
 
 /* ── Cover-inequality lower bound ──────────────────────────────────────── */
 var BB_counts = new Int32Array(1024);
-function coverInequalityLB(cov, cands, candIdx, N, uw) {
+function coverInequalityLB(cov, cands, avail, N, uw) {
   /* Build the set of currently uncovered points into BB_sMask (pre-allocated). */
   var fullWords = N >> 5;
   var tail      = N & 31;
@@ -1823,7 +1823,8 @@ function coverInequalityLB(cov, cands, candIdx, N, uw) {
   while (true) {
     BB_counts.fill(0, 0, N);
     var numViolated = 0;
-    for (var i = candIdx; i < cands.length; i++) {
+    for (var i = 0; i < cands.length; i++) {
+      if (!avail[i]) continue;
       var c = cands[i];
       var intersectPop = 0;
       for (var w = 0; w < uw; w++) {
@@ -1877,7 +1878,7 @@ function coverInequalityLB(cov, cands, candIdx, N, uw) {
         g[p] = 1 − #{L : covers p and slack > 0},
         step = (L(y) − target) / ||g||²,  target = gainNeeded − currentGain.
    ────────────────────────────────────────────────────────────────────────── */
-function lagrangianUpperBound(cov, cands, candIdx, N, uw, currentGain) {
+function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
   /* 1. Build compact active-point index (uncovered → 0..AP-1). */
   var AP = 0;
   var ptToAp = new Int32Array(N);
@@ -1892,7 +1893,8 @@ function lagrangianUpperBound(cov, cands, candIdx, N, uw, currentGain) {
         plAps      = flat list of compact ap-indices for all productive lines.
         plOff      = start/end offsets into plAps per line. */
   var plRem2 = [], plAps = [], plOff = [0];
-  for (var i = candIdx; i < cands.length; i++) {
+  for (var i = 0; i < cands.length; i++) {
+    if (!avail[i]) continue;
     var c = cands[i], st = plAps.length, cnt = 0;
     for (var k = 0; k < c.indices.length; k++) {
       var ap = ptToAp[c.indices[k]];
@@ -2067,99 +2069,167 @@ var BB_remMask     = new Int32Array(WORDS);
 var BB_overlapMask = new Int32Array(WORDS);
 var BB_sMask       = new Int32Array(WORDS);
 
-function solve(candIdx, cov, currentGain) {
+/* ── DFS-level forced line reduction + best-gain branching ────────────────
+   Mirrors C++ ExactGainSolver::dfs() + apply_dfs_forced_line_reduction().
+
+   Key improvement over the previous candIdx-ordered enumeration:
+   At every DFS node, BEFORE computing any bound or choosing a branch, we
+   exhaustively apply the Exclusive Dependency Rule: any productive available
+   line that is the sole productive cover for >= 3 uncovered points must be in
+   every optimal solution, so we select it immediately and loop to fix-point.
+   This matches C++ apply_dfs_forced_line_reduction(), which is called at
+   every node — not just once at the root.
+
+   After forced reduction we branch on the available productive candidate with
+   the highest current active coverage (best-gain branching), instead of the
+   first candidate in static-sorted order.  Together these two improvements
+   give tighter Lagrangian bounds (computed on a smaller reduced problem) and
+   much shallower search trees.
+
+   Parameters
+   ----------
+   cov         : Int32Array  — bitmask of already-covered points (NOT mutated)
+   avail       : Uint8Array  — avail[i]=1 iff BB_cands[i] is still usable
+   currentGain : int         — cumulative gain so far in this branch
+   ──────────────────────────────────────────────────────────────────────── */
+function solve(cov, avail, currentGain) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
   var N  = BB_N;
 
-  /* Advance past non-productive candidates (gain < 3) — mirrors C++ productive_ids.
-     Each non-productive candidate can cover at most 2 uncovered points, offering no
-     advantage over a cheap light line; skipping them avoids wasted stack frames. */
-  while (candIdx < BB_cands.length) {
-    var c0 = BB_cands[candIdx], g0 = 0;
-    for (var w = 0; w < uw; w++) { var a = c0.mask[w] & ~cov[w]; if (a) g0 += popcount32(a); }
-    if (g0 >= 3) break;
-    candIdx++;
+  /* ── Step 1: DFS-level forced line reduction ─────────────────────────────
+     Work on local copies of cov/avail so the caller's state is not mutated.
+     Copy lazily: only duplicate when the first forced line is found.        */
+  var workCov     = cov;
+  var workAvail   = avail;
+  var availCopied = false;
+  var nForced     = 0;
+
+  forced_outer: for (;;) {
+    /* Build soleLine[p]: index of the single productive available line that
+       covers uncovered point p, or -2 if multiple such lines exist.
+       Mirrors C++ sole_productive_line[] rebuild inside apply_dfs_forced_line_reduction(). */
+    var soleLine = new Int32Array(N);
+    for (var p = 0; p < N; p++) soleLine[p] = -1;
+
+    for (var li = 0; li < BB_cands.length; li++) {
+      if (!workAvail[li]) continue;
+      var fc = BB_cands[li], fgi = 0;
+      for (var w = 0; w < uw; w++) { var fa = fc.mask[w] & ~workCov[w]; if (fa) fgi += popcount32(fa); }
+      if (fgi < 3) continue;                /* non-productive — skip */
+      for (var k = 0; k < fc.indices.length; k++) {
+        var fp = fc.indices[k];
+        if (workCov[fp >> 5] & (1 << (fp & 31))) continue; /* already covered */
+        if      (soleLine[fp] === -1) soleLine[fp] = li;
+        else if (soleLine[fp] !== li) soleLine[fp] = -2;   /* multiple lines */
+      }
+    }
+
+    /* Scan for a line forced by having >= 3 uniquely-covered uncovered points. */
+    for (var li = 0; li < BB_cands.length; li++) {
+      if (!workAvail[li]) continue;
+      var fc = BB_cands[li], fgi = 0;
+      for (var w = 0; w < uw; w++) { var fa = fc.mask[w] & ~workCov[w]; if (fa) fgi += popcount32(fa); }
+      if (fgi < 3) continue;
+      var uniq = 0;
+      for (var k = 0; k < fc.indices.length; k++) { if (soleLine[fc.indices[k]] === li) uniq++; }
+      if (uniq < 3) continue;
+
+      /* Forced: select this line.  Copy cov/avail on first mutation. */
+      if (!availCopied) {
+        workCov   = new Int32Array(cov);
+        workAvail = new Uint8Array(avail);
+        availCopied = true;
+      }
+      workAvail[li] = 0;
+      for (var w = 0; w < uw; w++) workCov[w] |= fc.mask[w];
+      currentGain += fgi - 2;
+      BB_chosen.push(fc);
+      nForced++;
+      continue forced_outer;   /* restart: forcing may expose new forced lines */
+    }
+    break;  /* convergence: no more forced lines */
   }
 
-  var uncovPop = countUncovered(cov, N, uw);
-
-  /* Capture the current cost; update incumbent if improved. */
+  /* ── Step 2: Update incumbent ────────────────────────────────────────────
+     After forced reduction the remaining uncovered set is minimal for this node. */
+  var uncovPop    = countUncovered(workCov, N, uw);
   var currentCost = BB_chosen.length + Math.ceil(uncovPop / 2);
   if (currentCost < BB_bestCnt) {
     BB_bestCnt = currentCost;
     BB_bestSol = BB_chosen.slice();
   }
 
-  if (candIdx >= BB_cands.length || uncovPop === 0) return;
+  /* ── Step 3: Find best productive candidate ─────────────────────────────
+     Best = max active-coverage productive available line (mirrors C++ choose_branch
+     prior to strong branching: the max-coverage heuristic dominates static ordering). */
+  var bestIdx = -1, bestGain = 0, maxG = 0;
 
-  /* Scan only productive remaining candidates (gain >= 3) for remMask/overlapMask.
-     Restricting to productive candidates mirrors C++ productive_ids and makes the
-     Exclusive Dependency Rule check consistent: a point is "solely covered" only
-     when exactly one *productive* line still covers it.
-     Uses pre-allocated globals to eliminate per-node Int32Array allocations. */
-  var maxG = 0;
-  for (var w = 0; w < uw; w++) { BB_remMask[w] = 0; BB_overlapMask[w] = 0; }
-
-  for (var i = candIdx; i < BB_cands.length; i++) {
+  for (var i = 0; i < BB_cands.length; i++) {
+    if (!workAvail[i]) continue;
     var ci = BB_cands[i], gi = 0;
-    for (var w = 0; w < uw; w++) { var a = ci.mask[w] & ~cov[w]; if (a) gi += popcount32(a); }
-    if (gi < 3) continue;   /* non-productive — only productive_ids count */
+    for (var w = 0; w < uw; w++) { var a = ci.mask[w] & ~workCov[w]; if (a) gi += popcount32(a); }
+    if (gi < 3) continue;   /* non-productive */
     if (gi > maxG) maxG = gi;
-    for (var w = 0; w < uw; w++) {
-      BB_overlapMask[w] |= (BB_remMask[w] & ci.mask[w]);
-      BB_remMask[w]     |= ci.mask[w];
-    }
+    if (gi > bestGain) { bestGain = gi; bestIdx = i; }
   }
 
-  if (maxG < 3) return;   /* no productive line can help further */
+  if (bestIdx < 0 || maxG < 3 || uncovPop === 0) {
+    /* No productive candidate remains.  Incumbent was already updated above. */
+    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    return;
+  }
 
-  /* Lower bounds. */
-  var lbCov   = coverInequalityLB(cov, BB_cands, candIdx, N, uw);
+  /* ── Step 4: Lower bounds ────────────────────────────────────────────────*/
+  var lbCov   = coverInequalityLB(workCov, BB_cands, workAvail, N, uw);
   var lbBasic = Math.ceil(uncovPop / maxG);
   var lb      = BB_chosen.length + Math.max(lbCov, lbBasic);
-  if (lb >= BB_bestCnt) return;
-
-  /* Lagrangian relaxation upper bound on remaining achievable gain.
-     Mirrors C++ lagrangian_upper_bound(): computes the tightest dual bound on
-     max gain reachable from this node via subgradient minimisation of L(y).
-     If even the Lagrangian-optimal total gain cannot beat the incumbent, prune.
-     This dominates the basic ceil(uncovPop/maxG) bound and is the primary
-     pruning mechanism for harder instances. */
-  var lagUB    = lagrangianUpperBound(cov, BB_cands, candIdx, N, uw, currentGain);
-  var gainNeed = BB_N - 2 * BB_bestCnt + 2;
-  if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) return;
-
-  var c = BB_cands[candIdx];
-  var gain = 0, forcedPop = 0;
-
-  for (var w = 0; w < uw; w++) {
-    var uncov  = ~cov[w];
-    var act    = c.mask[w] & uncov;
-    if (act) gain += popcount32(act);
-    /* unique: uncovered bits covered by exactly one productive remaining candidate. */
-    var unique = (BB_remMask[w] ^ BB_overlapMask[w]) & uncov;
-    if (c.mask[w] & unique) forcedPop += popcount32(c.mask[w] & unique);
+  if (lb >= BB_bestCnt) {
+    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    return;
   }
 
-  /* Exclusive Dependency Rule: if this candidate is the sole productive line
-     for >= 3 uncovered points, excluding it cannot yield an optimal solution. */
-  var isForced = forcedPop >= 3;
+  /* ── Step 5: Lagrangian relaxation upper bound ───────────────────────────
+     Computed on the post-forced-reduction problem: fewer uncovered points and
+     fewer available lines → tighter bound than the original JS which computed
+     the bound before forced reduction.                                       */
+  var lagUB    = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain);
+  var gainNeed = BB_N - 2 * BB_bestCnt + 2;
+  if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) {
+    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    return;
+  }
 
-  /* Branch 1 — Include: candIdx advance guarantees gain >= 3 here. */
-  if (gain >= 3) {
-    BB_chosen.push(c);
-    var nextCov = new Int32Array(cov);
-    for (var w = 0; w < uw; w++) nextCov[w] |= c.mask[w];
-    solve(candIdx + 1, nextCov, currentGain + (gain - 2));
+  /* ── Step 6: Branch on bestIdx ───────────────────────────────────────────
+     After forced reduction no remaining available productive line can be
+     forced, so we always explore both the include and exclude branches.
+
+     Branch A — Include bestIdx: cover its points, remove from avail.
+     Branch B — Exclude bestIdx: keep cov unchanged, remove from avail.     */
+  var branchC    = BB_cands[bestIdx];
+  var branchGain = bestGain;
+
+  /* Branch A — Include */
+  if (branchGain >= 3) {
+    var nxtCov   = new Int32Array(workCov);
+    var nxtAvail = new Uint8Array(workAvail);
+    for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
+    nxtAvail[bestIdx] = 0;
+    BB_chosen.push(branchC);
+    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
     BB_chosen.pop();
   }
 
-  /* Branch 2 — Exclude: skipped when the candidate is mathematically forced. */
-  if (!isForced) {
-    solve(candIdx + 1, cov, currentGain);
+  /* Branch B — Exclude */
+  {
+    var nxtAvail = new Uint8Array(workAvail);
+    nxtAvail[bestIdx] = 0;
+    solve(workCov, nxtAvail, currentGain);
   }
+
+  /* Undo forced selections on backtrack. */
+  for (var i = 0; i < nForced; i++) BB_chosen.pop();
 }
 
 /* ── Main entry ─────────────────────────────────────────────────────────── */
@@ -2214,7 +2284,10 @@ function computeCover(primes) {
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
-    solve(0, forcedCov, forcedResult.gainFromForced);
+    /* Initialise availability: all remaining candidates are available. */
+    var initAvail = new Uint8Array(remainCands.length);
+    for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
+    solve(forcedCov, initAvail, forcedResult.gainFromForced);
     bestSol = BB_bestSol;
   }
 
