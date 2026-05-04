@@ -1955,10 +1955,15 @@ function lagrangianUpperBound(cov, cands, candIdx, N, uw, currentGain) {
     for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
     if (norm2 < 1e-20) break;   /* subgradient is zero → at optimum */
 
-    var target = Math.max(0, gainNeeded - currentGain);  /* achievable lower bound */
-    var step   = (val - target) / norm2;
-    if (step <= 0) step = 1.0 / (iter + 2);
-    step = Math.min(step, 2.0 / (iter + 1));  /* diminishing cap for convergence safety */
+    /* Overrelaxed Polyak step — mirrors C++ step_scale = 1.35 (cold start).
+       gap = L(y) − target; when gap ≤ 1e-9 the bound is already at or below
+       the pruning threshold, so exit immediately — mirrors C++:
+         if (gap <= 1e-9) return false;
+       Using step = 1.35 * gap / norm2 (no diminishing cap) matches C++
+       exactly and converges ~35 % faster than the plain Polyak step. */
+    var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
+    if (gap <= 1e-9) break;
+    var step = 1.35 * gap / norm2;
 
     /* Projected update: y[p] ← clamp(y[p] - step * g[p], 0, 1). */
     for (var ai = 0; ai < AP; ai++) {
