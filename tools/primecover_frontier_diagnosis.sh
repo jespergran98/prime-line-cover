@@ -18,8 +18,8 @@
 #
 #  HOW TO USE IT
 #  ─────────────
-#  1. ⚠️  IMPORTANT: Edit the SOURCE_PATH line below – change the example path
-#     to the actual location of your primecover1024.cpp file.
+#  1. ⚠️  IMPORTANT: Edit the SOURCE_PATH below on line 101 – change the
+#     example path to the actual location of your primecover1024.cpp file.
 #
 #  2. Copy paste this entire script directly into your terminal and hit Enter.
 #     (Or save it to a file and run it with bash /full/path/to/script.sh)
