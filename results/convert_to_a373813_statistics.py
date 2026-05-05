@@ -9,7 +9,7 @@
 # script strips away the headers and cover sets, and extracts only the Stats
 # content — one line per prime — producing a clean, readable statistics file.
 #
-# WR was ran on primecover1024_line_coordinates.cpp and converted default output.
+# WR was ran on primecover1024_line_coordinates.cpp and converted to default output.
 #
 # Example output:
 #   N=1 prime=2 lines=1 time=0.000172s mode=R active=0 ...
