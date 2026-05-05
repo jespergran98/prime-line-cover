@@ -1276,7 +1276,7 @@ details.tut summary::-webkit-details-marker { display: none; }
   .controls-block { display: none !important; }
   #status         { display: none !important; }
 
-  /* overlay-paper and overlay-br now live inside #side and flow as cards */
+  /* overlay-paper lives inside #side; overlay-br is in #canvas-wrapper — both flow as cards */
   .canvas-overlay {
     position: relative !important;
     top: auto !important; left: auto !important;
@@ -1294,8 +1294,38 @@ details.tut summary::-webkit-details-marker { display: none; }
       inset 0 1px 0 rgba(255,255,255,0.6);
   }
 
+  /* overlay-br stays absolutely anchored in canvas-wrapper on mobile, just compact */
+  #overlay-br {
+    position: absolute !important;
+    bottom: 12px !important;
+    right: 12px !important;
+    top: auto !important;
+    left: auto !important;
+    margin: 0 !important;
+    min-width: 0 !important;
+    width: auto !important;
+    padding: 9px 11px !important;
+    transform: none !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
+  }
+  #overlay-br .co-mono-label {
+    font-size: 7px;
+    margin-bottom: 8px;
+    letter-spacing: 0.14em;
+  }
+  #overlay-br .co-legend-item {
+    font-size: 7px;
+    gap: 7px;
+    margin-bottom: 6px;
+    letter-spacing: 0.02em;
+  }
+  #overlay-br .co-leg-swatch { width: 20px; }
+  #overlay-br .co-leg-dot { width: 6px; height: 6px; }
+  #overlay-br .co-render-note { font-size: 6px; }
+  #overlay-br .co-sep { margin: 5px 0 4px !important; }
+
   #overlay-paper { margin-top: 0; }
-  #overlay-br    { margin-top: 0; margin-bottom: 16px; }
 
   .co-code { white-space: pre-wrap; word-break: break-word; }
 }
@@ -1376,6 +1406,40 @@ details.tut summary::-webkit-details-marker { display: none; }
         <span class="vis-lbl-on" style="display:none"></span>
         <span class="vis-lbl-off" style="display:none"></span>
       </button>
+
+      <!-- overlay-br: absolutely positioned in bottom-right of canvas-wrapper on both desktop and mobile -->
+      <div id="overlay-br" class="canvas-overlay">
+        <div class="co-mono-label">Legend</div>
+
+        <div class="co-legend-item">
+          <div class="co-leg-swatch">
+            <div class="co-leg-palette">
+              <span style="background:#9A6B0A"></span>
+              <span style="background:#14736A"></span>
+              <span style="background:#A33228"></span>
+              <span style="background:#2A5499"></span>
+              <span style="background:#4E6B1A"></span>
+              <span style="background:#5E2F78"></span>
+            </div>
+          </div>
+          Heavy line (≥&thinsp;3 pts)
+        </div>
+
+        <div class="co-legend-item">
+          <div class="co-leg-swatch"><div class="co-leg-light"></div></div>
+          Light line (1–2 pts)
+        </div>
+
+        <div class="co-legend-item">
+          <div class="co-leg-swatch">
+            <div class="co-leg-point-row"><div class="co-leg-dot"></div></div>
+          </div>
+          Prime point <em>(i,&thinsp;p<sub>i</sub>)</em>
+        </div>
+
+        <div class="co-sep" style="margin: 8px 0 6px;"></div>
+        <div class="co-render-note">Glow scales with line density</div>
+      </div>
     </div>
 
     <!-- Mobile-only controls bar — sits directly below the canvas on phones -->
@@ -1481,8 +1545,8 @@ details.tut summary::-webkit-details-marker { display: none; }
       <canvas id="time-canvas"></canvas>
     </div>
 
-    <!-- overlay-paper and overlay-br: absolutely positioned on desktop,
-         flow naturally here in mobile as cards after the charts -->
+    <!-- overlay-paper: absolutely positioned on desktop,
+         flows naturally here in mobile as a card after the charts -->
     <div id="overlay-paper" class="canvas-overlay">
 
       <div class="paper-header">
@@ -1515,39 +1579,6 @@ details.tut summary::-webkit-details-marker { display: none; }
         Read Paper — PDF
       </a>
 
-    </div>
-
-    <div id="overlay-br" class="canvas-overlay">
-      <div class="co-mono-label">Legend</div>
-
-      <div class="co-legend-item">
-        <div class="co-leg-swatch">
-          <div class="co-leg-palette">
-            <span style="background:#9A6B0A"></span>
-            <span style="background:#14736A"></span>
-            <span style="background:#A33228"></span>
-            <span style="background:#2A5499"></span>
-            <span style="background:#4E6B1A"></span>
-            <span style="background:#5E2F78"></span>
-          </div>
-        </div>
-        Heavy line (≥&thinsp;3 pts)
-      </div>
-
-      <div class="co-legend-item">
-        <div class="co-leg-swatch"><div class="co-leg-light"></div></div>
-        Light line (1–2 pts)
-      </div>
-
-      <div class="co-legend-item">
-        <div class="co-leg-swatch">
-          <div class="co-leg-point-row"><div class="co-leg-dot"></div></div>
-        </div>
-        Prime point <em>(i,&thinsp;p<sub>i</sub>)</em>
-      </div>
-
-      <div class="co-sep" style="margin: 8px 0 6px;"></div>
-      <div class="co-render-note">Glow scales with line density</div>
     </div>
 
     <div class="sep-full"></div>
