@@ -1,40 +1,113 @@
 #!/usr/bin/env bash
 # =============================================================================
-#  PRIMECOVER DIAGNOSTICS  ·  live display until N=808, then safety tables
-#  v3 – asymptotic per-task prediction via hyperbolic-decay regression
+#  PRIMECOVER FRONTIER DIAGNOSIS TOOL
 # =============================================================================
 #
-#  MEMORY MODEL
-#  ────────────
-#  The solver uses BFS to generate frontier tasks.  At larger frontier sizes
-#  each task represents a shallower subtree, so per-task memory DECREASES as
-#  the frontier grows.  A straight-line fit of  RSS = α + β·F  captures only
-#  an average slope that is far too steep at large F, causing wildly inflated
-#  predictions for high multipliers.
+#  WHAT THIS TOOL DOES
+#  ───────────────────
+#  This script compiles and runs the primecover solver, then displays a live
+#  dashboard showing its progress and memory usage. Once the solver reaches
+#  N=808, it switches to a safety table that tells you which frontier
+#  multipliers (4U → 131072U) are safe to use on your hardware.
 #
-#  The true per-task cost follows a hyperbolic decay:
+#  ⚠️  This tool is ONLY necessary if you plan to run the solver for a "serious"
+#      attempt (N > ~850, where the frontier multiplier becomes critical).
+#      For quick test runs (N ≤ 850) or if you never change the multiplier,
+#      you can ignore this diagnostic tool entirely – the default settings
+#      are safe for small N and will not consume excessive RAM.
+#
+#  HOW TO USE IT
+#  ─────────────
+#  1. ⚠️  IMPORTANT: Edit the SOURCE_PATH line below – change the example path
+#     to the actual location of your primecover1024.cpp file.
+#
+#  2. Copy paste this entire script directly into your terminal and hit Enter.
+#     (Or save it to a file and run it with bash /full/path/to/script.sh)
+#
+#  3. Watch the live dashboard. When it switches to the safety table, read
+#     the "Status" column to find the highest multiplier marked ✓ SAFE.
+#     Example: if "8192U" shows ✓ SAFE but "16384U" shows ✗ UNSAFE,
+#     then 8192U is your safe maximum.
+#
+#  4. Set that multiplier in primecover1024.cpp:
+#     - Open primecover1024.cpp in a text editor.
+#     - Search for the line containing "const unsigned frontier_multiplier ="
+#       (around line 1415–1424, inside the build_frontier function).
+#     - You'll see a ladder like:
+#         current_best_cost() >= 128 ?  8192U
+#       : current_best_cost() >= 125 ?  2048U
+#       : current_best_cost() >= 121 ?   512U
+#       : ...
+#     - Change the number for the appropriate cost range to your safe multiplier.
+#       For example, if your safe multiplier is 8192U, ensure the line
+#       "current_best_cost() >= 128 ?  8192U" stays as 8192U.
+#       If your safe multiplier is 16384U, change that line to 16384U.
+#     - Save the file, then recompile and run the solver normally.
+#
+#  🔒 CLEANUP: This script automatically kills the solver process when you press
+#      Ctrl+C or close the terminal. However, if a previous run was interrupted
+#      uncleanly (e.g., terminal crash), a stale solver process may remain.
+#      To manually kill it:  pkill -f "./primecover"   (Linux/macOS/WSL)
+#      The script now also checks for and kills any leftover primecover
+#      processes before starting a new run, preventing silent background runs.
+#
+#  WHAT THE SAFETY TABLE MEANS
+#  ────────────────────────────
+#  The solver's frontier size = (number of CPU threads) × multiplier.
+#  A larger multiplier = more parallel tasks = more RAM consumed.
+#  The table predicts RAM usage for each multiplier and compares it against
+#  your machine's available RAM:
+#
+#    ✓  SAFE     — predicted usage is well within your available RAM (< 75%)
+#    ⚠  MARGINAL — predicted usage is close to your RAM limit (75–100%)
+#    ✗  UNSAFE   — predicted usage exceeds your RAM; the solver will likely OOM
+#
+#  HOW THE PREDICTION WORKS
+#  ─────────────────────────
+#  Per-task memory is not constant — it shrinks as the frontier grows, because
+#  each task represents a shallower subtree. A naive (RSS / frontier) estimate
+#  overstates the true cost at large frontier sizes.
+#
+#  This tool fits a hyperbolic-decay model to live samples:
 #
 #    per_task(F)  =  a  +  b / F
 #                   ─    ──────
 #            asymptotic   overhead that vanishes as F → ∞
 #            per-task KB
 #
-#  Rearranged into a linear form suitable for OLS:
+#  Rearranged into a linear form for OLS regression:
 #
 #    Y  =  RSS / F          (observed per-task memory)
 #    X  =  1   / F          (inverse frontier size)
-#
-#    Y  =  a  +  b · X      ← fit this by OLS
+#    Y  =  a  +  b · X      ← fitted by OLS
 #
 #  The intercept  a  is the asymptotic per-task cost (KB/task).
-#  Prediction:    RSS_KB  =  a · F  +  b   (exact same structure as before,
-#                            but now  a  and  b  are estimated correctly).
+#  Prediction:    RSS_KB = a · F + b
 #
-#  This model extrapolates accurately even when all training samples come from
-#  small frontiers, because the curvature of per_task vs F is visible and
-#  the intercept is well-identified.
+#  This extrapolates accurately even from small-frontier samples, because the
+#  curvature of per_task vs F is visible and the intercept is well-identified.
+#  Samples are only collected from N=808 onward, where memory behaviour is
+#  representative of the full run.
+#
+#  TIP: Letting the solver continue past N=808 to N=851 (or until the frontier
+#  reaches ≥ 8 192 tasks) gives the regression more data points and produces a
+#  more accurate safety table.
 #
 # =============================================================================
+
+
+# =============================================================================
+#  CONFIGURATION  –  set your path here before running
+# =============================================================================
+
+# Path to your primecover1024.cpp source file.
+# WSL users: Windows drives are mounted under /mnt/, so:
+#   C:\Users\yourname\project\primecover1024.cpp
+#   becomes:  /mnt/c/Users/yourname/project/primecover1024.cpp
+SOURCE_PATH="/mnt/c/path/to/primecover1024.cpp"
+
+# =============================================================================
+
 
 # ── ANSI colours ──────────────────────────────────────────────────────────────
 R='\033[0m'
@@ -462,11 +535,7 @@ print_table() {
 # =============================================================================
 #  MAIN
 # =============================================================================
-# Set this to the path of your solver source file.
-# WSL mounts your Windows drives under /mnt/, so C:\ becomes /mnt/c/.
-# Example: C:\Users\yourname\project\primecover1024.cpp
-#       →  /mnt/c/Users/yourname/project/primecover1024.cpp
-cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp
+cp "$SOURCE_PATH" ~/primecover.cpp
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions \
   -o primecover primecover.cpp || { echo "Build failed."; exit 1; }
 
