@@ -180,6 +180,19 @@ html, body {
   flex-wrap: wrap;
 }
 
+/* Quick Start pill — teal fill matching the tut-cta, sits in the badge row */
+.h-badge.qs {
+  color: var(--white);
+  background: var(--teal);
+  border-color: var(--teal);
+  cursor: pointer;
+}
+.h-badge.qs:hover {
+  background: #0f5e56;
+  border-color: #0f5e56;
+  color: var(--white);
+}
+
 .h-badge {
   display: inline-flex;
   align-items: center;
@@ -904,10 +917,48 @@ details.tut summary::-webkit-details-marker { display: none; }
   letter-spacing: 0.01em;
 }
 
-/* ── Code copy button ────────────────────────────────── */
+details.tut.tut-cta {
+  border-color: var(--teal);
+  box-shadow: 0 1px 6px rgba(20,115,106,0.10);
+}
+details.tut.tut-cta summary {
+  background: var(--teal);
+  color: rgba(255,255,255,0.92);
+  font-size: 10.5px;
+  padding: 10px 14px;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  font-family: var(--serif);
+  font-style: italic;
+}
+details.tut.tut-cta summary:hover {
+  background: #0f5e56;
+  color: #fff;
+}
+details.tut.tut-cta[open] summary {
+  background: #0f5e56;
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.12);
+}
+.tut-cta-inner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.tut-cta-icon {
+  font-size: 8px;
+  opacity: 0.75;
+  transition: transform 0.2s;
+  font-style: normal;
+}
+details.tut.tut-cta[open] .tut-cta-icon { transform: rotate(90deg); }
+details.tut.tut-cta summary::after { display: none; }
+
+
 .co-copy-btn {
   position: absolute;
-  top: 6px;
+  bottom: 6px;
   right: 6px;
   display: flex;
   align-items: center;
@@ -1505,6 +1556,7 @@ details.tut summary::-webkit-details-marker { display: none; }
         <a class="h-badge gold" href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">PDF Paper</a>
         <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover.git" target="_blank" rel="noopener">↗ GitHub</a>
         <a class="h-badge ink" href="./primecover1024.cpp" download>↓ .cpp</a>
+        <button class="h-badge qs" id="btn-quick-start">▶ Quick Start</button>
       </div>
     </div>
 
@@ -1669,36 +1721,47 @@ details.tut summary::-webkit-details-marker { display: none; }
         </a>
       </div>
 
-      <details class="tut">
-        <summary>Quick Start — Ubuntu / WSL</summary>
+      <details class="tut tut-cta">
+        <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
         <div class="tut-body">
-          <p>1. Install GCC 14:</p>
-          <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
-sudo apt update && sudo apt install g++-14 -y</pre>
-          <p>2. Compile and run:</p>
-          <pre>g++-14 -std=c++23 -O3 -march=native \
-  -pthread -fno-exceptions -fno-rtti \
-  primecover1024.cpp -o primecover
 
+          <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Get WSL</strong></p>
+          <p>On Windows, open PowerShell as Administrator and run:</p>
+          <div style="position:relative;">
+            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <pre>wsl --install</pre>
+          </div>
+          <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu. On Linux or macOS, just open your terminal.</p>
+
+          <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
+          <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right repository and install it.</p>
+          <div style="position:relative;">
+            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo apt update
+sudo apt install g++-14 -y</pre>
+          </div>
+
+          <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
+          <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
+          <div style="position:relative;">
+            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \\\ng++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n  primecover.cpp -o primecover && \\\n./primecover')">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <pre>cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover && \
 ./primecover</pre>
-          <p>Each output line reports the optimal cover for one N:</p>
-          <pre>N=42 prime=181 lines=8 time=0.000s mode=W active=312</pre>
-          <p>
-            <code>mode</code> shows how the solution was reached —
-            <code>W</code> = witness hit (inherited from the previous prefix, near-instant),
-            <code>R</code> = root closed (bounds closed without search),
-            <code>D</code> = full branch-and-bound required.
-          </p>
-          <p>
-            By default the solver sweeps N = 1 to 1024. To change the range,
-            edit <code>kStartN</code> and <code>kExecutionLimit</code> at the top of the source file.
-          </p>
-          <p>
-            <code>-march=native</code> targets your CPU automatically. On AMD Zen 5, substitute
-            <code>-march=znver5</code> for a small additional gain. On Windows, run inside WSL —
-            and while the solver is running, boost its CPU priority from an elevated PowerShell with:<br>
-            <code>(Get-Process vmmem*).PriorityClass = 'High'</code>
-          </p>
+          </div>
+          <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
+
         </div>
       </details>
     </div>
@@ -3282,6 +3345,38 @@ requestAnimationFrame(loop);
 </script>
 
 <script>
+/* ── Quick Start button — scroll to cpp-section and open the guide ────── */
+(function () {
+  document.getElementById('btn-quick-start').addEventListener('click', function () {
+    var side      = document.getElementById('side');
+    var cppSect   = side.querySelector('.cpp-section');
+    var tutDetails = cppSect.querySelector('details.tut-cta');
+
+    /* Open the details element first so its height is included in the layout */
+    tutDetails.open = true;
+
+    /* Scroll the side panel so the bottom of cpp-section is visible.
+       We target the details element itself so the content is centred nicely. */
+    requestAnimationFrame(function () {
+      var sideRect    = side.getBoundingClientRect();
+      var targetRect  = tutDetails.getBoundingClientRect();
+
+      /* How far the top of the details element is from the top of the
+         visible side panel, then account for current scroll position */
+      var offset = targetRect.top - sideRect.top + side.scrollTop - 16;
+      side.scrollTo({ top: offset, behavior: 'smooth' });
+    });
+  });
+})();
+
+/* ── Tutorial code-block copy helper ──────────────────────────────────── */
+function tutCopy(btn, text) {
+  navigator.clipboard.writeText(text).then(function () {
+    btn.classList.add('co-copy-ok');
+    setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+  });
+}
+
 /* ── Overlay visibility toggle ─────────────────────────────────────────── */
 (function () {
   const btn      = document.getElementById('overlay-vis-toggle');
