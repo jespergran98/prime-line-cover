@@ -134,7 +134,7 @@
 //   mode    — W: witness hit; R: root closed by bounds; D: full DFS
 //   active  — number of active heavy lines at this step
 //   nodes   — DFS nodes explored (0 for modes W and R)
-//   Remaining fields are solver diagnostics; see the accompanying paper.
+//   Remaining fields are solver diagnostics; see the README on GitHub.
 //
 // =============================================================================
 // CONFIGURATION  (config namespace, top of file)
