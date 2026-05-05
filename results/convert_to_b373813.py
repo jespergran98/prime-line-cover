@@ -7,6 +7,8 @@
 # number: how many lines (intervals) were needed to cover all integers up to
 # that prime. Each entry contains a Stats block with fields like N= and lines=.
 #
+# WR was ran on primecover1024_line_coordinates.cpp and converted to the b file.
+#
 # This script reads through that file, extracts the index (N) and line count
 # (lines) from every Stats block, and outputs one row per prime:
 #
