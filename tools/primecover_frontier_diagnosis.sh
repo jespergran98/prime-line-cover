@@ -30,26 +30,20 @@
 #     then 8192U is your safe maximum.
 #
 #  4. Set that multiplier in primecover1024.cpp:
-#     - Open primecover1024.cpp in a text editor.
-#     - Search for the line containing "const unsigned frontier_multiplier ="
-#       (around line 1415–1424, inside the build_frontier function).
-#     - You'll see a ladder like:
-#         current_best_cost() >= 128 ?  8192U
-#       : current_best_cost() >= 125 ?  2048U
-#       : current_best_cost() >= 121 ?   512U
-#       : ...
-#     - Change the number for the appropriate cost range to your safe multiplier.
-#       For example, if your safe multiplier is 8192U, ensure the line
-#       "current_best_cost() >= 128 ?  8192U" stays as 8192U.
-#       If your safe multiplier is 16384U, change that line to 16384U.
-#     - Save the file, then recompile and run the solver normally.
+#     - Find the "frontier_multiplier" ladder.
+#     - Uncomment the line with your safe multiplier (remove // at the start).
+#     - Add a colon (:) right before the line that previously started with "current_best_cost() >= 128 ?"
+#     - Save, recompile, and run normally.
+#     Example (changing from 8192U to 16384U):
+#         Before:
+#         //: current_best_cost() >= 133 ? 16384U
+#             current_best_cost() >= 128 ? 8192U
+#         After:
+#             current_best_cost() >= 133 ? 16384U
+#           : current_best_cost() >= 128 ? 8192U
 #
-#  🔒 CLEANUP: This script automatically kills the solver process when you press
-#      Ctrl+C or close the terminal. However, if a previous run was interrupted
-#      uncleanly (e.g., terminal crash), a stale solver process may remain.
-#      To manually kill it:  pkill -f "./primecover"   (Linux/macOS/WSL)
-#      The script now also checks for and kills any leftover primecover
-#      processes before starting a new run, preventing silent background runs.
+#  🔒 Cleanup: The script automatically kills the solver on Ctrl+C or terminal close.
+#      If a stale process remains, run: pkill -f "./primecover"
 #
 #  WHAT THE SAFETY TABLE MEANS
 #  ────────────────────────────
