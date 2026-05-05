@@ -1,15 +1,147 @@
-/*
- * primecover1024.cpp
- *
- * Exact minimum line cover solver for prime points (i, p_i), 1 <= i <= N.
- *
- * Features:
- * - Enumerates heavy lines (lines containing >= 3 points).
- * - Solves residual exact-gain search using 1024-bit bitmasks.
- * - Applies greedy seeding, a Lagrangian upper bound, and a shared atomic incumbent.
- * - Uses a root cover-inequality lower bound before branch-and-bound.
- * - Closes uncovered residues with 1- or 2-point lines at cost ceil(residual / 2).
- */
+// SPDX-License-Identifier: MIT
+//
+// primecover1024.cpp — Exact Minimum Line Cover Solver for Prime Points
+// Copyright (c) 2026 Jesper Gran Mikkelsen
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+// IN THE SOFTWARE.
+//
+// =============================================================================
+// OVERVIEW
+// =============================================================================
+// Certifies f(N), the minimum number of straight lines covering the first N
+// prime points (i, p_i), for every N from 1 to 1024. Extends the prior
+// certified boundary from N=861 to N=1024 — adding 163 new terms and 20 new
+// awkward primes to OEIS A373813 — at roughly 750x the speed of the previous
+// solver.
+//
+//   Repository    https://github.com/jespergran98/prime-line-cover
+//   Interactive   https://prime-line-cover.vercel.app
+//   OEIS          https://oeis.org/A373813
+//
+// =============================================================================
+// PROBLEM
+// =============================================================================
+// Plot the first N primes as points: the 1st prime at (1, 2), the 2nd at
+// (2, 3), the 3rd at (3, 5), and so on. f(N) is the minimum number of straight
+// lines needed to touch every point. The sequence is almost entirely flat —
+// for most N, the new prime happens to fall on a line already present in an
+// optimal cover, so f(N) = f(N-1) at no cost. The exceptions — steps where
+// f(N) strictly increases — are called awkward primes and are the only steps
+// that require search. Three or more prime points are collinear only when an
+// exact arithmetic relation holds among their values; such coincidences grow
+// rarer as N increases, making large f(N) hard to certify.
+//
+// =============================================================================
+// PERFORMANCE
+// =============================================================================
+// The prior certified record (N=861) required 282 hours using a general-
+// purpose MIP solver. This solver reaches N=861 in ~22 minutes and completes
+// the full sweep to N=1024 — certifying f(1024)=143 as the new world record —
+// in under 40 hours on a Google Cloud c4d-highcpu-8 instance (8 vCPUs, 15 GB).
+//
+// =============================================================================
+// ALGORITHM
+// =============================================================================
+// Phase 1 — Heavy-line enumeration (~50 ms, once at startup):
+//   A heavy line passes through at least 3 prime points. All 12,162 of them
+//   are enumerated upfront, each stored as a 1024-bit coverage bitmask
+//   (sixteen 64-bit words). A line becomes active at step N once its third-
+//   smallest point index is reached; coverage queries reduce to popcount
+//   operations over fixed-width bitmasks, keeping the working set in L1/L2.
+//
+// Phase 2 — Incremental sweep (N = kStartN to kExecutionLimit):
+//   Three pieces of warm state carry forward from step to step:
+//     witness cover  — an explicit optimal line set for f(N-1), extended by a
+//                      greedy look-ahead that pairs residual points for future N
+//     primal seed    — the optimal heavy-line selection from the previous step
+//     dual seed      — the Lagrangian multiplier vector from the previous solve
+//
+//   Each step closes in one of three modes:
+//
+//   W — Witness hit (O(1), no search):
+//     If (N, p_N) already lies on a line in the witness cover, f(N) = f(N-1)
+//     is certified immediately with no search.
+//
+//   R — Root closure (bounds only, no branching):
+//     Cover-inequality bound: find a maximal subset S of active points such
+//     that no heavy line covers three or more members; ceil(|S|/2) is a valid
+//     lower bound since every line covers at most two points of S.
+//     Lagrangian gain bound: projected subgradient ascent on dual variables
+//     y in [0,1]^N, warm-started from the dual seed, with a coordinate-descent
+//     polish pass applied when the bound is near the pruning threshold.
+//     If the tighter of the two bounds meets the incumbent, optimality is
+//     certified without any branching.
+//
+//   D — Exact branch-and-bound (full DFS):
+//     DFS is warm-started from the primal and dual seeds and prunes the binary
+//     include/exclude tree over active heavy lines via four mechanisms:
+//
+//     (1) Exclusive Dependency Rule: any heavy line covering >= 3 uncovered
+//     points — each of which lies on no other productive heavy line — is forced
+//     into the solution unconditionally; an exchange argument guarantees no
+//     loss of optimality.
+//
+//     (2) Lagrangian gain bound: recomputed at every node, with a coordinate-
+//     descent polish pass applied when within one of the pruning threshold.
+//     Branch-specific child caps — derived from the Lagrangian dual at the
+//     current node — tighten the bound separately for each branch direction.
+//
+//     (3) Strong branching: when the node gap is <= 1 and >= 64 points remain
+//     uncovered, up to 4 candidate lines are scored via a Lagrangian simulation
+//     of the include branch; the variable maximising combined child pruning
+//     is selected.
+//
+//     (4) Dominance pruning: frontier tasks whose (uncovered bitmask, blocked-
+//     line set) state has already been reached at weakly higher accumulated
+//     gain are discarded before dispatch.
+//
+//     In practice the maximum DFS depth across the full sweep is 108, and node
+//     counts at the hardest instances reach the hundreds of millions — far below
+//     the 2^|A_N| worst case with |A_N| ~ 9,000-12,000 at new awkward primes.
+//
+//     Residual: points not covered by any selected heavy line are closed with
+//     light lines at a cost of ceil(residual / 2).
+//
+//     Parallelism: the root is pre-expanded into worker_count * m(C)
+//     independent subtasks, where m(C) is a piecewise-constant multiplier on
+//     the current best cost C (4 for C < 93, up to 8192 for C >= 128). Tasks
+//     are dispatched to a thread pool with a shared atomic incumbent for
+//     real-time cross-pruning.
+//
+// =============================================================================
+// OUTPUT  (one line per N)
+// =============================================================================
+//   N=862 prime=6689 lines=123 time=0.016s mode=R active=9254 nodes=0 ...
+//
+//   lines   — certified optimal f(N)
+//   mode    — W: witness hit; R: root closed by bounds; D: full DFS
+//   active  — number of active heavy lines at this step
+//   nodes   — DFS nodes explored (0 for modes W and R)
+//   Remaining fields are solver diagnostics; see the accompanying paper.
+//
+// =============================================================================
+// CONFIGURATION  (config namespace, top of file)
+// =============================================================================
+//   kStartN               — first N to solve (default 1)
+//   kExecutionLimit       — last N to solve, capped at kBitCapacity (default 1024)
+//   kPerNTimeLimitSeconds — per-instance wall-clock timeout; 0 = no limit
+//   kBitCapacity / kBitWords — bitmask width; do not change
 
 #include <algorithm>
 #include <array>
@@ -49,7 +181,7 @@ namespace {
 namespace config {
     constexpr int    kBitCapacity          = 1024; // DO NOT CHANGE - the core solver relies on this for fixed-size bitmask operations.
     constexpr int    kBitWords             = kBitCapacity / 64; // DO NOT CHANGE - derived from kBitCapacity.
-    constexpr int    kStartN               = 0; // Move freely - Starting N for the sweep; 0 to start from 1
+    constexpr int    kStartN               = 1; // Move freely - Starting N for the sweep.
     constexpr int    kExecutionLimit       = 1024; // Move freely - the solver stops when it reaches this N. (1024 limit)
     
     // Wall-clock timeout limit per N in seconds. Set to 0 for no limit.
