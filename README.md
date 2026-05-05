@@ -205,6 +205,6 @@ If you use this code or the computed results in your work, please cite the accom
 }
 ```
 
-## License
+## License 
 
 [MIT](LICENSE) – you are free to use, modify, and distribute the code, provided the original copyright and permission notice are included.
