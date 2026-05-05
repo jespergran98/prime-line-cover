@@ -675,6 +675,39 @@ details.tut summary::-webkit-details-marker { display: none; }
 /* Code comment highlight */
 .tut-body pre .comment { color: var(--ink-45); }
 
+/* ── OS Tab Switcher ─────────────────────────────────── */
+.os-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 13px;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.os-tab {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 7px 10px;
+  background: var(--paper-alt);
+  color: var(--ink-45);
+  border: none;
+  border-right: 1px solid var(--ink-18);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.os-tab:last-child { border-right: none; }
+.os-tab:hover { background: var(--paper-deep); color: var(--ink-70); }
+.os-tab.active {
+  background: var(--ink);
+  color: var(--white);
+}
+
 /* ── Footer ──────────────────────────────────────────── */
 #footer {
   padding: 10px 22px 12px;
@@ -2089,58 +2122,111 @@ details.tut.tut-cta summary::after { display: none; }
         <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
         <div class="tut-body">
 
-          <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Get WSL</strong></p>
-          <p>On Windows, open PowerShell as Administrator and run:</p>
-          <div style="position:relative;">
-            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <pre>wsl --install</pre>
+          <!-- OS switcher tabs -->
+          <div class="os-tabs">
+            <button class="os-tab active" id="tab-windows" onclick="switchOS('windows')">Windows (WSL)</button>
+            <button class="os-tab" id="tab-linux" onclick="switchOS('linux')">Linux (Arch / pacman)</button>
           </div>
-          <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu. On Linux or macOS, just open your terminal.</p>
 
-          <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-          <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right repository and install it.</p>
-          <div style="position:relative;">
-            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+          <!-- ══ WINDOWS / WSL PANEL ══════════════════════════════════════ -->
+          <div id="os-panel-windows">
+
+            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Get WSL</strong></p>
+            <p>Open PowerShell as Administrator and run:</p>
+            <div style="position:relative;">
+              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <pre>wsl --install</pre>
+            </div>
+            <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu.</p>
+
+            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
+            <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right repository and install it.</p>
+            <div style="position:relative;">
+              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt update
 sudo apt install g++-14 -y</pre>
-          </div>
+            </div>
 
-          <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-          <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
-          <div style="position:relative;">
-            <!-- Edit-path button (pen icon) -->
-            <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
-                <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
-                <path d="M8 4L10 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-              </svg>
-            </button>
-            <!-- Copy button -->
-            <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
-              <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-              <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-            </button>
-            <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+            <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
+            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
+            <div style="position:relative;">
+              <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                  <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+                  <path d="M8 4L10 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            <!-- Inline path editor -->
-            <div class="path-editor" id="step3-path-editor">
-              <div class="path-segs" id="path-segs"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-done">Done</button>
+              <div class="path-editor" id="step3-path-editor">
+                <div class="path-segs" id="path-segs"></div>
+                <div class="path-editor-actions">
+                  <button class="path-add-btn" id="step3-add-seg">+ folder</button>
+                  <button class="path-done-btn" id="step3-done">Done</button>
+                </div>
               </div>
             </div>
-          </div>
-          <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
+            <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
+
+          </div><!-- /#os-panel-windows -->
+
+          <!-- ══ LINUX / ARCH / PACMAN PANEL ══════════════════════════════ -->
+          <div id="os-panel-linux" style="display:none;">
+
+            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Open a terminal</strong></p>
+            <p>Open your terminal. No WSL or extra setup needed — you're already running Linux natively.</p>
+
+            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
+            <p>The solver uses C++23 features that only GCC 14 and newer support. On Arch-based systems, install it with pacman:</p>
+            <div style="position:relative;">
+              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo pacman -S gcc14 --noconfirm')">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <pre>sudo pacman -S gcc14 --noconfirm</pre>
+            </div>
+
+            <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
+            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
+            <div style="position:relative;">
+              <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                  <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+                  <path d="M8 4L10 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+                </svg>
+              </button>
+              <button class="co-copy-btn" id="step3-linux-copy-btn" aria-label="Copy command">
+                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              </button>
+              <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover &amp;&amp; \
+./primecover</pre>
+              <div class="path-editor" id="step3-linux-path-editor">
+                <div class="path-segs" id="path-segs-linux"></div>
+                <div class="path-editor-actions">
+                  <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
+                  <button class="path-done-btn" id="step3-linux-done">Done</button>
+                </div>
+              </div>
+            </div>
+            <p>Your files live under <code>/home/username/</code> on Linux. The solver starts printing results immediately — one line per N.</p>
+
+          </div><!-- /#os-panel-linux -->
 
         </div>
       </details>
@@ -3928,6 +4014,158 @@ function tutCopy(btn, text) {
       setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
     });
   });
+})();
+</script>
+<script>
+/* ── OS tab switcher ────────────────────────────────────────────────────── */
+function switchOS(os) {
+  var panels = ['windows', 'linux'];
+  panels.forEach(function (p) {
+    var panel = document.getElementById('os-panel-' + p);
+    var tab   = document.getElementById('tab-' + p);
+    if (!panel || !tab) return;
+    var active = (p === os);
+    panel.style.display = active ? '' : 'none';
+    tab.classList.toggle('active', active);
+  });
+}
+</script>
+
+<script>
+/* ── Linux step-3 path editor ───────────────────────────────────────────── */
+(function () {
+  /* Default path segments: username + folder names the user can edit. */
+  var segs = ['username', 'path', 'to'];
+
+  /* Build the Linux /home path from current segments */
+  function linuxPath() {
+    var rest = segs.filter(function (s) { return s.trim() !== ''; });
+    return '/home/' + (rest.length ? rest.join('/') + '/' : '') + 'primecover1024.cpp';
+  }
+
+  /* Build the full shell command */
+  function buildCmd() {
+    return 'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
+         + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+         + '  primecover.cpp -o primecover && \\\n'
+         + './primecover';
+  }
+
+  /* Update the <pre> display */
+  function syncPre() {
+    var pre = document.getElementById('step3-linux-pre');
+    if (!pre) return;
+    pre.textContent =
+        'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
+      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+      + '  primecover.cpp -o primecover && \\\n'
+      + './primecover';
+  }
+
+  /* Re-render segment chips */
+  function renderSegs() {
+    var container = document.getElementById('path-segs-linux');
+    if (!container) return;
+    container.innerHTML = '';
+
+    /* Static /home/ prefix label */
+    var prefix = document.createElement('span');
+    prefix.className = 'path-sep';
+    prefix.textContent = '/home/';
+    container.appendChild(prefix);
+
+    segs.forEach(function (seg, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'path-seg-wrap';
+
+      if (i > 0) {
+        var sep = document.createElement('span');
+        sep.className = 'path-sep';
+        sep.textContent = '/';
+        wrap.appendChild(sep);
+      }
+
+      var inp = document.createElement('input');
+      inp.className  = 'path-seg-input';
+      inp.type       = 'text';
+      inp.value      = seg;
+      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
+      inp.setAttribute('spellcheck', 'false');
+      inp.setAttribute('autocomplete', 'off');
+      inp.addEventListener('input', function () {
+        segs[i] = this.value;
+        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
+        syncPre();
+      });
+      wrap.appendChild(inp);
+
+      /* Remove button — only on non-username segments */
+      if (i > 0) {
+        var rm = document.createElement('button');
+        rm.className = 'path-seg-rm';
+        rm.title     = 'Remove folder';
+        rm.innerHTML = '&times;';
+        rm.addEventListener('click', function () {
+          segs.splice(i, 1);
+          renderSegs();
+          syncPre();
+        });
+        wrap.appendChild(rm);
+      }
+
+      container.appendChild(wrap);
+    });
+  }
+
+  /* Toggle editor open/closed */
+  var editBtn = document.getElementById('step3-linux-edit-btn');
+  var editor  = document.getElementById('step3-linux-path-editor');
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      var isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        editBtn.classList.remove('active');
+      } else {
+        renderSegs();
+        editor.classList.add('open');
+        editBtn.classList.add('active');
+      }
+    });
+  }
+
+  /* Add folder segment */
+  var addBtn = document.getElementById('step3-linux-add-seg');
+  if (addBtn) {
+    addBtn.addEventListener('click', function () {
+      segs.push('folder');
+      renderSegs();
+      syncPre();
+      var inputs = document.querySelectorAll('#path-segs-linux .path-seg-input');
+      if (inputs.length) { var last = inputs[inputs.length - 1]; last.focus(); last.select(); }
+    });
+  }
+
+  /* Done button */
+  var doneBtn = document.getElementById('step3-linux-done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      editor.classList.remove('open');
+      editBtn.classList.remove('active');
+    });
+  }
+
+  /* Copy button */
+  var copyBtn = document.getElementById('step3-linux-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var btn = this;
+      navigator.clipboard.writeText(buildCmd()).then(function () {
+        btn.classList.add('co-copy-ok');
+        setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+      });
+    });
+  }
 })();
 </script>
 </body>
