@@ -904,6 +904,30 @@ details.tut summary::-webkit-details-marker { display: none; }
   letter-spacing: 0.01em;
 }
 
+/* ── Code copy button ────────────────────────────────── */
+.co-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  color: var(--ink-45);
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.co-copy-btn:hover { color: var(--ink); background: var(--ink-08); }
+.co-copy-check { display: none; }
+.co-copy-btn.co-copy-ok { color: var(--teal); }
+.co-copy-btn.co-copy-ok svg:first-of-type { display: none; }
+.co-copy-btn.co-copy-ok .co-copy-check { display: block; }
+
 /* ── Paper Overlay ───────────────────────────────────── */
 #overlay-paper {
   top: 48px;
@@ -1297,7 +1321,7 @@ details.tut summary::-webkit-details-marker { display: none; }
   /* overlay-br stays absolutely anchored in canvas-wrapper on mobile, just compact */
   #overlay-br {
     position: absolute !important;
-    bottom: 12px !important;
+    bottom: 76px !important;
     right: 12px !important;
     top: auto !important;
     left: auto !important;
@@ -1341,7 +1365,7 @@ details.tut summary::-webkit-details-marker { display: none; }
       <div class="co-tl-header">
         <div>
           <div class="co-title">Prime Line Cover</div>
-          <div class="co-sub">Exact minimum line cover &middot; OEIS A373813</div>
+          <div class="co-sub">Exact minimum line cover &middot; <a href="https://oeis.org/A373813" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">OEIS A373813</a></div>
         </div>
         <a class="co-record-pill" href="https://oeis.org/A373813" target="_blank" rel="noopener">
           <span class="co-record-dot"></span>N&thinsp;=&thinsp;1024 certified
@@ -1353,7 +1377,7 @@ details.tut summary::-webkit-details-marker { display: none; }
       <div class="co-body">
         Plot the first <em>N</em> primes as points — the 1st prime at (1,&thinsp;2), the 2nd at (2,&thinsp;3), and so on.
         How few straight lines does it take to touch every point?
-        The C++ solver behind this demo holds the certified world record for the exact answer, currently at <em>N</em>&thinsp;=&thinsp;1024.
+        The C++ solver behind this demo holds the certified world record for the exact answer, currently at <em>N</em>&thinsp;=&thinsp;1024 — which requires exactly <strong>143 lines</strong>.
       </div>
 
       <div class="co-sep"></div>
@@ -1381,9 +1405,20 @@ details.tut summary::-webkit-details-marker { display: none; }
         </a>
         <span class="co-file-tag">C++23 &middot; parallel B&B<br>bitmask N ≤ 1024</span>
       </div>
-      <code class="co-code">g++-14 -std=c++23 -O3 -march=native \
+      <div style="position:relative;">
+        <button class="co-copy-btn" aria-label="Copy command" onclick="(function(btn){var t='g++-14 -std=c++23 -O3 -march=native \\\n  -pthread primecover1024.cpp -o solver\n./solver';navigator.clipboard.writeText(t).then(function(){btn.classList.add('co-copy-ok');setTimeout(function(){btn.classList.remove('co-copy-ok')},1400)});})(this)">
+          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
+            <path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+          </svg>
+          <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <code class="co-code">g++-14 -std=c++23 -O3 -march=native \
   -pthread primecover1024.cpp -o solver
 ./solver</code>
+      </div>
     </div>
 
     <div id="canvas-wrapper">
@@ -1590,8 +1625,10 @@ details.tut summary::-webkit-details-marker { display: none; }
         This JavaScript visualiser is a faithful translation of the exact C++ solver
         described in the accompanying paper. The <strong>C++ version</strong> reaches
         the prior world-record boundary (<strong>N = 861</strong>) in just
-        <strong>22 minutes</strong>. The current certified world record stands at
-        <strong>N = 1024</strong>, with the run to N = 1024 in progress.
+        <strong>22 minutes</strong>, then completes the full sweep to <strong>N = 1024</strong>
+        in under <strong>40 hours</strong> on a Google Cloud <code>c4d-highcpu-8</code>
+        instance (8 vCPUs, 15 GB RAM) — certifying <strong>f(1024) = 143</strong> as the
+        new world record.
       </p>
 
       <div class="perf-box">
@@ -3182,22 +3219,7 @@ function drawMiniGraph(ctx, canvas, dataMapper, formatY, isStep) {
     stepPath(false);
     ctx.stroke();
 
-    /* Awkward-prime dots (where f increases) */
-    history.forEach((d, i) => {
-      if (i > 0 && dataMapper(d) > dataMapper(history[i - 1])) {
-        const pt = toG(d.n, dataMapper(d));
-        /* Halo */
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 5, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(154,107,10,0.2)';
-        ctx.fill();
-        /* Core */
-        ctx.beginPath();
-        ctx.arc(pt.x, pt.y, 2.5, 0, Math.PI * 2);
-        ctx.fillStyle = '#9A6B0A';
-        ctx.fill();
-      }
-    });
+
 
   } else {
     /* Area chart for compute time */
