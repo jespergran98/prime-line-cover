@@ -1163,6 +1163,181 @@ details.tut.tut-cta summary::after { display: none; }
   color: var(--ink);
 }
 
+/* ── C++ Section Redesign ────────────────────────────── */
+.cpp-tagline {
+  font-family: var(--serif);
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--ink-70);
+  line-height: 1.58;
+  margin-bottom: 13px;
+}
+.cpp-tagline strong {
+  font-style: normal;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* Performance diptych + footer strip */
+.perf-card {
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r3);
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+.perf-card-top {
+  display: flex;
+  align-items: stretch;
+}
+.perf-card-cell {
+  flex: 1;
+  padding: 12px 13px 11px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  background: var(--paper-alt);
+}
+.perf-card-cell.winner {
+  background: rgba(20,115,106,0.06);
+  border-right: 1px solid var(--ink-18);
+}
+.perf-card-eyebrow {
+  font-family: var(--mono);
+  font-size: 7px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--ink-45);
+}
+.perf-card-num {
+  font-family: var(--mono);
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-top: 2px;
+}
+.perf-card-num.winner {
+  font-size: 30px;
+  color: var(--teal);
+}
+.perf-card-num.loser {
+  font-size: 22px;
+  color: var(--ink-45);
+  text-decoration: line-through;
+  text-decoration-thickness: 1.5px;
+  opacity: 0.7;
+}
+.perf-card-sub {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.04em;
+  line-height: 1.5;
+  margin-top: 3px;
+}
+
+/* Bottom summary strip — three stats in a row */
+.perf-card-bottom {
+  display: flex;
+  align-items: stretch;
+  border-top: 1px solid var(--ink-18);
+  background: var(--paper-deep);
+}
+.perf-card-stat {
+  flex: 1;
+  padding: 7px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.perf-card-stat + .perf-card-stat {
+  border-left: 1px solid var(--ink-08);
+}
+.perf-card-stat-val {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+}
+.perf-card-stat-val.c-teal { color: var(--teal); }
+.perf-card-stat-val.c-gold { color: var(--gold); }
+.perf-card-stat-lbl {
+  font-family: var(--mono);
+  font-size: 6.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-45);
+}
+
+/* Primary download button */
+.dl-primary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--ink);
+  border: 1px solid var(--ink);
+  padding: 10px 14px;
+  border-radius: var(--r2);
+  text-decoration: none;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 8px rgba(24,38,58,0.15);
+  transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
+  margin-bottom: 8px;
+}
+.dl-primary:hover {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(154,107,10,0.26);
+}
+.dl-primary:active { transform: translateY(0); }
+.dl-primary .dl-ico { font-size: 13px; opacity: 0.8; flex-shrink: 0; }
+.dl-primary .dl-name { flex: 1; }
+.dl-primary .dl-chip {
+  font-family: var(--mono);
+  font-size: 6.5px;
+  font-weight: 400;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.20);
+  padding: 2px 7px;
+  border-radius: 3px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+
+/* Secondary files group label */
+.dl-files-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-45);
+  margin-bottom: 7px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dl-files-label::before,
+.dl-files-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ink-08);
+}
+.dl-row-secondary {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
 /* ── Transition effects ──────────────────────────────── */
 @keyframes fadeSlideIn {
   from { opacity: 0; transform: translateY(4px); }
@@ -1673,51 +1848,63 @@ details.tut.tut-cta summary::after { display: none; }
     <div class="cpp-section">
       <div class="section-label">C++ Solver — primecover1024</div>
 
-      <p class="cpp-intro">
-        This JavaScript visualiser is a faithful translation of the exact C++ solver
-        described in the accompanying paper. The <strong>C++ version</strong> reaches
-        the prior world-record boundary (<strong>N = 861</strong>) in just
-        <strong>22 minutes</strong>, then completes the full sweep to <strong>N = 1024</strong>
-        in under <strong>40 hours</strong> on a Google Cloud <code>c4d-highcpu-8</code>
-        instance (8 vCPUs, 15 GB RAM) — certifying <strong>f(1024) = 143</strong> as the
-        new world record.
+      <p class="cpp-tagline">
+        Download and compile the exact solver that certified <strong>f(1024) = 143</strong>
+        as a new world record. This page runs a faithful JavaScript translation —
+        fast enough to explore, not to certify.
       </p>
 
-      <div class="perf-box">
-        <div class="perf-row">
-          <span>Prior certified record (MIP solver)</span>
-          <span class="perf-val old">282 hrs @ N=861</span>
+      <!-- Performance diptych -->
+      <div class="perf-card">
+        <div class="perf-card-top">
+          <div class="perf-card-cell winner">
+            <div class="perf-card-eyebrow">This solver &middot; N = 861</div>
+            <div class="perf-card-num winner">22 min</div>
+            <div class="perf-card-sub">purpose-built exact solver &middot; c4d-highcpu-8</div>
+          </div>
+          <div class="perf-card-cell">
+            <div class="perf-card-eyebrow">Prior solver &middot; N = 861</div>
+            <div class="perf-card-num loser">282 hrs</div>
+            <div class="perf-card-sub">Mixed-Integer Programming (MIP) solver</div>
+          </div>
         </div>
-        <div class="perf-row">
-          <span>This solver (high-end machine)</span>
-          <span class="perf-val">22 min @ N=861</span>
-        </div>
-        <div class="perf-row">
-          <span>Current world record</span>
-          <span class="perf-val">N = 1024 ✓</span>
+        <div class="perf-card-bottom">
+          <div class="perf-card-stat">
+            <div class="perf-card-stat-val c-teal">769&times;</div>
+            <div class="perf-card-stat-lbl">Speedup</div>
+          </div>
+          <div class="perf-card-stat">
+            <div class="perf-card-stat-val c-gold">f(1024) = 143</div>
+            <div class="perf-card-stat-lbl">World record</div>
+          </div>
+          <div class="perf-card-stat">
+            <div class="perf-card-stat-val">&lt; 40 hrs</div>
+            <div class="perf-card-stat-lbl">complete N = 1–1024 sweep</div>
+          </div>
         </div>
       </div>
 
-      <div class="dl-callout">
-        <span class="dl-callout-icon">↓</span>
-        <span>This entire site runs a <strong>JavaScript port</strong> — fast enough to explore, but not for record-breaking runs. To use the actual world-record solver, download <strong>primecover1024.cpp</strong> (stats output) or <strong>primecover1024_line_coordinates.cpp</strong> (also writes exact line coordinates) and compile locally.</span>
-      </div>
+      <!-- Primary download -->
+      <a class="dl-primary" href="./primecover1024.cpp" download>
+        <span class="dl-ico">↓</span>
+        <span class="dl-name">primecover1024.cpp</span>
+        <span class="dl-chip">Primary</span>
+      </a>
 
-      <div class="dl-row">
-        <a class="dl-btn" href="./primecover1024.cpp" download>
-          <span class="ico">↓</span> primecover1024.cpp
-        </a>
+      <!-- Secondary files -->
+      <div class="dl-files-label">Variant &amp; data files</div>
+      <div class="dl-row-secondary">
         <a class="dl-btn secondary" href="./primecover1024_line_coordinates.cpp" download>
-          <span class="ico">↓</span> …_line_coords.cpp
+          <span class="ico">↓</span> primecover1024_line_coords.cpp
         </a>
-        <a class="dl-btn secondary" href="./A373813_cover_costs.txt" download>
-          <span class="ico">↓</span> A373813_costs.txt
+        <a class="dl-btn secondary" href="./results/b373813.txt" download>
+          <span class="ico">↓</span> b373813.txt
         </a>
-        <a class="dl-btn secondary" href="./A373813_cover_stats.txt" download>
-          <span class="ico">↓</span> A373813_stats.txt
+        <a class="dl-btn secondary" href="./results/a373813_statistics.txt" download>
+          <span class="ico">↓</span> a373813_statistics.txt
         </a>
-        <a class="dl-btn secondary" href="./A373813_cover_lines.txt" download>
-          <span class="ico">↓</span> A373813_lines.txt
+        <a class="dl-btn secondary" href="./results/a373813_all_lines.txt" download>
+          <span class="ico">↓</span> a373813_all_lines.txt
         </a>
       </div>
 
