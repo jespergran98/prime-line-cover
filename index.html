@@ -1198,6 +1198,40 @@ details.tut.tut-cta summary::after { display: none; }
 }
 .path-done-btn:hover { background: #0f5e56; border-color: #0f5e56; }
 
+/* ── File-variant toggle inside path editor ──────────── */
+.path-file-toggle {
+  width: 100%;                      /* full-width row in the flex-wrap parent */
+  display: flex;
+  gap: 0;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r);
+  overflow: hidden;
+  flex-shrink: 0;
+  margin-bottom: 4px;
+}
+.path-file-btn {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 4px 7px;
+  background: var(--paper-alt);
+  color: var(--ink-45);
+  border: none;
+  border-right: 1px solid var(--ink-18);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.path-file-btn:last-child { border-right: none; }
+.path-file-btn.active { background: var(--ink); color: var(--white); }
+.path-file-btn:hover:not(.active) { background: var(--paper-deep); color: var(--ink-70); }
+
 /* ── Paper Overlay ───────────────────────────────────── */
 #overlay-paper {
   top: 48px;
@@ -2154,7 +2188,7 @@ sudo apt update
 sudo apt install g++-14 -y</pre>
             </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
+            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
             <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it to a location you'll remember on your PC — your Downloads folder or Desktop works well. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
             <div style="position:relative;">
               <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -2175,12 +2209,16 @@ sudo apt install g++-14 -y</pre>
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-              <div class="path-editor" id="step3-path-editor">
-                <div class="path-segs" id="path-segs"></div>
-                <div class="path-editor-actions">
-                  <button class="path-add-btn" id="step3-add-seg">+ folder</button>
-                  <button class="path-done-btn" id="step3-done">Done</button>
-                </div>
+            </div>
+            <div class="path-editor" id="step3-path-editor">
+              <div class="path-file-toggle">
+                <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
+                <button class="path-file-btn" id="step3-file-variant">primecover1024_line_coords.cpp</button>
+              </div>
+              <div class="path-segs" id="path-segs"></div>
+              <div class="path-editor-actions">
+                <button class="path-add-btn" id="step3-add-seg">+ folder</button>
+                <button class="path-done-btn" id="step3-done">Done</button>
               </div>
             </div>
             <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
@@ -2203,7 +2241,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
               <pre>sudo pacman -S gcc14 --noconfirm</pre>
             </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
+            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
             <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
             <div style="position:relative;">
               <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -2224,12 +2262,16 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-              <div class="path-editor" id="step3-linux-path-editor">
-                <div class="path-segs" id="path-segs-linux"></div>
-                <div class="path-editor-actions">
-                  <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
-                  <button class="path-done-btn" id="step3-linux-done">Done</button>
-                </div>
+            </div>
+            <div class="path-editor" id="step3-linux-path-editor">
+              <div class="path-file-toggle">
+                <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
+                <button class="path-file-btn" id="step3-linux-file-variant">primecover1024_line_coords.cpp</button>
+              </div>
+              <div class="path-segs" id="path-segs-linux"></div>
+              <div class="path-editor-actions">
+                <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
+                <button class="path-done-btn" id="step3-linux-done">Done</button>
               </div>
             </div>
             <p>Replace <code>username</code> in the path above with your actual Linux username (run <code>whoami</code> if unsure). The solver starts printing results immediately — one line per N.</p>
@@ -3896,13 +3938,14 @@ function tutCopy(btn, text) {
 (function () {
   /* Default path segments: first is always the Windows drive letter ("C:"),
      the rest are folder names the user can edit freely.                    */
-  var segs = ['C:', 'path', 'to'];
+  var segs     = ['C:', 'path', 'to'];
+  var fileName = 'primecover1024.cpp';
 
   /* Build the WSL path from current segments */
   function wslPath() {
     var drive = (segs[0] || 'C').replace(':', '').toLowerCase() || 'c';
     var rest  = segs.slice(1).filter(function (s) { return s.trim() !== ''; });
-    return '/mnt/' + drive + '/' + (rest.length ? rest.join('/') + '/' : '') + 'primecover1024.cpp';
+    return '/mnt/' + drive + '/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
   }
 
   /* Build the full shell command */
@@ -4014,6 +4057,20 @@ function tutCopy(btn, text) {
     editBtn.classList.remove('active');
   });
 
+  /* File-variant toggle */
+  document.getElementById('step3-file-primary').addEventListener('click', function () {
+    fileName = 'primecover1024.cpp';
+    document.getElementById('step3-file-primary').classList.add('active');
+    document.getElementById('step3-file-variant').classList.remove('active');
+    syncPre();
+  });
+  document.getElementById('step3-file-variant').addEventListener('click', function () {
+    fileName = 'primecover1024_line_coordinates.cpp';
+    document.getElementById('step3-file-variant').classList.add('active');
+    document.getElementById('step3-file-primary').classList.remove('active');
+    syncPre();
+  });
+
   /* Copy button wired to the live command */
   document.getElementById('step3-copy-btn').addEventListener('click', function () {
     var btn = this;
@@ -4043,12 +4100,13 @@ function switchOS(os) {
 /* ── Linux step-3 path editor ───────────────────────────────────────────── */
 (function () {
   /* Default path segments: username + folder names the user can edit. */
-  var segs = ['username', 'path', 'to'];
+  var segs     = ['username', 'path', 'to'];
+  var fileName = 'primecover1024.cpp';
 
   /* Build the Linux /home path from current segments */
   function linuxPath() {
     var rest = segs.filter(function (s) { return s.trim() !== ''; });
-    return '/home/' + (rest.length ? rest.join('/') + '/' : '') + 'primecover1024.cpp';
+    return '/home/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
   }
 
   /* Build the full shell command */
@@ -4172,6 +4230,26 @@ function switchOS(os) {
         btn.classList.add('co-copy-ok');
         setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
       });
+    });
+  }
+
+  /* File-variant toggle */
+  var filePrimary = document.getElementById('step3-linux-file-primary');
+  var fileVariant = document.getElementById('step3-linux-file-variant');
+  if (filePrimary) {
+    filePrimary.addEventListener('click', function () {
+      fileName = 'primecover1024.cpp';
+      filePrimary.classList.add('active');
+      fileVariant.classList.remove('active');
+      syncPre();
+    });
+  }
+  if (fileVariant) {
+    fileVariant.addEventListener('click', function () {
+      fileName = 'primecover1024_line_coordinates.cpp';
+      fileVariant.classList.add('active');
+      filePrimary.classList.remove('active');
+      syncPre();
     });
   }
 })();
