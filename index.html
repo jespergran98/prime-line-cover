@@ -577,6 +577,27 @@ input[type=range]::-webkit-slider-runnable-track {
 .dl-btn.secondary { color: var(--ink-70); }
 .dl-btn.secondary:hover { background: var(--ink); color: var(--white); border-color: var(--ink); }
 
+/* Variant note below secondary download row */
+.dl-variant-note {
+  font-size: 11.5px;
+  font-style: italic;
+  color: var(--ink-45);
+  line-height: 1.6;
+  margin-top: 8px;
+  margin-bottom: 2px;
+  padding: 0 1px;
+}
+.dl-variant-note code {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-style: normal;
+  color: var(--ink-70);
+  background: var(--paper-deep);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-08);
+}
+
 /* ── Tutorial collapsible ────────────────────────────── */
 details.tut {
   border: 1px solid var(--ink-18);
@@ -903,18 +924,44 @@ details.tut summary::-webkit-details-marker { display: none; }
   line-height: 1.6;
 }
 
-.co-code {
-  display: block;
-  font-family: var(--mono);
-  font-size: 9px;
-  background: var(--paper-alt);
-  border: 1px solid var(--ink-08);
-  padding: 8px 11px;
+
+/* Quick-start hint button inside overlay-tl */
+.co-quickstart-hint {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  margin-top: 8px;
+  font-family: var(--serif);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--teal);
+  background: var(--teal-light);
+  border: 1px solid rgba(20,115,106,0.28);
   border-radius: var(--r2);
-  color: var(--ink);
-  white-space: pre;
-  line-height: 1.7;
-  letter-spacing: 0.01em;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  line-height: 1.3;
+}
+.co-quickstart-hint:hover {
+  background: var(--teal);
+  color: var(--white);
+  border-color: var(--teal);
+}
+.co-quickstart-hint-arrow {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 10px;
+  margin-left: auto;
+  opacity: 0.7;
+  flex-shrink: 0;
+  transition: transform 0.15s, opacity 0.15s;
+}
+.co-quickstart-hint:hover .co-quickstart-hint-arrow {
+  transform: translateX(3px);
+  opacity: 1;
 }
 
 details.tut.tut-cta {
@@ -978,6 +1025,145 @@ details.tut.tut-cta summary::after { display: none; }
 .co-copy-btn.co-copy-ok { color: var(--teal); }
 .co-copy-btn.co-copy-ok svg:first-of-type { display: none; }
 .co-copy-btn.co-copy-ok .co-copy-check { display: block; }
+
+/* ── Path-editor edit button ─────────────────────────── */
+.co-edit-btn {
+  position: absolute;
+  bottom: 6px;
+  right: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  border-radius: var(--r);
+  cursor: pointer;
+  color: var(--ink-45);
+  padding: 0;
+  transition: color 0.15s, background 0.15s;
+}
+.co-edit-btn:hover { color: var(--ink); background: var(--ink-08); }
+.co-edit-btn.active { color: var(--teal); background: var(--teal-light); }
+
+/* ── Inline path editor ───────────────────────────────── */
+.path-editor {
+  display: none;
+  margin-top: 6px;
+  padding: 8px 10px 8px 10px;
+  background: var(--paper-alt);
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 2px;
+  row-gap: 5px;
+}
+.path-editor.open { display: flex; }
+
+.path-segs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.path-seg-wrap {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.path-sep {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-45);
+  padding: 0 1px;
+  user-select: none;
+}
+
+.path-seg-input {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r);
+  padding: 3px 5px;
+  min-width: 28px;
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.4;
+}
+.path-seg-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 2px rgba(20,115,106,0.12);
+}
+
+.path-seg-rm {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 13px;
+  height: 13px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ink-45);
+  padding: 0;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 50%;
+  transition: color 0.12s, background 0.12s;
+  flex-shrink: 0;
+}
+.path-seg-rm:hover { color: var(--coral); background: rgba(163,50,40,0.09); }
+
+.path-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-left: 4px;
+  flex-shrink: 0;
+}
+
+.path-add-btn {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--teal);
+  background: none;
+  border: 1px dashed rgba(20,115,106,0.38);
+  border-radius: var(--r);
+  padding: 2px 7px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+.path-add-btn:hover {
+  background: var(--teal-light);
+  border-style: solid;
+  border-color: rgba(20,115,106,0.5);
+}
+
+.path-done-btn {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  color: var(--white);
+  background: var(--teal);
+  border: 1px solid var(--teal);
+  border-radius: var(--r);
+  padding: 3px 9px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.path-done-btn:hover { background: #0f5e56; border-color: #0f5e56; }
 
 /* ── Paper Overlay ───────────────────────────────────── */
 #overlay-paper {
@@ -1452,7 +1638,6 @@ details.tut.tut-cta summary::after { display: none; }
     pointer-events: auto !important;
   }
   #overlay-tl .co-title { font-size: 22px; }
-  #overlay-tl .co-code  { font-size: 8px; white-space: pre-wrap; word-break: break-word; }
 
   /* Canvas: viewport-slice height */
   #canvas-wrapper {
@@ -1577,7 +1762,6 @@ details.tut.tut-cta summary::after { display: none; }
 
   #overlay-paper { margin-top: 0; }
 
-  .co-code { white-space: pre-wrap; word-break: break-word; }
 }
 </style>
 </head>
@@ -1631,20 +1815,10 @@ details.tut.tut-cta summary::after { display: none; }
         </a>
         <span class="co-file-tag">C++23 &middot; parallel B&B<br>bitmask N ≤ 1024</span>
       </div>
-      <div style="position:relative;">
-        <button class="co-copy-btn" aria-label="Copy command" onclick="(function(btn){var t='g++-14 -std=c++23 -O3 -march=native \\\n  -pthread primecover1024.cpp -o solver\n./solver';navigator.clipboard.writeText(t).then(function(){btn.classList.add('co-copy-ok');setTimeout(function(){btn.classList.remove('co-copy-ok')},1400)});})(this)">
-          <svg width="11" height="11" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/>
-            <path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
-          </svg>
-          <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
-        <code class="co-code">g++-14 -std=c++23 -O3 -march=native \
-  -pthread primecover1024.cpp -o solver
-./solver</code>
-      </div>
+      <button class="co-quickstart-hint" id="btn-quick-start-overlay">
+        New to this? See the full step-by-step Quick&nbsp;Start guide
+        <span class="co-quickstart-hint-arrow">→</span>
+      </button>
     </div>
 
     <div id="canvas-wrapper">
@@ -1907,6 +2081,9 @@ details.tut.tut-cta summary::after { display: none; }
           <span class="ico">↓</span> a373813_all_lines.txt
         </a>
       </div>
+      <p class="dl-variant-note">
+        <code>primecover1024_line_coords.cpp</code> is the same exact solver — it additionally writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation.
+      </p>
 
       <details class="tut tut-cta">
         <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
@@ -1938,14 +2115,30 @@ sudo apt install g++-14 -y</pre>
           <p><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
           <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
           <div style="position:relative;">
-            <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \\\ng++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n  primecover.cpp -o primecover && \\\n./primecover')">
+            <!-- Edit-path button (pen icon) -->
+            <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+              <svg width="11" height="11" viewBox="0 0 14 14" fill="none">
+                <path d="M9.5 2.5L11.5 4.5L5 11H3V9L9.5 2.5Z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round" stroke-linecap="round"/>
+                <path d="M8 4L10 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <!-- Copy button -->
+            <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
               <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
               <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
-            <pre>cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \
+            <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover && \
+  primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
+            <!-- Inline path editor -->
+            <div class="path-editor" id="step3-path-editor">
+              <div class="path-segs" id="path-segs"></div>
+              <div class="path-editor-actions">
+                <button class="path-add-btn" id="step3-add-seg">+ folder</button>
+                <button class="path-done-btn" id="step3-done">Done</button>
+              </div>
+            </div>
           </div>
           <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
 
@@ -3534,26 +3727,35 @@ requestAnimationFrame(loop);
 <script>
 /* ── Quick Start button — scroll to cpp-section and open the guide ────── */
 (function () {
-  document.getElementById('btn-quick-start').addEventListener('click', function () {
-    var side      = document.getElementById('side');
-    var cppSect   = side.querySelector('.cpp-section');
+  function openQuickStart() {
+    var side       = document.getElementById('side');
+    var cppSect    = side.querySelector('.cpp-section');
     var tutDetails = cppSect.querySelector('details.tut-cta');
 
     /* Open the details element first so its height is included in the layout */
     tutDetails.open = true;
 
-    /* Scroll the side panel so the bottom of cpp-section is visible.
-       We target the details element itself so the content is centred nicely. */
     requestAnimationFrame(function () {
-      var sideRect    = side.getBoundingClientRect();
-      var targetRect  = tutDetails.getBoundingClientRect();
+      var isMobile = window.innerWidth <= 950;
 
-      /* How far the top of the details element is from the top of the
-         visible side panel, then account for current scroll position */
-      var offset = targetRect.top - sideRect.top + side.scrollTop - 16;
-      side.scrollTo({ top: offset, behavior: 'smooth' });
+      if (isMobile) {
+        /* On mobile the page itself scrolls (body/html overflow-y: auto).
+           Scroll window so the tut-cta details lands 16 px from the top. */
+        var targetRect = tutDetails.getBoundingClientRect();
+        var offset = targetRect.top + window.scrollY - 16;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+      } else {
+        /* On desktop #side is the scroll container */
+        var sideRect   = side.getBoundingClientRect();
+        var targetRect = tutDetails.getBoundingClientRect();
+        var offset = targetRect.top - sideRect.top + side.scrollTop - 16;
+        side.scrollTo({ top: offset, behavior: 'smooth' });
+      }
     });
-  });
+  }
+
+  document.getElementById('btn-quick-start').addEventListener('click', openQuickStart);
+  document.getElementById('btn-quick-start-overlay').addEventListener('click', openQuickStart);
 })();
 
 /* ── Tutorial code-block copy helper ──────────────────────────────────── */
@@ -3591,6 +3793,140 @@ function tutCopy(btn, text) {
     } else {
       btn.classList.add('overlays-off');
     }
+  });
+})();
+</script>
+
+<script>
+/* ── Step 3 path editor ────────────────────────────────────────────────── */
+(function () {
+  /* Default path segments: first is always the Windows drive letter ("C:"),
+     the rest are folder names the user can edit freely.                    */
+  var segs = ['C:', 'path', 'to'];
+
+  /* Build the WSL path from current segments */
+  function wslPath() {
+    var drive = (segs[0] || 'C').replace(':', '').toLowerCase() || 'c';
+    var rest  = segs.slice(1).filter(function (s) { return s.trim() !== ''; });
+    return '/mnt/' + drive + '/' + (rest.length ? rest.join('/') + '/' : '') + 'primecover1024.cpp';
+  }
+
+  /* Build the full shell command */
+  function buildCmd() {
+    return 'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
+         + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+         + '  primecover.cpp -o primecover && \\\n'
+         + './primecover';
+  }
+
+  /* Update the <pre> display to reflect current path */
+  function syncPre() {
+    var pre = document.getElementById('step3-pre');
+    if (!pre) return;
+    pre.textContent =
+        'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
+      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+      + '  primecover.cpp -o primecover && \\\n'
+      + './primecover';
+  }
+
+  /* Re-render the segment chips inside #path-segs */
+  function renderSegs() {
+    var container = document.getElementById('path-segs');
+    if (!container) return;
+    container.innerHTML = '';
+
+    segs.forEach(function (seg, i) {
+      var wrap = document.createElement('div');
+      wrap.className = 'path-seg-wrap';
+
+      /* Slash separator between segments */
+      if (i > 0) {
+        var sep = document.createElement('span');
+        sep.className = 'path-sep';
+        sep.textContent = '/';
+        wrap.appendChild(sep);
+      }
+
+      /* Editable input */
+      var inp = document.createElement('input');
+      inp.className  = 'path-seg-input';
+      inp.type       = 'text';
+      inp.value      = seg;
+      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
+      inp.setAttribute('spellcheck', 'false');
+      inp.setAttribute('autocomplete', 'off');
+
+      /* Live-resize and sync */
+      inp.addEventListener('input', function () {
+        segs[i] = this.value;
+        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
+        syncPre();
+      });
+
+      wrap.appendChild(inp);
+
+      /* Remove button — only on non-drive segments */
+      if (i > 0) {
+        var rm = document.createElement('button');
+        rm.className = 'path-seg-rm';
+        rm.title     = 'Remove folder';
+        rm.innerHTML = '&times;';
+        rm.addEventListener('click', function () {
+          segs.splice(i, 1);
+          renderSegs();
+          syncPre();
+        });
+        wrap.appendChild(rm);
+      }
+
+      container.appendChild(wrap);
+    });
+  }
+
+  /* Toggle the editor open / closed */
+  var editBtn = document.getElementById('step3-edit-btn');
+  var editor  = document.getElementById('step3-path-editor');
+
+  editBtn.addEventListener('click', function () {
+    var isOpen = editor.classList.contains('open');
+    if (isOpen) {
+      editor.classList.remove('open');
+      editBtn.classList.remove('active');
+    } else {
+      renderSegs();
+      editor.classList.add('open');
+      editBtn.classList.add('active');
+    }
+  });
+
+  /* Add a new folder segment */
+  document.getElementById('step3-add-seg').addEventListener('click', function () {
+    segs.push('folder');
+    renderSegs();
+    syncPre();
+    /* Auto-focus + select the new input */
+    var inputs = document.querySelectorAll('#path-segs .path-seg-input');
+    if (inputs.length) {
+      var last = inputs[inputs.length - 1];
+      last.focus();
+      last.select();
+    }
+  });
+
+  /* Done button closes the editor */
+  document.getElementById('step3-done').addEventListener('click', function () {
+    editor.classList.remove('open');
+    editBtn.classList.remove('active');
+  });
+
+  /* Copy button wired to the live command */
+  document.getElementById('step3-copy-btn').addEventListener('click', function () {
+    var btn = this;
+    navigator.clipboard.writeText(buildCmd()).then(function () {
+      btn.classList.add('co-copy-ok');
+      setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+    });
   });
 })();
 </script>
