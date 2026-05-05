@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
 
-**[Quick Start](#quick-start-ubuntu--wsl) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Results](#results) · [Citation](#citation)**
+**[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Results](#results) · [Citation](#citation)**
 
 ---
 
@@ -102,11 +102,29 @@ The accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points
 
 ---
 
-## Quick Start (Ubuntu / WSL)
+## Quick Start
 
-> **New to WSL?** If you don't have Ubuntu on Windows yet, [install WSL](https://learn.microsoft.com/en-us/windows/wsl/install) first by running `wsl --install` in PowerShell as Administrator, then reopen a Ubuntu terminal before continuing.
+The solver uses C++23 features that only GCC 14 and newer support. Choose your operating system below.
 
-### 1. Install a modern C++ compiler (GCC 14)
+### Windows (via WSL)
+
+WSL (Windows Subsystem for Linux) lets you run a full Linux environment directly inside Windows — no virtual machine needed. It is the recommended way to build and run the solver on Windows.
+
+**Step 1 — Install WSL**
+
+Open **PowerShell as Administrator** (right-click the Start menu → "Windows PowerShell (Admin)") and run:
+
+```powershell
+wsl --install
+```
+
+This installs WSL 2 and the Ubuntu distribution in one go. Restart your PC when prompted, then open the **Ubuntu** app from the Start menu and wait for it to finish setting up your user account.
+
+> Already have WSL and Ubuntu installed? Skip straight to Step 2.
+
+**Step 2 — Install GCC 14**
+
+The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right package repository and install it. You can paste all three at once — they will run in sequence:
 
 ```bash
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -114,39 +132,129 @@ sudo apt update
 sudo apt install g++-14 -y
 ```
 
-### 2. Copy, compile, and run
+**Step 3 — Copy, compile, and run**
 
-Replace the path with the actual location of your source file:
+Download `primecover1024.cpp` and save it to a location you'll remember — your Downloads folder or Desktop works well. Then replace the path in the command below with where you saved it, and paste the whole thing into your Ubuntu terminal:
 
 ```bash
-cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover && \
+cp /mnt/c/Users/YourName/Downloads/primecover1024.cpp ~/primecover.cpp && \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover && \
 ./primecover
 ```
 
-For the line-coordinates version:
+> **Tip:** Your Windows `C:\` drive is always accessible inside WSL at `/mnt/c/`. So `C:\Users\Alice\Downloads` becomes `/mnt/c/Users/Alice/Downloads`.
 
-```bash
-cp /mnt/c/path/to/primecover1024_line_coordinates.cpp ~/primecover.cpp && \
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover.cpp -o primecover && \
-./primecover
-```
+The solver starts printing results immediately — one line per N.
 
-> **Note:** `-march=native` optimises for your CPU. For **AMD Zen 5** you can use `-march=znver5` for a small extra gain.
-
-## Quick Start (macOS)
-
-```bash
-brew install gcc@14
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti primecover1024.cpp -o primecover && \
-./primecover
-```
-
-> Apple Clang does not yet support all C++23 features used by the solver. GCC 14 via Homebrew is required.
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
 
 ---
 
-By default the solver runs from N = 1 up to N = 1024. To change that, edit the constants `kStartN` and `kExecutionLimit` at the top of the source file.
+### Linux (Ubuntu / Debian)
+
+No extra setup needed — you're already running Linux natively. Open a terminal with `Ctrl+Alt+T` or from your application menu.
+
+**Step 1 — Install GCC 14**
+
+The solver uses C++23 features that only GCC 14 and newer support. Ubuntu and Debian don't ship it by default, so these three commands add the right package repository and install it. You can paste all three at once:
+
+```bash
+sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo apt update
+sudo apt install g++-14 -y
+```
+
+**Step 2 — Compile and run**
+
+Download `primecover1024.cpp` and save it somewhere in your home directory — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into your terminal:
+
+```bash
+cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover && \
+./primecover
+```
+
+> Replace `username` with your actual Linux username. Run `whoami` in your terminal if you're unsure what it is.
+
+The solver starts printing results immediately — one line per N.
+
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+
+---
+
+### Linux (Arch / pacman)
+
+Open a terminal and install GCC 14 with pacman:
+
+**Step 1 — Install GCC 14**
+
+```bash
+sudo pacman -S gcc14
+```
+
+**Step 2 — Compile and run**
+
+Download `primecover1024.cpp` and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:
+
+```bash
+cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover && \
+./primecover
+```
+
+> Replace `username` with your actual Linux username. Run `whoami` in your terminal if you're unsure what it is.
+
+The solver starts printing results immediately — one line per N.
+
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+
+---
+
+### macOS
+
+**Step 1 — Install Homebrew**
+
+If you don't have Homebrew yet, open **Terminal** (⌘ Space → "Terminal") and run:
+
+```bash
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+```
+
+> Already have Homebrew? Skip straight to Step 2.
+
+**Step 2 — Install GCC 14**
+
+Apple Clang does not yet support all C++23 features used by the solver — GCC 14 via Homebrew is required. Install it with:
+
+```bash
+brew install gcc@14
+```
+
+Homebrew installs `g++-14` into its bin directory and adds it to your PATH automatically.
+
+**Step 3 — Copy, compile, and run**
+
+Download `primecover1024.cpp` and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:
+
+```bash
+cp /Users/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover && \
+./primecover
+```
+
+> Replace `username` with your macOS username. Run `whoami` in Terminal if you're unsure what it is.
+
+The solver starts printing results immediately — one line per N.
+
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+
+> **Note:** For **AMD Zen 5** CPUs you can substitute `-march=native` with `-march=znver5` for a small extra performance gain.
+
+---
 
 ## Understanding the Output
 
@@ -176,6 +284,8 @@ The solver's behaviour can be adjusted by modifying constants in the `config` na
 | `kStartN`               | 1    | Starting N for the sweep. Increase to resume mid-sequence. |
 | `kExecutionLimit`       | 1024 | Maximum N to compute (capped by `kBitCapacity`). |
 | `kPerNTimeLimitSeconds` | 0    | Per-instance time limit in seconds (0 = no limit). If exceeded, the solver prints `[stopped]` and exits. |
+
+By default the solver runs from N = 1 up to N = 1024. To change that, edit `kStartN` and `kExecutionLimit` at the top of the source file.
 
 ## Performance Tuning
 
