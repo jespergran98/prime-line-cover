@@ -3257,39 +3257,82 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
   var gainNeeded = BB_N - 2 * BB_bestCnt + 2;   /* minimum total gain to beat incumbent */
   if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }  /* fast exit */
 
-  /* 5. Subgradient descent with Polyak step, up to 48 iterations.
-     step_scale = 1.5 when warm-started (parent dual already near-optimal),
-                = 1.35 for cold-start.  Mirrors C++ step_scale logic. */
-  var step_scale = warmStart ? 1.5 : 1.35;
-  for (var iter = 0; iter < maxIters; iter++) {
-    var val = evalLag(y, true);   /* computes val and fills sg[] */
+  /* 5. Subgradient descent — two-stage iteration, adaptive step scale.
+     ─────────────────────────────────────────────────────────────────────
+     Three step-scale regimes mirror C++ run_subgradient_iters():
 
+       aggressiveTailWarm (1.75): warm + BB_bestCnt ≥ 113 + deep in DFS.
+         More overrelaxed step for fast convergence on the gap-1 tail of
+         large-N instances.  C++ condition: aggressive_tail_warm, line 1879.
+
+       warmStart (1.5): parent dual already near-optimal.
+
+       cold (1.35): density-heuristic initialisation.
+
+     Two-stage iteration mirrors C++ use_short_warm_stage (line 1941):
+       When warm + BB_bestCnt ≥ 112 + chosenDepth ≥ 4, run only the first
+       min(maxIters, 16) iterations (kWarmStartFirstStageIters = 16).
+       Continue to maxIters only when the bound after stage 1 is within
+       1.0 of the pruning threshold (kWarmStartRefineWindow = 1.0).
+       Nodes comfortably above or below the threshold skip stage 2 entirely,
+       saving ~66 % of the Lagrangian budget for clear nodes.
+
+     The adaptive lag_max_iters at the DFS call site
+       (Math.min(64, 8 + uncovPop >> 3))
+     mirrors C++ ExactGainSolver::dfs() line 1276:
+       const int lag_max_iters = std::min(64, 8 + task.active_count / 8);
+     ───────────────────────────────────────────────────────────────────── */
+  var chosenDepth        = BB_chosen ? BB_chosen.length : 0;
+  var aggressiveTailWarm = warmStart && BB_bestCnt >= 113 && chosenDepth >= 4;
+  var useShortWarmStage  = warmStart && BB_bestCnt >= 112 && chosenDepth >= 4;
+  var step_scale         = aggressiveTailWarm ? 1.75 : (warmStart ? 1.5 : 1.35);
+  var firstStageEnd      = (useShortWarmStage && maxIters > 16) ? 16 : maxIters;
+
+  /* ── Stage 1: run up to firstStageEnd iterations ── */
+  var s1AtOptimum = false;
+  for (var iter = 0; iter < firstStageEnd; iter++) {
+    var val = evalLag(y, true);   /* computes val and fills sg[] */
     if (val < best - 1e-18) {
       best = val;
       for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
       if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }   /* tight: exit early */
     }
-
-    /* Polyak step size: (L(y) - target) / ||g||^2,
-       where target is a lower bound on the dual optimum. */
+    /* Polyak step size: (L(y) − target) / ‖g‖², target = gainNeeded − currentGain. */
     var norm2 = 0;
     for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
-    if (norm2 < 1e-20) break;   /* subgradient is zero → at optimum */
-
-    /* Overrelaxed Polyak step — mirrors C++ step_scale = 1.35 (cold start).
-       gap = L(y) − target; when gap ≤ 1e-9 the bound is already at or below
-       the pruning threshold, so exit immediately — mirrors C++:
-         if (gap <= 1e-9) return false;
-       Using step = 1.35 * gap / norm2 (no diminishing cap) matches C++
-       exactly and converges ~35 % faster than the plain Polyak step. */
+    if (norm2 < 1e-20) { s1AtOptimum = true; break; }   /* subgradient zero → at optimum */
     var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
-    if (gap <= 1e-9) break;
+    if (gap <= 1e-9) { s1AtOptimum = true; break; }      /* gap closed → converged */
     var step = step_scale * gap / norm2;
-
-    /* Projected update: y[p] ← clamp(y[p] - step * g[p], 0, 1). */
     for (var ai = 0; ai < AP; ai++) {
       var ny = y[ai] - step * sg[ai];
       y[ai] = ny < 0 ? 0 : (ny > 1 ? 1 : ny);
+    }
+  }
+
+  /* ── Stage 2: run remaining iterations only when close to the pruning
+     threshold.  Mirrors C++ use_short_warm_stage second-stage gate:
+       staged_total < gain_needed + kWarmStartRefineWindow → run remaining.
+     Skipped entirely when s1AtOptimum (dual already converged).         ── */
+  if (!s1AtOptimum && useShortWarmStage && firstStageEnd < maxIters &&
+      currentGain + best < gainNeeded + 1.0) {
+    for (var iter = firstStageEnd; iter < maxIters; iter++) {
+      var val = evalLag(y, true);
+      if (val < best - 1e-18) {
+        best = val;
+        for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
+        if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }
+      }
+      var norm2 = 0;
+      for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
+      if (norm2 < 1e-20) break;
+      var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
+      if (gap <= 1e-9) break;
+      var step = step_scale * gap / norm2;
+      for (var ai = 0; ai < AP; ai++) {
+        var ny = y[ai] - step * sg[ai];
+        y[ai] = ny < 0 ? 0 : (ny > 1 ? 1 : ny);
+      }
     }
   }
 
@@ -3636,8 +3679,15 @@ function solve(cov, avail, currentGain) {
   /* ── Step 5: Lagrangian relaxation upper bound ───────────────────────────
      Computed on the post-forced-reduction problem: fewer uncovered points and
      fewer available lines → tighter bound than the original JS which computed
-     the bound before forced reduction.                                       */
-  var lagUB    = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain);
+     the bound before forced reduction.
+
+     Adaptive iteration count mirrors C++ ExactGainSolver::dfs() line 1276:
+       const int lag_max_iters = std::min(64, 8 + task.active_count / 8);
+     Near-leaf nodes (small uncovPop) use fewer iterations; root-like nodes
+     get up to 64.  This halves per-node cost on small-residual branches
+     while giving the full budget where it counts.                          */
+  var lagMaxIters = Math.min(64, 8 + (uncovPop >> 3));
+  var lagUB       = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain, lagMaxIters);
   var gainNeed = BB_N - 2 * BB_bestCnt + 2;
   if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) {
     for (var i = 0; i < nForced; i++) BB_chosen.pop();
