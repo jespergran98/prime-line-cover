@@ -1178,8 +1178,14 @@ details.tut.tut-cta summary::after { display: none; }
   width: 100%;
 }
 
+/* When the file toggle lives inside the footer row, kill its bottom margin */
+.path-editor-footer .path-file-toggle {
+  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
+}
+
 .path-editor-actions {
-  margin-left: auto;
   flex-shrink: 0;
 }
 
@@ -2475,7 +2481,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-paste-status pe-hint" id="step3-paste-status">Works with Windows paths (C:\…) and WSL paths (/mnt/c/…)</div>
                     </div>
                     <div class="path-editor-footer">
-                      <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                      <div class="path-file-toggle">
                         <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
                         <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
                       </div>
@@ -2608,7 +2614,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path starting with /</div>
                       </div>
                       <div class="path-editor-footer">
-                        <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                        <div class="path-file-toggle">
                           <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
                           <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
                         </div>
@@ -2743,7 +2749,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path starting with /</div>
                     </div>
                     <div class="path-editor-footer">
-                      <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                      <div class="path-file-toggle">
                         <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
                         <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
                       </div>
@@ -4432,47 +4438,56 @@ function tutCopy(btn, text) {
    Accepts:
      • Windows native:  C:\Users\you\Downloads\primecover1024.cpp  (or folder)
      • WSL path:        /mnt/c/Users/you/Downloads/
-   The file name portion is stripped out and replaced by `fileName` so the
-   file-variant toggle keeps working independently.
+   The file name is stripped and controlled separately by the variant toggle.
+   Paths with spaces are automatically single-quoted in the shell command.
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  var dirPath  = '/mnt/c/path/to/';   /* the resolved directory, always ends in / */
+  var dirPath  = '/mnt/c/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  /* ── Path parser ───────────────────────────────────────── */
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  /* Wraps in single quotes if the path contains any character that the shell
+     would interpret (space, $, &, (, ), etc.). Single quotes are safe for
+     all characters except a literal single-quote, which is vanishingly rare
+     in file paths and not worth the extra escaping complexity.               */
+  function shellQuote(s) {
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(s) ? "'" + s + "'" : s;
+  }
+
+  /* ── Path parser ────────────────────────────────────────── */
   function parseWindowsInput(raw) {
     raw = (raw || '').trim();
     if (!raw) return null;
 
-    var dir = null;
-
-    /* Case 1 — Windows native path: C:\...  or  C:/...  */
+    /* Case 1 — Windows native: C:\...  or  C:/...  */
     if (/^[A-Za-z]:[\\\/]/.test(raw)) {
-      var drive   = raw[0].toLowerCase();
-      /* Replace the drive letter + colon, then normalise separators */
-      var rest    = raw.slice(2).replace(/\\/g, '/');          /* e.g. /Users/you/Downloads/file.cpp */
-      if (rest.charAt(0) === '/') rest = rest.slice(1);       /* strip leading slash already included */
-      var parts   = rest.split('/').filter(function(p){ return p.length > 0; });
-      /* Strip trailing filename (ends in .cpp / .h / any extension with dot) */
-      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
-      dir = '/mnt/' + drive + '/' + (parts.length ? parts.join('/') + '/' : '');
-      return { dir: dir, kind: 'Windows → WSL' };
+      var drive = raw[0].toLowerCase();
+      /* Slice past "C:", normalise all separators to forward-slash */
+      var body  = raw.slice(2).replace(/\\/g, '/');
+      /* Strip the leading slash (always present after normalising "C:\") */
+      if (body.charAt(0) === '/') body = body.slice(1);
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      /* If the last segment looks like a filename, drop it */
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '/mnt/' + drive + '/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, label: 'Windows path → ' + dir };
     }
 
     /* Case 2 — WSL path: /mnt/<letter>/...  */
     if (/^\/mnt\/[a-z]\//i.test(raw)) {
-      var parts = raw.split('/').filter(function(p){ return p.length > 0; });
-      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
-      dir = '/' + parts.join('/') + '/';
-      return { dir: dir, kind: 'WSL path' };
+      var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '/' + parts.join('/') + '/';
+      return { dir: dir, label: 'WSL path → ' + dir };
     }
 
-    return null; /* unrecognised */
+    return null;
   }
 
-  /* ── Command builder ───────────────────────────────────── */
+  /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
-    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
+    var src = shellQuote(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
@@ -4483,43 +4498,50 @@ function tutCopy(btn, text) {
     if (pre) pre.textContent = buildCmd();
   }
 
-  /* ── Wire up paste input ────────────────────────────────── */
+  /* ── Wire up input ──────────────────────────────────────── */
   var inp    = document.getElementById('step3-paste-input');
   var status = document.getElementById('step3-paste-status');
 
   function handleInput() {
-    var raw    = inp.value;
+    var raw    = inp ? inp.value : '';
     var result = parseWindowsInput(raw);
 
     if (!raw.trim()) {
-      /* Empty — reset to default, show hint */
       dirPath = '/mnt/c/path/to/';
-      inp.classList.remove('pe-error');
-      status.className = 'path-paste-status pe-hint';
-      status.textContent = 'Works with Windows paths (C:\\…) and WSL paths (/mnt/c/…)';
+      if (inp) inp.classList.remove('pe-error');
+      status.className    = 'path-paste-status pe-hint';
+      status.textContent  = 'Works with Windows paths (C:\\…) and WSL paths (/mnt/c/…)';
       syncPre();
       return;
     }
 
     if (result) {
       dirPath = result.dir;
-      inp.classList.remove('pe-error');
-      status.className = 'path-paste-status pe-ok';
-      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
       syncPre();
     } else {
-      inp.classList.add('pe-error');
-      status.className = 'path-paste-status pe-err';
-      status.textContent = 'Use a Windows path (C:\\…) or WSL path (/mnt/c/…)';
+      /* Leave dirPath unchanged so the pre stays valid */
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected a Windows path (C:\\…) or WSL path (/mnt/c/…)';
     }
   }
 
+  /* Support typing, paste via keyboard, and drag-and-drop of path strings */
   if (inp) {
     inp.addEventListener('input', handleInput);
-    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
+    });
   }
 
-  /* ── Toggle editor open/closed ─────────────────────────── */
+  /* ── Toggle editor open/closed ──────────────────────────── */
   var editBtn = document.getElementById('step3-edit-btn');
   var editor  = document.getElementById('step3-path-editor');
 
@@ -4531,11 +4553,11 @@ function tutCopy(btn, text) {
     } else {
       editor.classList.add('open');
       editBtn.classList.add('active');
-      if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
+      if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
     }
   });
 
-  /* ── Done button ────────────────────────────────────────── */
+  /* ── Done ───────────────────────────────────────────────── */
   document.getElementById('step3-done').addEventListener('click', function () {
     editor.classList.remove('open');
     editBtn.classList.remove('active');
@@ -4555,7 +4577,7 @@ function tutCopy(btn, text) {
     if (inp && inp.value.trim()) handleInput(); else syncPre();
   });
 
-  /* ── Copy button ────────────────────────────────────────── */
+  /* ── Copy ───────────────────────────────────────────────── */
   document.getElementById('step3-copy-btn').addEventListener('click', function () {
     var btn = this;
     navigator.clipboard.writeText(buildCmd()).then(function () {
@@ -4596,40 +4618,47 @@ function switchDistro(distro) {
 
 <script>
 /* ── Linux step-3 path editor — paste-to-set ───────────────────────────────
-   Accepts absolute Unix paths: /home/you/Downloads/  or  ~/Downloads/
-   The ~ shorthand is resolved to /home/<first-segment>/ when possible,
-   but passed through literally if no username is determinable.
+   Accepts:
+     • Absolute paths:     /home/you/Downloads/primecover1024.cpp  (or folder)
+     • Tilde-home paths:   ~/Downloads/  or  ~/Downloads/primecover1024.cpp
+   Paths with spaces are single-quoted in the generated shell command.
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/home/username/path/to/';
   var fileName = 'primecover1024.cpp';
 
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  function shellQuote(s) {
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(s) ? "'" + s + "'" : s;
+  }
+
+  /* ── Path parser ────────────────────────────────────────── */
   function parseLinuxInput(raw) {
     raw = (raw || '').trim();
     if (!raw) return null;
 
-    /* Tilde shorthand: ~/foo/bar  → pass through as ~/foo/bar/
-       The cp command supports ~ natively so this is fine.         */
-    if (/^~[\/\\]?/.test(raw)) {
-      var rest  = raw.slice(1).replace(/\\/g, '/');
-      if (!rest || rest === '/') rest = '/';
-      var parts = rest.split('/').filter(function(p){ return p.length > 0; });
-      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+    /* Tilde shorthand — require ~ alone OR ~/  (not ~username) */
+    if (/^~($|[\/\\])/.test(raw)) {
+      var body  = raw.slice(1).replace(/\\/g, '/');        /* '/Downloads/...' or '' */
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
       var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
-      return { dir: dir, kind: 'Home-relative path' };
+      return { dir: dir, label: 'Home path → ' + dir };
     }
 
-    /* Absolute path must start with / */
+    /* Absolute path — must start with / */
     if (!raw.startsWith('/')) return null;
 
-    var parts = raw.split('/').filter(function(p){ return p.length > 0; });
-    if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+    var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+    if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
     var dir = '/' + parts.join('/') + '/';
-    return { dir: dir, kind: 'Linux path' };
+    return { dir: dir, label: 'Linux path → ' + dir };
   }
 
+  /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
-    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
+    var src = shellQuote(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
@@ -4640,40 +4669,48 @@ function switchDistro(distro) {
     if (pre) pre.textContent = buildCmd();
   }
 
+  /* ── Wire up input ──────────────────────────────────────── */
   var inp    = document.getElementById('step3-linux-paste-input');
   var status = document.getElementById('step3-linux-paste-status');
 
   function handleInput() {
-    var raw    = inp.value;
+    var raw    = inp ? inp.value : '';
     var result = parseLinuxInput(raw);
 
     if (!raw.trim()) {
       dirPath = '/home/username/path/to/';
-      inp.classList.remove('pe-error');
-      status.className = 'path-paste-status pe-hint';
-      status.textContent = 'Paste an absolute path starting with /';
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path (/home/…) or ~/…';
       syncPre();
       return;
     }
 
     if (result) {
       dirPath = result.dir;
-      inp.classList.remove('pe-error');
-      status.className = 'path-paste-status pe-ok';
-      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
       syncPre();
     } else {
-      inp.classList.add('pe-error');
-      status.className = 'path-paste-status pe-err';
-      status.textContent = 'Use an absolute path (/home/…) or ~/…';
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected an absolute path (/home/…) or ~/…';
     }
   }
 
   if (inp) {
     inp.addEventListener('input', handleInput);
-    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
+    });
   }
 
+  /* ── Toggle editor open/closed ──────────────────────────── */
   var editBtn = document.getElementById('step3-linux-edit-btn');
   var editor  = document.getElementById('step3-linux-path-editor');
   if (editBtn) {
@@ -4685,19 +4722,21 @@ function switchDistro(distro) {
       } else {
         editor.classList.add('open');
         editBtn.classList.add('active');
-        if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
       }
     });
   }
 
+  /* ── Done ───────────────────────────────────────────────── */
   var doneBtn = document.getElementById('step3-linux-done');
   if (doneBtn) {
     doneBtn.addEventListener('click', function () {
       editor.classList.remove('open');
-      editBtn.classList.remove('active');
+      if (editBtn) editBtn.classList.remove('active');
     });
   }
 
+  /* ── Copy ───────────────────────────────────────────────── */
   var copyBtn = document.getElementById('step3-linux-copy-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
@@ -4709,13 +4748,14 @@ function switchDistro(distro) {
     });
   }
 
+  /* ── File-variant toggle ────────────────────────────────── */
   var filePrimary = document.getElementById('step3-linux-file-primary');
   var fileVariant = document.getElementById('step3-linux-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
-      fileVariant.classList.remove('active');
+      if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
@@ -4723,7 +4763,7 @@ function switchDistro(distro) {
     fileVariant.addEventListener('click', function () {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
-      filePrimary.classList.remove('active');
+      if (filePrimary) filePrimary.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
