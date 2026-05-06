@@ -3073,7 +3073,8 @@ function coverInequalityLB(cov, cands, avail, N, uw) {
         g[p] = 1 − #{L : covers p and slack > 0},
         step = (L(y) − target) / ||g||²,  target = gainNeeded − currentGain.
    ────────────────────────────────────────────────────────────────────────── */
-function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
+function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
+  if (maxIters === undefined) maxIters = 48;
   /* 1. Build compact active-point index (uncovered → 0..AP-1) and its
         inverse apToPoint (ap → global point index).
         The inverse is needed to persist the best dual vector in BB_bestDual,
@@ -3213,7 +3214,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
      step_scale = 1.5 when warm-started (parent dual already near-optimal),
                 = 1.35 for cold-start.  Mirrors C++ step_scale logic. */
   var step_scale = warmStart ? 1.5 : 1.35;
-  for (var iter = 0; iter < 48; iter++) {
+  for (var iter = 0; iter < maxIters; iter++) {
     var val = evalLag(y, true);   /* computes val and fills sg[] */
 
     if (val < best - 1e-18) {
@@ -3540,10 +3541,14 @@ function solve(cov, avail, currentGain) {
     BB_bestSol = BB_chosen.slice();
   }
 
-  /* ── Step 3: Find best productive candidate ─────────────────────────────
+  /* ── Step 3: Find best productive candidate + build top-4 shortlist ─────
      Best = max active-coverage productive available line (mirrors C++ choose_branch
-     prior to strong branching: the max-coverage heuristic dominates static ordering). */
+     prior to strong branching: the max-coverage heuristic dominates static ordering).
+     We collect the top-4 candidates by gain in one pass to feed strong branching
+     (step 5c) without a second scan.  Shortlist is kept sorted gain-descending. */
   var bestIdx = -1, bestGain = 0, maxG = 0;
+  /* SB_shortlist: [{idx, gain}], max 4 entries, gain-descending. */
+  var SB_shortlist = [];
 
   for (var i = 0; i < BB_cands.length; i++) {
     if (!workAvail[i]) continue;
@@ -3552,6 +3557,18 @@ function solve(cov, avail, currentGain) {
     if (gi < 3) continue;   /* non-productive */
     if (gi > maxG) maxG = gi;
     if (gi > bestGain) { bestGain = gi; bestIdx = i; }
+    /* Insert into shortlist if it belongs in the top 4 by gain. */
+    if (SB_shortlist.length < 4 || gi > SB_shortlist[SB_shortlist.length - 1].gain) {
+      var entry = { idx: i, gain: gi };
+      var pos = SB_shortlist.length;
+      SB_shortlist.push(entry);
+      /* Bubble up to maintain gain-descending order (shortlist ≤ 4 items). */
+      while (pos > 0 && SB_shortlist[pos].gain > SB_shortlist[pos - 1].gain) {
+        var tmp = SB_shortlist[pos]; SB_shortlist[pos] = SB_shortlist[pos - 1]; SB_shortlist[pos - 1] = tmp;
+        pos--;
+      }
+      if (SB_shortlist.length > 4) SB_shortlist.pop();
+    }
   }
 
   if (bestIdx < 0 || maxG < 3 || uncovPop === 0) {
@@ -3580,12 +3597,153 @@ function solve(cov, avail, currentGain) {
     return;
   }
 
-  /* ── Step 5b: Child-specific branch upper bounds ─────────────────────────
-     Uses the dual cached by lagrangianUpperBound (BB_lagBestY, BB_lagCandSlack,
-     BB_ptToProdCands) to derive tighter per-child bounds in O(m) without a
-     full Lagrangian re-evaluation inside each child.
-     Mirrors C++ include_branch_upper_bound / exclude_branch_upper_bound.     */
+  /* ── Step 5b: Child-specific branch upper bounds + Strong Branching ────────
+     Phase 1 (always): lightweight child caps from the cached dual.
+       Mirrors C++ include_branch_upper_bound / exclude_branch_upper_bound.
+
+     Phase 2 (conditional strong branching):
+       When the cost gap is ≤ 1 (floor(lagUB) is barely above what we need)
+       AND ≥ 64 points remain uncovered, we can pay for a full Lagrangian
+       simulation of the include branch for each of the top-4 shortlisted
+       candidates and pick the variable that maximises combined child pruning.
+       Mirrors C++ choose_branch() strong-branching path:
+         kStrongBranchShortlist = 4, kStrongBranchMaxIters = 24.            */
+
+  /* ── Phase 1: annotate shortlist with Lagrangian slack; re-sort by
+     (gain desc, slack desc) to match C++ shortlist ordering.              */
+  for (var si = 0; si < SB_shortlist.length; si++) {
+    var sli = SB_shortlist[si].idx;
+    var slk = (BB_lagReady && BB_lagCandSlack && !isNaN(BB_lagCandSlack[sli]))
+              ? Math.max(0.0, BB_lagCandSlack[sli]) : 0.0;
+    SB_shortlist[si].slack = slk;
+  }
+  /* Stable re-sort: gain desc, then slack desc. */
+  SB_shortlist.sort(function(a, b) {
+    if (b.gain !== a.gain) return b.gain - a.gain;
+    return b.slack - a.slack;
+  });
+  /* Update bestIdx/bestGain to follow the refined ordering. */
+  if (SB_shortlist.length > 0) { bestIdx = SB_shortlist[0].idx; bestGain = SB_shortlist[0].gain; }
+
+  /* Default child bounds for the (possibly re-ranked) best candidate. */
   var childUBs = computeChildUBs(lagUB, bestIdx, bestGain, workCov, currentGain);
+
+  /* ── Phase 2: Strong branching ──────────────────────────────────────────
+     Condition: more than 1 candidate, gap ≤ 1, ≥ 64 uncovered points.    */
+  var SB_totalGainFloor = Math.floor(currentGain + lagUB + 1e-9);
+  var SB_nodeCostLb     = Math.ceil((N - SB_totalGainFloor) / 2);
+  var SB_gapCost        = BB_bestCnt - SB_nodeCostLb;
+  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64;
+
+  if (SB_useStrong) {
+    /* Pre-compute exclude UBs for the whole shortlist while Lagrangian data
+       is still intact (computeChildUBs is read-only on the cached arrays). */
+    for (var si = 0; si < SB_shortlist.length; si++) {
+      var cu = computeChildUBs(lagUB, SB_shortlist[si].idx, SB_shortlist[si].gain, workCov, currentGain);
+      SB_shortlist[si].excludeUB = cu.excludeUB;
+    }
+
+    /* Save the parent dual so we can warm-start each simulation from it
+       and restore it afterwards for the actual DFS branches.
+       Mirrors C++ save_current_dual() / restore_saved_dual().             */
+    var SB_savedDualReady    = BB_dualReady;
+    var SB_savedBestDual     = BB_bestDual     ? BB_bestDual.slice()     : null;
+    var SB_savedLagBestY     = BB_lagBestY     ? BB_lagBestY.slice()     : null;
+    var SB_savedLagCandSlack = BB_lagCandSlack ? BB_lagCandSlack.slice() : null;
+    var SB_savedLagReady     = BB_lagReady;
+
+    var SB_gainNeed       = BB_N - 2 * BB_bestCnt + 2;
+    var SB_bestPruned     = -1;
+    var SB_bestWorst      = Infinity;
+    var SB_bestTotal      = Infinity;
+
+    for (var si = 0; si < SB_shortlist.length; si++) {
+      var s     = SB_shortlist[si];
+      var delta = s.gain - 2;          /* net gain of including this line */
+
+      /* Restore parent dual before each simulation so every candidate
+         is evaluated from the same warm-start point.                    */
+      BB_dualReady = SB_savedDualReady;
+      if (SB_savedBestDual) {
+        if (!BB_bestDual || BB_bestDual.length < SB_savedBestDual.length)
+          BB_bestDual = SB_savedBestDual.slice();
+        else
+          for (var di = 0; di < SB_savedBestDual.length; di++)
+            BB_bestDual[di] = SB_savedBestDual[di];
+      }
+
+      /* Build include-branch subproblem: cover branch line's points,
+         remove branch line from availability.                           */
+      var sbCov   = new Int32Array(workCov);
+      var sbAvail = new Uint8Array(workAvail);
+      for (var w = 0; w < uw; w++) sbCov[w] |= BB_cands[s.idx].mask[w];
+      sbAvail[s.idx] = 0;
+      var simGain = currentGain + delta;
+
+      /* Full Lagrangian simulation with capped iterations (24).
+         lagrangianUpperBound returns the *additional* gain bound;
+         includeUB is the absolute total-gain upper bound for the include
+         child, directly comparable with SB_gainNeed.                    */
+      var simLagAdd  = lagrangianUpperBound(sbCov, BB_cands, sbAvail, N, uw, simGain, 24);
+      var includeUB  = simGain + simLagAdd;
+      var excludeUB  = s.excludeUB;
+
+      var incPruned  = Math.floor(includeUB + 1e-9) < SB_gainNeed ? 1 : 0;
+      var excPruned  = Math.floor(excludeUB + 1e-9) < SB_gainNeed ? 1 : 0;
+      var pruned     = incPruned + excPruned;
+      var worstChild = Math.max(includeUB, excludeUB);
+      var totalChild = includeUB + excludeUB;
+
+      /* Selection criterion mirrors C++:
+           1. Maximise pruned children (0, 1, or 2).
+           2. Minimise worst-child bound (tightest constraint on the tree).
+           3. Minimise total-child bound (combined tightness).             */
+      var better = (si === 0) ||
+                   (pruned > SB_bestPruned) ||
+                   (pruned === SB_bestPruned && worstChild + 1e-9 < SB_bestWorst) ||
+                   (pruned === SB_bestPruned &&
+                    Math.abs(worstChild - SB_bestWorst) <= 1e-9 &&
+                    totalChild + 1e-9 < SB_bestTotal);
+
+      if (better) {
+        SB_bestPruned = pruned;
+        SB_bestWorst  = worstChild;
+        SB_bestTotal  = totalChild;
+        bestIdx       = s.idx;
+        bestGain      = s.gain;
+        /* childUBs for the winning candidate.  includeUB here is the full
+           Lagrangian simulation result; excludeUB is the lightweight cap. */
+        childUBs      = { includeUB: includeUB, excludeUB: excludeUB };
+      }
+    }
+
+    /* Restore parent Lagrangian state so the recursive DFS calls in step 6
+       warm-start from the parent's dual rather than from the last simulation.
+       Mirrors C++ restore_parent_lagrangian_view().                        */
+    BB_dualReady = SB_savedDualReady;
+    if (SB_savedBestDual) {
+      if (!BB_bestDual || BB_bestDual.length < SB_savedBestDual.length)
+        BB_bestDual = SB_savedBestDual.slice();
+      else
+        for (var di = 0; di < SB_savedBestDual.length; di++)
+          BB_bestDual[di] = SB_savedBestDual[di];
+    }
+    if (SB_savedLagBestY) {
+      if (!BB_lagBestY || BB_lagBestY.length < SB_savedLagBestY.length)
+        BB_lagBestY = SB_savedLagBestY.slice();
+      else
+        for (var di = 0; di < SB_savedLagBestY.length; di++)
+          BB_lagBestY[di] = SB_savedLagBestY[di];
+    }
+    if (SB_savedLagCandSlack) {
+      if (!BB_lagCandSlack || BB_lagCandSlack.length < SB_savedLagCandSlack.length)
+        BB_lagCandSlack = SB_savedLagCandSlack.slice();
+      else
+        for (var di = 0; di < SB_savedLagCandSlack.length; di++)
+          BB_lagCandSlack[di] = SB_savedLagCandSlack[di];
+    }
+    BB_lagReady = SB_savedLagReady;
+  }
 
   /* ── Step 6: Branch on bestIdx ───────────────────────────────────────────
      After forced reduction no remaining available productive line can be
