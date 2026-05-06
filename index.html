@@ -1986,50 +1986,17 @@ details.tut.tut-cta summary::after { display: none; }
   z-index: 1;
 }
 
-/* ── Expected Output Block ───────────────────────────── */
-.guide-output {
-  margin-top: 14px;
-  border: 1px solid var(--ink-08);
-  border-radius: var(--r3);
-  overflow: hidden;
-}
-.guide-output-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  background: rgba(20,115,106,0.08);
-  border-bottom: 1px solid rgba(20,115,106,0.15);
-}
-.guide-output-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: var(--teal);
-  flex-shrink: 0;
-}
-.guide-output-label {
+/* ── Wait notice after step 3 ────────────────────────── */
+.tut-body .guide-wait-notice {
+  margin-top: 10px;
+  margin-bottom: 0;
   font-family: var(--mono);
-  font-size: 8.5px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--teal);
+  font-size: 9.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.03em;
+  font-style: normal;
+  line-height: 1.5;
 }
-.guide-output pre {
-  font-family: var(--mono);
-  font-size: 9px;
-  color: var(--ink-70);
-  background: var(--paper-alt);
-  padding: 9px 13px;
-  white-space: pre-wrap;
-  word-break: break-all;
-  line-height: 1.85;
-  margin: 0;
-  border: none;
-  border-radius: 0;
-}
-.guide-output pre .out-val { color: var(--teal); }
-.guide-output pre .out-dim { color: var(--ink-45); }
 
 /* ── Step 3 code block with edit/copy buttons ─────────── */
 .code-block .co-edit-btn,
@@ -2495,18 +2462,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
             </div><!-- /.guide-steps -->
 
-            <!-- Expected output -->
-            <div class="guide-output">
-              <div class="guide-output-header">
-                <div class="guide-output-dot"></div>
-                <div class="guide-output-label">Expected output — solver running</div>
-              </div>
-              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-<span class="out-dim">...</span></pre>
-            </div>
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-windows -->
 
@@ -2712,18 +2668,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
             </div><!-- /.guide-steps -->
 
-            <!-- Expected output -->
-            <div class="guide-output">
-              <div class="guide-output-header">
-                <div class="guide-output-dot"></div>
-                <div class="guide-output-label">Expected output — solver running</div>
-              </div>
-              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-<span class="out-dim">...</span></pre>
-            </div>
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-linux -->
 
@@ -2813,18 +2758,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
             </div><!-- /.guide-steps -->
 
-            <!-- Expected output -->
-            <div class="guide-output">
-              <div class="guide-output-header">
-                <div class="guide-output-dot"></div>
-                <div class="guide-output-label">Expected output — solver running</div>
-              </div>
-              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
-N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
-<span class="out-dim">...</span></pre>
-            </div>
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-mac -->
 
