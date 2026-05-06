@@ -959,6 +959,15 @@ details.tut summary::-webkit-details-marker { display: none; }
 
 
 /* Quick-start hint button inside overlay-tl */
+@keyframes qsHintPulse {
+  0%, 100% { border-color: rgba(20,115,106,0.28); box-shadow: none; }
+  50%       { border-color: rgba(20,115,106,0.58); box-shadow: 0 0 0 3px rgba(20,115,106,0.08); }
+}
+@keyframes qsHintArrow {
+  0%, 65%, 100% { transform: translateX(0);   opacity: 0.7; }
+  80%            { transform: translateX(4px); opacity: 1;   }
+}
+
 .co-quickstart-hint {
   display: flex;
   align-items: center;
@@ -975,13 +984,15 @@ details.tut summary::-webkit-details-marker { display: none; }
   padding: 8px 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
   line-height: 1.3;
+  animation: qsHintPulse 3.6s ease-in-out infinite;
 }
 .co-quickstart-hint:hover {
   background: var(--teal);
   color: var(--white);
   border-color: var(--teal);
+  animation: none;
 }
 .co-quickstart-hint-arrow {
   font-family: var(--mono);
@@ -991,10 +1002,12 @@ details.tut summary::-webkit-details-marker { display: none; }
   opacity: 0.7;
   flex-shrink: 0;
   transition: transform 0.15s, opacity 0.15s;
+  animation: qsHintArrow 3.6s ease-in-out infinite;
 }
 .co-quickstart-hint:hover .co-quickstart-hint-arrow {
   transform: translateX(3px);
   opacity: 1;
+  animation: none;
 }
 
 details.tut.tut-cta {
