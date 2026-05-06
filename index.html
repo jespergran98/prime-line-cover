@@ -3874,17 +3874,227 @@ function solve(cov, avail, currentGain) {
 }
 
 /* ── Main entry ─────────────────────────────────────────────────────────── */
+/* -- Incremental witness-cover shortcut ------------------------------------
+   Mirrors the C++ sweep's W mode: after an exact solve, keep a full cover as
+   a witness for future N. If the next prime already lies on one of those
+   lines, f(N) cannot increase, so the worker can return the realised witness
+   immediately without rebuilding heavy-line candidates or entering DFS.
+
+   The C++ build_witness_cover() also chooses residual pair-lines with a
+   greedy look-ahead over future primes. This port does the same up to 1024,
+   which is the visualizer's maximum N. */
+var WITNESS_MAX_N = 1024;
+var WORKER_WITNESS = null;
+var WORKER_LAST_N = 0;
+var WORKER_FUTURE_PRIMES = null;
+
+function isPrimeForWitness(n) {
+  if (n < 2) return false;
+  if (n === 2) return true;
+  if ((n & 1) === 0) return false;
+  for (var d = 3; d * d <= n; d += 2) if (n % d === 0) return false;
+  return true;
+}
+
+function getWitnessPrimes(limit) {
+  if (WORKER_FUTURE_PRIMES && WORKER_FUTURE_PRIMES.length >= limit) return WORKER_FUTURE_PRIMES;
+  var out = [];
+  var candidate = 2;
+  while (out.length < limit) {
+    if (isPrimeForWitness(candidate)) out.push(candidate);
+    candidate++;
+  }
+  WORKER_FUTURE_PRIMES = out;
+  return out;
+}
+
+function canonicalWitnessLine(i, j, primes) {
+  var a = primes[i] - primes[j];
+  var b = j - i;
+  var c = -(a * i + b * primes[i]);
+  var g = gcd(gcd(Math.abs(a), Math.abs(b)), Math.abs(c));
+  if (g) { a /= g; b /= g; c /= g; }
+  if (a < 0 || (a === 0 && b < 0)) { a = -a; b = -b; c = -c; }
+  return {
+    a: a, b: b, c: c,
+    p1: { x: i, y: primes[i] },
+    p2: { x: j, y: primes[j] }
+  };
+}
+
+function witnessLineContains(line, x, y) {
+  if (line.singleIndex !== undefined) return x === line.singleIndex;
+  return line.a * x + line.b * y + line.c === 0;
+}
+
+function buildWitnessCover(N, primes, selectedHeavyLines) {
+  var futureEnd = Math.max(N, WITNESS_MAX_N);
+  var futurePrimes = getWitnessPrimes(futureEnd).slice(0, futureEnd);
+  for (var p = 0; p < N; p++) futurePrimes[p] = primes[p];
+
+  var witness = { baseN: N, lines: [] };
+  var covered = new Uint8Array(N);
+
+  for (var h = 0; h < selectedHeavyLines.length; h++) {
+    var heavy = selectedHeavyLines[h];
+    if (!heavy.indices || heavy.indices.length < 2) continue;
+    witness.lines.push(canonicalWitnessLine(heavy.indices[0], heavy.indices[1], futurePrimes));
+    for (var k = 0; k < heavy.indices.length; k++) {
+      var hp = heavy.indices[k];
+      if (hp < N) covered[hp] = 1;
+    }
+  }
+
+  var residual = [];
+  for (var r = 0; r < N; r++) if (!covered[r]) residual.push(r);
+
+  function pushResidualPairs(available) {
+    var pending = -1;
+    for (var i = 0; i < residual.length; i++) {
+      if (available && !available[i]) continue;
+      var p = residual[i];
+      if (pending < 0) { pending = p; continue; }
+      witness.lines.push(canonicalWitnessLine(pending, p, futurePrimes));
+      pending = -1;
+    }
+    if (pending >= 0) witness.lines.push({ singleIndex: pending });
+  }
+
+  if (futureEnd > N && residual.length >= 2) {
+    var available = new Uint8Array(residual.length);
+    for (var ai = 0; ai < available.length; ai++) available[ai] = 1;
+    var futureCovered = new Uint8Array(futureEnd);
+
+    function updateFutureCovered(line) {
+      for (var t = N; t < futureEnd; t++) {
+        if (!futureCovered[t] && witnessLineContains(line, t, futurePrimes[t])) futureCovered[t] = 1;
+      }
+    }
+
+    for (var wi = 0; wi < witness.lines.length; wi++) updateFutureCovered(witness.lines[wi]);
+
+    while (true) {
+      var nextMiss = -1;
+      for (var t = N; t < futureEnd; t++) {
+        if (!futureCovered[t]) { nextMiss = t; break; }
+      }
+      if (nextMiss < 0) break;
+
+      var bestI = -1, bestJ = -1, bestReach = -1, bestHits = -1, bestLine = null;
+      for (var i = 0; i < residual.length; i++) {
+        if (!available[i]) continue;
+        for (var j = i + 1; j < residual.length; j++) {
+          if (!available[j]) continue;
+          var candidate = canonicalWitnessLine(residual[i], residual[j], futurePrimes);
+          if (!witnessLineContains(candidate, nextMiss, futurePrimes[nextMiss])) continue;
+
+          var reach = 0;
+          for (var rt = nextMiss; rt < futureEnd; rt++) {
+            if (futureCovered[rt] || witnessLineContains(candidate, rt, futurePrimes[rt])) reach++;
+            else break;
+          }
+
+          var hits = 0;
+          for (var ht = nextMiss; ht < futureEnd; ht++) {
+            if (!futureCovered[ht] && witnessLineContains(candidate, ht, futurePrimes[ht])) hits++;
+          }
+
+          var better = (reach > bestReach) ||
+                       (reach === bestReach && hits > bestHits) ||
+                       (reach === bestReach && hits === bestHits &&
+                        (bestI < 0 || residual[i] < residual[bestI] ||
+                         (residual[i] === residual[bestI] && residual[j] < residual[bestJ])));
+          if (better) {
+            bestI = i; bestJ = j; bestReach = reach; bestHits = hits; bestLine = candidate;
+          }
+        }
+      }
+
+      if (bestI < 0) break;
+      available[bestI] = 0;
+      available[bestJ] = 0;
+      witness.lines.push(bestLine);
+      updateFutureCovered(bestLine);
+    }
+
+    pushResidualPairs(available);
+    return witness;
+  }
+
+  pushResidualPairs(null);
+  return witness;
+}
+
+function realiseWitnessCover(witness, N, primes) {
+  var lines = [];
+  var heavyIndex = 0;
+  for (var i = 0; i < witness.lines.length; i++) {
+    var wl = witness.lines[i];
+    var idxs = [];
+    if (wl.singleIndex !== undefined) {
+      if (wl.singleIndex < N) idxs.push(wl.singleIndex);
+    } else {
+      for (var p = 0; p < N; p++) {
+        if (witnessLineContains(wl, p, primes[p])) idxs.push(p);
+      }
+    }
+    if (idxs.length === 0) continue;
+
+    if (idxs.length === 1) {
+      var sp = idxs[0];
+      lines.push({
+        indices: [sp],
+        p1: { x: sp - 0.5, y: primes[sp] },
+        p2: { x: sp + 0.5, y: primes[sp] },
+        isHeavy: false,
+        singlePoint: true
+      });
+      continue;
+    }
+
+    var isHeavy = idxs.length >= 3;
+    lines.push({
+      indices: idxs,
+      p1: wl.p1,
+      p2: wl.p2,
+      isHeavy: isHeavy,
+      heavyIndex: isHeavy ? heavyIndex++ : undefined
+    });
+  }
+  return { lines: lines, mode: 'W' };
+}
+
+function tryWitnessCover(primes) {
+  var N = primes.length;
+  if (!WORKER_WITNESS || N !== WORKER_LAST_N + 1) return null;
+  var x = N - 1, y = primes[x];
+  for (var i = 0; i < WORKER_WITNESS.lines.length; i++) {
+    if (witnessLineContains(WORKER_WITNESS.lines[i], x, y)) {
+      WORKER_LAST_N = N;
+      return realiseWitnessCover(WORKER_WITNESS, N, primes);
+    }
+  }
+  return null;
+}
+
 function computeCover(primes) {
   var N = primes.length;
   BB_N = N;
-  if (N === 0) return { lines: [], pointHues: [] };
+  if (N === 0) {
+    WORKER_WITNESS = null;
+    WORKER_LAST_N = 0;
+    return { lines: [], pointHues: [] };
+  }
 
   if (N === 1) {
     var p0 = primes[0];
-    return {
+    var singleResult = {
       lines: [{ indices: [0], p1: { x: 0, y: p0 }, p2: { x: 1, y: p0 }, singlePoint: true }],
       pointHues: []
     };
+    WORKER_WITNESS = buildWitnessCover(N, primes, []);
+    WORKER_LAST_N = N;
+    return singleResult;
   }
 
   /* Number of 32-bit words actually needed for N bits.
@@ -3938,6 +4148,8 @@ function computeCover(primes) {
     bestSol = BB_bestSol;
   }
 
+  WORKER_WITNESS = buildWitnessCover(N, primes, bestSol);
+  WORKER_LAST_N = N;
   return finalise(N, primes, bestSol);
 }
 
@@ -3982,7 +4194,9 @@ function finalise(N, primes, sol) {
 }
 
 self.onmessage = function(e) {
-  var result = computeCover(e.data.primes);
+  var primes = e.data.primes || [];
+  var witnessResult = tryWitnessCover(primes);
+  var result = witnessResult || computeCover(primes);
   self.postMessage(result);
 };
 `;
