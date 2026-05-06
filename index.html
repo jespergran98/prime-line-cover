@@ -1093,106 +1093,94 @@ details.tut.tut-cta summary::after { display: none; }
 .co-edit-btn:hover { color: var(--ink); background: var(--ink-08); }
 .co-edit-btn.active { color: var(--teal); background: var(--teal-light); }
 
-/* ── Inline path editor ───────────────────────────────── */
+/* ── Inline path editor (paste-to-set) ───────────────── */
 .path-editor {
   display: none;
   margin-top: 6px;
-  padding: 8px 10px 8px 10px;
+  padding: 9px 10px 9px 10px;
   background: var(--paper-alt);
   border: 1px solid var(--ink-18);
   border-radius: var(--r2);
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px 2px;
-  row-gap: 5px;
+  flex-direction: column;
+  gap: 7px;
 }
 .path-editor.open { display: flex; }
 
-.path-segs {
+/* The single paste input row */
+.path-paste-row {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
-  flex: 1;
-  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
 }
 
-.path-seg-wrap {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-}
-
-.path-sep {
+.path-paste-label {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 8.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--ink-45);
-  padding: 0 1px;
+  margin-bottom: 1px;
   user-select: none;
 }
 
-.path-seg-input {
+.path-paste-input {
+  width: 100%;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: 10.5px;
   color: var(--ink);
   background: var(--white);
-  border: 1px solid var(--ink-18);
-  border-radius: var(--r);
-  padding: 3px 5px;
-  min-width: 28px;
+  border: 1.5px solid var(--teal);
+  border-radius: var(--r2);
+  padding: 6px 10px;
   outline: none;
+  box-shadow: 0 0 0 2px rgba(20,115,106,0.10);
   transition: border-color 0.15s, box-shadow 0.15s;
-  line-height: 1.4;
+  line-height: 1.5;
+  caret-color: var(--teal);
 }
-.path-seg-input:focus {
+.path-paste-input::placeholder {
+  color: var(--ink-45);
+  font-style: italic;
+}
+.path-paste-input:focus {
   border-color: var(--teal);
-  box-shadow: 0 0 0 2px rgba(20,115,106,0.12);
+  box-shadow: 0 0 0 3px rgba(20,115,106,0.14);
+}
+.path-paste-input.pe-error {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 2px rgba(163,50,40,0.10);
 }
 
-.path-seg-rm {
+/* Status/hint line shown beneath the input */
+.path-paste-status {
+  font-family: var(--mono);
+  font-size: 9px;
+  min-height: 13px;
+  padding: 0 2px;
+  line-height: 1.4;
+  color: var(--ink-45);
+  transition: color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.path-paste-status.pe-ok    { color: var(--teal); }
+.path-paste-status.pe-err   { color: var(--coral); }
+.path-paste-status.pe-hint  { color: var(--ink-45); }
+
+/* Bottom row: file toggle + done button */
+.path-editor-footer {
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 13px;
-  height: 13px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--ink-45);
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-  border-radius: 50%;
-  transition: color 0.12s, background 0.12s;
-  flex-shrink: 0;
+  gap: 6px;
+  width: 100%;
 }
-.path-seg-rm:hover { color: var(--coral); background: rgba(163,50,40,0.09); }
 
 .path-editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: 4px;
+  margin-left: auto;
   flex-shrink: 0;
-}
-
-.path-add-btn {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--teal);
-  background: none;
-  border: 1px dashed rgba(20,115,106,0.38);
-  border-radius: var(--r);
-  padding: 2px 7px;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.path-add-btn:hover {
-  background: var(--teal-light);
-  border-style: solid;
-  border-color: rgba(20,115,106,0.5);
 }
 
 .path-done-btn {
@@ -1203,7 +1191,7 @@ details.tut.tut-cta summary::after { display: none; }
   background: var(--teal);
   border: 1px solid var(--teal);
   border-radius: var(--r);
-  padding: 3px 9px;
+  padding: 3px 11px;
   cursor: pointer;
   letter-spacing: 0.04em;
   transition: background 0.15s, border-color 0.15s;
@@ -2459,7 +2447,7 @@ sudo apt install g++-14 -y</pre>
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Then edit the path below and paste the full command into Ubuntu:</p>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Click the edit button (✎) below and <strong style="font-style:normal;">paste the full path</strong> to the file. The command updates instantly:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">Ubuntu (WSL)</span>
                     <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -2479,14 +2467,21 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 ./primecover</pre>
                   </div>
                   <div class="path-editor" id="step3-path-editor">
-                    <div class="path-file-toggle">
-                      <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
-                      <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                    <div class="path-paste-row">
+                      <div class="path-paste-label">Paste your file path</div>
+                      <input class="path-paste-input" id="step3-paste-input" type="text"
+                             placeholder="C:\Users\you\Downloads\primecover1024.cpp"
+                             spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                      <div class="path-paste-status pe-hint" id="step3-paste-status">Works with Windows paths (C:\…) and WSL paths (/mnt/c/…)</div>
                     </div>
-                    <div class="path-segs" id="path-segs"></div>
-                    <div class="path-editor-actions">
-                      <button class="path-add-btn" id="step3-add-seg">+ folder</button>
-                      <button class="path-done-btn" id="step3-done">Done</button>
+                    <div class="path-editor-footer">
+                      <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                        <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                      </div>
+                      <div class="path-editor-actions">
+                        <button class="path-done-btn" id="step3-done">Done</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2582,7 +2577,7 @@ sudo apt install g++-14 -y</pre>
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Edit the path below and paste the whole command into your terminal:</p>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
 
                   <!-- Ubuntu/Debian compile -->
                   <div class="distro-panel active" id="distro-panel-ubuntu-step3">
@@ -2605,14 +2600,21 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 ./primecover</pre>
                     </div>
                     <div class="path-editor" id="step3-linux-path-editor">
-                      <div class="path-file-toggle">
-                        <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
-                        <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                      <div class="path-paste-row">
+                        <div class="path-paste-label">Paste your file path</div>
+                        <input class="path-paste-input" id="step3-linux-paste-input" type="text"
+                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                        <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path starting with /</div>
                       </div>
-                      <div class="path-segs" id="path-segs-linux"></div>
-                      <div class="path-editor-actions">
-                        <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
-                        <button class="path-done-btn" id="step3-linux-done">Done</button>
+                      <div class="path-editor-footer">
+                        <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                          <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                        </div>
+                        <div class="path-editor-actions">
+                          <button class="path-done-btn" id="step3-linux-done">Done</button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -2713,7 +2715,7 @@ N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it in your home folder — Downloads works perfectly. Edit the path below and paste the command into Terminal:</p>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it in your home folder — Downloads works perfectly. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">Terminal</span>
                     <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -2733,14 +2735,21 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 ./primecover</pre>
                   </div>
                   <div class="path-editor" id="step3-mac-path-editor">
-                    <div class="path-file-toggle">
-                      <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
-                      <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                    <div class="path-paste-row">
+                      <div class="path-paste-label">Paste your file path</div>
+                      <input class="path-paste-input" id="step3-mac-paste-input" type="text"
+                             placeholder="/Users/you/Downloads/primecover1024.cpp"
+                             spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                      <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path starting with /</div>
                     </div>
-                    <div class="path-segs" id="path-segs-mac"></div>
-                    <div class="path-editor-actions">
-                      <button class="path-add-btn" id="step3-mac-add-seg">+ folder</button>
-                      <button class="path-done-btn" id="step3-mac-done">Done</button>
+                    <div class="path-editor-footer">
+                      <div class="path-file-toggle" style="flex:1;margin-bottom:0;">
+                        <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                      </div>
+                      <div class="path-editor-actions">
+                        <button class="path-done-btn" id="step3-mac-done">Done</button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -4419,94 +4428,98 @@ function tutCopy(btn, text) {
 </script>
 
 <script>
-/* ── Step 3 path editor ────────────────────────────────────────────────── */
+/* ── Windows/WSL step-3 path editor — paste-to-set ─────────────────────────
+   Accepts:
+     • Windows native:  C:\Users\you\Downloads\primecover1024.cpp  (or folder)
+     • WSL path:        /mnt/c/Users/you/Downloads/
+   The file name portion is stripped out and replaced by `fileName` so the
+   file-variant toggle keeps working independently.
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  /* Default path segments: first is always the Windows drive letter ("C:"),
-     the rest are folder names the user can edit freely.                    */
-  var segs     = ['C:', 'path', 'to'];
+  var dirPath  = '/mnt/c/path/to/';   /* the resolved directory, always ends in / */
   var fileName = 'primecover1024.cpp';
 
-  /* Build the WSL path from current segments */
-  function wslPath() {
-    var drive = (segs[0] || 'C').replace(':', '').toLowerCase() || 'c';
-    var rest  = segs.slice(1).filter(function (s) { return s.trim() !== ''; });
-    return '/mnt/' + drive + '/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  /* ── Path parser ───────────────────────────────────────── */
+  function parseWindowsInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    var dir = null;
+
+    /* Case 1 — Windows native path: C:\...  or  C:/...  */
+    if (/^[A-Za-z]:[\\\/]/.test(raw)) {
+      var drive   = raw[0].toLowerCase();
+      /* Replace the drive letter + colon, then normalise separators */
+      var rest    = raw.slice(2).replace(/\\/g, '/');          /* e.g. /Users/you/Downloads/file.cpp */
+      if (rest.charAt(0) === '/') rest = rest.slice(1);       /* strip leading slash already included */
+      var parts   = rest.split('/').filter(function(p){ return p.length > 0; });
+      /* Strip trailing filename (ends in .cpp / .h / any extension with dot) */
+      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+      dir = '/mnt/' + drive + '/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, kind: 'Windows → WSL' };
+    }
+
+    /* Case 2 — WSL path: /mnt/<letter>/...  */
+    if (/^\/mnt\/[a-z]\//i.test(raw)) {
+      var parts = raw.split('/').filter(function(p){ return p.length > 0; });
+      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+      dir = '/' + parts.join('/') + '/';
+      return { dir: dir, kind: 'WSL path' };
+    }
+
+    return null; /* unrecognised */
   }
 
-  /* Build the full shell command */
+  /* ── Command builder ───────────────────────────────────── */
   function buildCmd() {
-    return 'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
   }
 
-  /* Update the <pre> display to reflect current path */
   function syncPre() {
     var pre = document.getElementById('step3-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  /* Re-render the segment chips inside #path-segs */
-  function renderSegs() {
-    var container = document.getElementById('path-segs');
-    if (!container) return;
-    container.innerHTML = '';
+  /* ── Wire up paste input ────────────────────────────────── */
+  var inp    = document.getElementById('step3-paste-input');
+  var status = document.getElementById('step3-paste-status');
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+  function handleInput() {
+    var raw    = inp.value;
+    var result = parseWindowsInput(raw);
 
-      /* Slash separator between segments */
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
+    if (!raw.trim()) {
+      /* Empty — reset to default, show hint */
+      dirPath = '/mnt/c/path/to/';
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-hint';
+      status.textContent = 'Works with Windows paths (C:\\…) and WSL paths (/mnt/c/…)';
+      syncPre();
+      return;
+    }
 
-      /* Editable input */
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
-
-      /* Live-resize and sync */
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-
-      wrap.appendChild(inp);
-
-      /* Remove button — only on non-drive segments */
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
-    });
+    if (result) {
+      dirPath = result.dir;
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      syncPre();
+    } else {
+      inp.classList.add('pe-error');
+      status.className = 'path-paste-status pe-err';
+      status.textContent = 'Use a Windows path (C:\\…) or WSL path (/mnt/c/…)';
+    }
   }
 
-  /* Toggle the editor open / closed */
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+  }
+
+  /* ── Toggle editor open/closed ─────────────────────────── */
   var editBtn = document.getElementById('step3-edit-btn');
   var editor  = document.getElementById('step3-path-editor');
 
@@ -4516,47 +4529,33 @@ function tutCopy(btn, text) {
       editor.classList.remove('open');
       editBtn.classList.remove('active');
     } else {
-      renderSegs();
       editor.classList.add('open');
       editBtn.classList.add('active');
+      if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
     }
   });
 
-  /* Add a new folder segment */
-  document.getElementById('step3-add-seg').addEventListener('click', function () {
-    segs.push('folder');
-    renderSegs();
-    syncPre();
-    /* Auto-focus + select the new input */
-    var inputs = document.querySelectorAll('#path-segs .path-seg-input');
-    if (inputs.length) {
-      var last = inputs[inputs.length - 1];
-      last.focus();
-      last.select();
-    }
-  });
-
-  /* Done button closes the editor */
+  /* ── Done button ────────────────────────────────────────── */
   document.getElementById('step3-done').addEventListener('click', function () {
     editor.classList.remove('open');
     editBtn.classList.remove('active');
   });
 
-  /* File-variant toggle */
+  /* ── File-variant toggle ────────────────────────────────── */
   document.getElementById('step3-file-primary').addEventListener('click', function () {
     fileName = 'primecover1024.cpp';
     document.getElementById('step3-file-primary').classList.add('active');
     document.getElementById('step3-file-variant').classList.remove('active');
-    syncPre();
+    if (inp && inp.value.trim()) handleInput(); else syncPre();
   });
   document.getElementById('step3-file-variant').addEventListener('click', function () {
     fileName = 'primecover1024_line_coordinates.cpp';
     document.getElementById('step3-file-variant').classList.add('active');
     document.getElementById('step3-file-primary').classList.remove('active');
-    syncPre();
+    if (inp && inp.value.trim()) handleInput(); else syncPre();
   });
 
-  /* Copy button wired to the live command */
+  /* ── Copy button ────────────────────────────────────────── */
   document.getElementById('step3-copy-btn').addEventListener('click', function () {
     var btn = this;
     navigator.clipboard.writeText(buildCmd()).then(function () {
@@ -4596,93 +4595,85 @@ function switchDistro(distro) {
 </script>
 
 <script>
-/* ── Linux step-3 path editor ───────────────────────────────────────────── */
+/* ── Linux step-3 path editor — paste-to-set ───────────────────────────────
+   Accepts absolute Unix paths: /home/you/Downloads/  or  ~/Downloads/
+   The ~ shorthand is resolved to /home/<first-segment>/ when possible,
+   but passed through literally if no username is determinable.
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  /* Default path segments: username + folder names the user can edit. */
-  var segs     = ['username', 'path', 'to'];
+  var dirPath  = '/home/username/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  /* Build the Linux /home path from current segments */
-  function linuxPath() {
-    var rest = segs.filter(function (s) { return s.trim() !== ''; });
-    return '/home/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  function parseLinuxInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Tilde shorthand: ~/foo/bar  → pass through as ~/foo/bar/
+       The cp command supports ~ natively so this is fine.         */
+    if (/^~[\/\\]?/.test(raw)) {
+      var rest  = raw.slice(1).replace(/\\/g, '/');
+      if (!rest || rest === '/') rest = '/';
+      var parts = rest.split('/').filter(function(p){ return p.length > 0; });
+      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, kind: 'Home-relative path' };
+    }
+
+    /* Absolute path must start with / */
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function(p){ return p.length > 0; });
+    if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, kind: 'Linux path' };
   }
 
-  /* Build the full shell command */
   function buildCmd() {
-    return 'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
   }
 
-  /* Update the <pre> display */
   function syncPre() {
     var pre = document.getElementById('step3-linux-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  /* Re-render segment chips */
-  function renderSegs() {
-    var container = document.getElementById('path-segs-linux');
-    if (!container) return;
-    container.innerHTML = '';
+  var inp    = document.getElementById('step3-linux-paste-input');
+  var status = document.getElementById('step3-linux-paste-status');
 
-    /* Static /home/ prefix label */
-    var prefix = document.createElement('span');
-    prefix.className = 'path-sep';
-    prefix.textContent = '/home/';
-    container.appendChild(prefix);
+  function handleInput() {
+    var raw    = inp.value;
+    var result = parseLinuxInput(raw);
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+    if (!raw.trim()) {
+      dirPath = '/home/username/path/to/';
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path starting with /';
+      syncPre();
+      return;
+    }
 
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
-
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-      wrap.appendChild(inp);
-
-      /* Remove button — only on non-username segments */
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
-    });
+    if (result) {
+      dirPath = result.dir;
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      syncPre();
+    } else {
+      inp.classList.add('pe-error');
+      status.className = 'path-paste-status pe-err';
+      status.textContent = 'Use an absolute path (/home/…) or ~/…';
+    }
   }
 
-  /* Toggle editor open/closed */
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+  }
+
   var editBtn = document.getElementById('step3-linux-edit-btn');
   var editor  = document.getElementById('step3-linux-path-editor');
   if (editBtn) {
@@ -4692,26 +4683,13 @@ function switchDistro(distro) {
         editor.classList.remove('open');
         editBtn.classList.remove('active');
       } else {
-        renderSegs();
         editor.classList.add('open');
         editBtn.classList.add('active');
+        if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
       }
     });
   }
 
-  /* Add folder segment */
-  var addBtn = document.getElementById('step3-linux-add-seg');
-  if (addBtn) {
-    addBtn.addEventListener('click', function () {
-      segs.push('folder');
-      renderSegs();
-      syncPre();
-      var inputs = document.querySelectorAll('#path-segs-linux .path-seg-input');
-      if (inputs.length) { var last = inputs[inputs.length - 1]; last.focus(); last.select(); }
-    });
-  }
-
-  /* Done button */
   var doneBtn = document.getElementById('step3-linux-done');
   if (doneBtn) {
     doneBtn.addEventListener('click', function () {
@@ -4720,7 +4698,6 @@ function switchDistro(distro) {
     });
   }
 
-  /* Copy button */
   var copyBtn = document.getElementById('step3-linux-copy-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
@@ -4732,7 +4709,6 @@ function switchDistro(distro) {
     });
   }
 
-  /* File-variant toggle */
   var filePrimary = document.getElementById('step3-linux-file-primary');
   var fileVariant = document.getElementById('step3-linux-file-variant');
   if (filePrimary) {
@@ -4740,7 +4716,7 @@ function switchDistro(distro) {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
       fileVariant.classList.remove('active');
-      syncPre();
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
   if (fileVariant) {
@@ -4748,24 +4724,46 @@ function switchDistro(distro) {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
       filePrimary.classList.remove('active');
-      syncPre();
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
 })();
 </script>
 <script>
-/* ── Mac step-3 path editor ─────────────────────────────────────────────── */
+/* ── Mac step-3 path editor — paste-to-set ──────────────────────────────────
+   Accepts:
+     • Absolute Unix paths:  /Users/you/Downloads/
+     • Tilde paths:          ~/Downloads/
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  var segs     = ['username', 'path', 'to'];
+  var dirPath  = '/Users/username/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  function macPath() {
-    var rest = segs.filter(function (s) { return s.trim() !== ''; });
-    return '/Users/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  function parseMacInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Tilde shorthand */
+    if (/^~[\/\\]?/.test(raw)) {
+      var rest  = raw.slice(1).replace(/\\/g, '/');
+      if (!rest || rest === '/') rest = '/';
+      var parts = rest.split('/').filter(function(p){ return p.length > 0; });
+      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, kind: 'Home-relative path' };
+    }
+
+    /* Absolute path */
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function(p){ return p.length > 0; });
+    if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, kind: 'Mac path' };
   }
 
   function buildCmd() {
-    return 'cp ' + macPath() + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
@@ -4773,64 +4771,41 @@ function switchDistro(distro) {
 
   function syncPre() {
     var pre = document.getElementById('step3-mac-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + macPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  function renderSegs() {
-    var container = document.getElementById('path-segs-mac');
-    if (!container) return;
-    container.innerHTML = '';
+  var inp    = document.getElementById('step3-mac-paste-input');
+  var status = document.getElementById('step3-mac-paste-status');
 
-    var prefix = document.createElement('span');
-    prefix.className = 'path-sep';
-    prefix.textContent = '/Users/';
-    container.appendChild(prefix);
+  function handleInput() {
+    var raw    = inp.value;
+    var result = parseMacInput(raw);
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+    if (!raw.trim()) {
+      dirPath = '/Users/username/path/to/';
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path starting with /';
+      syncPre();
+      return;
+    }
 
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
+    if (result) {
+      dirPath = result.dir;
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      syncPre();
+    } else {
+      inp.classList.add('pe-error');
+      status.className = 'path-paste-status pe-err';
+      status.textContent = 'Use an absolute path (/Users/…) or ~/…';
+    }
+  }
 
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-      wrap.appendChild(inp);
-
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
-    });
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
   }
 
   var editBtn = document.getElementById('step3-mac-edit-btn');
@@ -4842,21 +4817,10 @@ function switchDistro(distro) {
         editor.classList.remove('open');
         editBtn.classList.remove('active');
       } else {
-        renderSegs();
         editor.classList.add('open');
         editBtn.classList.add('active');
+        if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
       }
-    });
-  }
-
-  var addBtn = document.getElementById('step3-mac-add-seg');
-  if (addBtn) {
-    addBtn.addEventListener('click', function () {
-      segs.push('folder');
-      renderSegs();
-      syncPre();
-      var inputs = document.querySelectorAll('#path-segs-mac .path-seg-input');
-      if (inputs.length) { var last = inputs[inputs.length - 1]; last.focus(); last.select(); }
     });
   }
 
@@ -4886,7 +4850,7 @@ function switchDistro(distro) {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
       fileVariant.classList.remove('active');
-      syncPre();
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
   if (fileVariant) {
@@ -4894,7 +4858,7 @@ function switchDistro(distro) {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
       filePrimary.classList.remove('active');
-      syncPre();
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
 })();
