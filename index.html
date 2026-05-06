@@ -2611,7 +2611,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <input class="path-paste-input" id="step3-linux-paste-input" type="text"
                                placeholder="/home/you/Downloads/primecover1024.cpp"
                                spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
-                        <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path starting with /</div>
+                        <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path (/home/…) or ~/…</div>
                       </div>
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
@@ -2746,7 +2746,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <input class="path-paste-input" id="step3-mac-paste-input" type="text"
                              placeholder="/Users/you/Downloads/primecover1024.cpp"
                              spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
-                      <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path starting with /</div>
+                      <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path (/Users/…) or ~/…</div>
                     </div>
                     <div class="path-editor-footer">
                       <div class="path-file-toggle">
@@ -4545,46 +4545,60 @@ function tutCopy(btn, text) {
   var editBtn = document.getElementById('step3-edit-btn');
   var editor  = document.getElementById('step3-path-editor');
 
-  editBtn.addEventListener('click', function () {
-    var isOpen = editor.classList.contains('open');
-    if (isOpen) {
-      editor.classList.remove('open');
-      editBtn.classList.remove('active');
-    } else {
-      editor.classList.add('open');
-      editBtn.classList.add('active');
-      if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
-    }
-  });
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      var isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        editBtn.classList.remove('active');
+      } else {
+        editor.classList.add('open');
+        editBtn.classList.add('active');
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
+      }
+    });
+  }
 
   /* ── Done ───────────────────────────────────────────────── */
-  document.getElementById('step3-done').addEventListener('click', function () {
-    editor.classList.remove('open');
-    editBtn.classList.remove('active');
-  });
+  var doneBtn = document.getElementById('step3-done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      editor.classList.remove('open');
+      if (editBtn) editBtn.classList.remove('active');
+    });
+  }
 
   /* ── File-variant toggle ────────────────────────────────── */
-  document.getElementById('step3-file-primary').addEventListener('click', function () {
-    fileName = 'primecover1024.cpp';
-    document.getElementById('step3-file-primary').classList.add('active');
-    document.getElementById('step3-file-variant').classList.remove('active');
-    if (inp && inp.value.trim()) handleInput(); else syncPre();
-  });
-  document.getElementById('step3-file-variant').addEventListener('click', function () {
-    fileName = 'primecover1024_line_coordinates.cpp';
-    document.getElementById('step3-file-variant').classList.add('active');
-    document.getElementById('step3-file-primary').classList.remove('active');
-    if (inp && inp.value.trim()) handleInput(); else syncPre();
-  });
+  var filePrimary = document.getElementById('step3-file-primary');
+  var fileVariant = document.getElementById('step3-file-variant');
+  if (filePrimary) {
+    filePrimary.addEventListener('click', function () {
+      fileName = 'primecover1024.cpp';
+      filePrimary.classList.add('active');
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+  if (fileVariant) {
+    fileVariant.addEventListener('click', function () {
+      fileName = 'primecover1024_line_coordinates.cpp';
+      fileVariant.classList.add('active');
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
 
   /* ── Copy ───────────────────────────────────────────────── */
-  document.getElementById('step3-copy-btn').addEventListener('click', function () {
-    var btn = this;
-    navigator.clipboard.writeText(buildCmd()).then(function () {
-      btn.classList.add('co-copy-ok');
-      setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+  var copyBtn = document.getElementById('step3-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var btn = this;
+      navigator.clipboard.writeText(buildCmd()).then(function () {
+        btn.classList.add('co-copy-ok');
+        setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+      });
     });
-  });
+  }
 })();
 </script>
 <script>
@@ -4628,8 +4642,21 @@ function switchDistro(distro) {
   var fileName = 'primecover1024.cpp';
 
   /* ── Shell-safe quoting ─────────────────────────────────── */
-  function shellQuote(s) {
-    return /[ \t\$&()*;<>?`{|}~!#]/.test(s) ? "'" + s + "'" : s;
+  /* Tilde paths (~/…) must NOT be wrapped in single quotes because the shell
+     expands ~ before quoting, and single-quoting suppresses that expansion.
+     Instead, we keep ~ unquoted and double-quote only the suffix when it
+     contains shell-special characters (spaces, $, &, etc.).
+     Absolute paths (/…) are safe to single-quote in full.               */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);                         /* strip leading ~/ */
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    /* Absolute path — single-quote protects all chars (no variable expansion) */
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
   }
 
   /* ── Path parser ────────────────────────────────────────── */
@@ -4657,7 +4684,7 @@ function switchDistro(distro) {
 
   /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
-    var src = shellQuote(dirPath + fileName);
+    var src = shellSafePath(dirPath + fileName);
     return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
@@ -4783,8 +4810,8 @@ function switchDistro(distro) {
     raw = (raw || '').trim();
     if (!raw) return null;
 
-    /* Tilde shorthand */
-    if (/^~[\/\\]?/.test(raw)) {
+    /* Tilde shorthand — require ~ alone OR ~/ (not ~username expansion) */
+    if (/^~($|[\/\\])/.test(raw)) {
       var rest  = raw.slice(1).replace(/\\/g, '/');
       if (!rest || rest === '/') rest = '/';
       var parts = rest.split('/').filter(function(p){ return p.length > 0; });
@@ -4802,8 +4829,24 @@ function switchDistro(distro) {
     return { dir: dir, kind: 'Mac path' };
   }
 
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  /* Same tilde-aware strategy as the Linux tool: never single-quote a ~/…
+     path (tilde expansion would be suppressed); double-quote only the suffix
+     when it contains shell-special chars. Absolute paths are single-quoted. */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);                         /* strip leading ~/ */
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
+  }
+
   function buildCmd() {
-    return 'cp ' + dirPath + fileName + ' ~/primecover.cpp && \\\n'
+    var src = shellSafePath(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
@@ -4825,7 +4868,7 @@ function switchDistro(distro) {
       dirPath = '/Users/username/path/to/';
       inp.classList.remove('pe-error');
       status.className = 'path-paste-status pe-hint';
-      status.textContent = 'Paste an absolute path starting with /';
+      status.textContent = 'Paste an absolute path (/Users/…) or ~/…';
       syncPre();
       return;
     }
@@ -4846,6 +4889,12 @@ function switchDistro(distro) {
   if (inp) {
     inp.addEventListener('input', handleInput);
     inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
+    });
   }
 
   var editBtn = document.getElementById('step3-mac-edit-btn');
@@ -4889,7 +4938,7 @@ function switchDistro(distro) {
     filePrimary.addEventListener('click', function () {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
-      fileVariant.classList.remove('active');
+      if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
@@ -4897,7 +4946,7 @@ function switchDistro(distro) {
     fileVariant.addEventListener('click', function () {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
-      filePrimary.classList.remove('active');
+      if (filePrimary) filePrimary.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
