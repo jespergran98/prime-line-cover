@@ -128,7 +128,7 @@ The accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points
 
 ## Quick Start
 
-The solver uses C++23 features that only GCC 14 and newer support. Choose your operating system below.
+The solver uses C++23 features that only GCC 14 and newer support. Choose your operating system below. The [live demo](https://prime-line-cover.vercel.app) also contains this guide with one-click copy buttons and editable file paths — it may be easier to follow than the steps here.
 
 ### Windows (via WSL)
 
@@ -161,7 +161,7 @@ sudo apt install g++-14 -y
 Download `primecover1024.cpp` and save it to a location you'll remember — your Downloads folder or Desktop works well. Then replace the path in the command below with where you saved it, and paste the whole thing into your Ubuntu terminal:
 
 ```bash
-cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp && \
+cp /mnt/c/Users/YourName/Downloads/primecover1024.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover && \
 ./primecover
@@ -194,7 +194,7 @@ sudo apt install g++-14 -y
 Download `primecover1024.cpp` and save it somewhere in your home directory — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into your terminal:
 
 ```bash
-cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp && \
+cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover && \
 ./primecover
@@ -223,7 +223,7 @@ sudo pacman -S gcc14
 Download `primecover1024.cpp` and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:
 
 ```bash
-cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp && \
+cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover && \
 ./primecover
@@ -264,7 +264,7 @@ Homebrew installs `g++-14` into its bin directory and adds it to your PATH autom
 Download `primecover1024.cpp` and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:
 
 ```bash
-cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp && \
+cp /Users/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover && \
 ./primecover
