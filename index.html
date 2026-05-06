@@ -3159,7 +3159,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
         plRem2[li] = active_count - 2.
         plAps      = flat list of compact ap-indices for all productive lines.
         plOff      = start/end offsets into plAps per line. */
-  var plRem2 = [], plAps = [], plOff = [0];
+  var plRem2 = [], plAps = [], plOff = [0], plCandIdx = [];
   for (var i = 0; i < cands.length; i++) {
     if (!avail[i]) continue;
     var c = cands[i], st = plAps.length, cnt = 0;
@@ -3167,7 +3167,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
       var ap = ptToAp[c.indices[k]];
       if (ap >= 0) { plAps.push(ap); cnt++; }
     }
-    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); }
+    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); plCandIdx.push(i); }
     else          { plAps.length = st; }  /* roll back: not productive */
   }
   var PL = plRem2.length;
@@ -3227,6 +3227,46 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
     if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
     for (var ai = 0; ai < AP; ai++) BB_bestDual[apToPoint[ai]] = bestY[ai];
     BB_dualReady = true;
+
+    /* ── Persist branch-cap data for computeChildUBs() ─────────────────────
+       BB_lagBestY[p]      ← y*[p] by global point index
+       BB_lagCandSlack[i]  ← slack for cands[i]; NaN for non-productive lines
+       BB_ptToProdCands[p] ← productive cand indices covering point p
+       Mirrors C++ ctx.lagrangian.best_y + work_line_slack_compact.          */
+    var numCands = cands.length;
+    if (BB_lagBestY === null || BB_lagBestY.length < N)
+      BB_lagBestY = new Float64Array(N);
+    if (BB_lagCandSlack === null || BB_lagCandSlack.length < numCands) {
+      BB_lagCandSlack = new Float64Array(numCands);
+    }
+    /* Mark all candidates as non-productive; productive ones are overwritten below. */
+    for (var i = 0; i < numCands; i++) BB_lagCandSlack[i] = NaN;
+
+    for (var ai = 0; ai < AP; ai++) BB_lagBestY[apToPoint[ai]] = bestY[ai];
+
+    /* Compute slack wlc[li] = plRem2[li] − Σ bestY[p] for each productive line
+       and write into BB_lagCandSlack[original cands index].                   */
+    for (var li = 0; li < PL; li++) {
+      var slack = plRem2[li];
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) slack -= bestY[plAps[pos]];
+      BB_lagCandSlack[plCandIdx[li]] = slack;
+    }
+
+    /* Build inverse index: BB_ptToProdCands[p] = [productive cand indices covering p].
+       Reuse existing arrays to avoid allocation churn across DFS nodes.       */
+    if (BB_ptToProdCands === null || BB_ptToProdCands.length < N) {
+      BB_ptToProdCands = [];
+      for (var p = 0; p < N; p++) BB_ptToProdCands.push([]);
+    } else {
+      for (var p = 0; p < N; p++) BB_ptToProdCands[p].length = 0;
+    }
+    for (var li = 0; li < PL; li++) {
+      var ci = plCandIdx[li];
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++)
+        BB_ptToProdCands[apToPoint[plAps[pos]]].push(ci);
+    }
+
+    BB_lagReady = true;
   }
 
   /* 4. Evaluate initial bound and fast-exit if already tight enough to prune. */
@@ -3367,12 +3407,112 @@ var BB_NODE_LIMIT = 5000000;
    Mirrors C++ LagrangianScratch::dual_ready / best_y[]. */
 var BB_bestDual  = null;
 var BB_dualReady = false;
+/* Branch-child upper-bound data — populated by lagrangianUpperBound() and
+   consumed by computeChildUBs() before each recursive solve() call.
+   Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
+     BB_lagBestY[p]      — best dual weight y*[p] (0..1) by global point index
+     BB_lagCandSlack[i]  — Lagrangian slack of BB_cands[i]; NaN if not productive
+     BB_ptToProdCands[p] — list of productive BB_cands indices covering point p
+     BB_lagReady         — true once the arrays above are freshly populated */
+var BB_lagBestY      = null;
+var BB_lagCandSlack  = null;
+var BB_ptToProdCands = null;
+var BB_lagReady      = false;
 /* Pre-allocated scratch arrays — avoids per-node Int32Array allocations.
    Safe to share across the recursive call stack because each caller finishes
    using these arrays before the recursive call that would overwrite them. */
 var BB_remMask     = new Int32Array(WORDS);
 var BB_overlapMask = new Int32Array(WORDS);
 var BB_sMask       = new Int32Array(WORDS);
+
+/* ── Branch-child upper bounds using cached Lagrangian dual ────────────────
+   Mirrors C++ ExactGainSolver::include_branch_upper_bound() and
+   exclude_branch_upper_bound() (primecover1024.cpp lines 2215–2286).
+
+   After the parent-node Lagrangian evaluation has run, the cached dual
+   (BB_lagBestY, BB_lagCandSlack, BB_ptToProdCands) lets us derive tighter
+   child-specific bounds in O(|branch line points| · avg productive lines per
+   point) without a full re-evaluation inside the child.
+
+   Algorithm
+   ---------
+   Exclude child — prune if bestIdx is removed:
+     excUB = nodeAbsUB − max(0, slack[branch])
+     For each uncovered point p on branch_line with residual = 1 − y*[p] > 0:
+       other productive lines L' covering p with slack[L'] ≤ residual
+       "require" p's contribution; all but the largest one will lose their
+       slack share → subtract (Σ_requiring_slack − best_requiring_slack).
+
+   Include child — prune if bestIdx is selected:
+     incBase = nodeAbsUB + min(0, slack[branch])
+     Including branch_line covers its active points, reducing the effective
+     gain of every other productive line sharing those points.
+     For each uncovered p on branch_line with residual > 0, accumulate
+       reduction[L'] += residual for every other productive L' covering p.
+     Then: incBase += Σ_L' [max(0, slack[L']−reduction[L']) − max(0, slack[L'])].
+
+   Both return absolute total-gain upper bounds (currentGain included),
+   directly comparable to gainNeed.
+   ──────────────────────────────────────────────────────────────────────────── */
+function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
+  var nodeAbsUB = currentGain + lagUB;
+  var fallback  = { excludeUB: nodeAbsUB, includeUB: nodeAbsUB };
+  if (!BB_lagReady) return fallback;
+  var branchSlack = BB_lagCandSlack[branchIdx];
+  if (isNaN(branchSlack)) return fallback;
+
+  var bc = BB_cands[branchIdx];
+
+  /* ── Exclude bound ───────────────────────────────────────────────────────── */
+  var excUB = nodeAbsUB - Math.max(0, branchSlack);
+  for (var k = 0; k < bc.indices.length; k++) {
+    var p = bc.indices[k];
+    if (workCov[p >> 5] & (1 << (p & 31))) continue;       /* already covered */
+    var residual = 1.0 - (BB_lagBestY[p] || 0);
+    if (residual <= 1e-18) continue;
+    var reqSum = 0, reqBest = 0;
+    var pLines = BB_ptToProdCands[p];
+    for (var m = 0; m < pLines.length; m++) {
+      var qi = pLines[m];
+      if (qi === branchIdx) continue;
+      var sl = BB_lagCandSlack[qi];
+      if (sl <= 1e-18 || sl > residual + 1e-18) continue;
+      reqSum += sl;
+      if (sl > reqBest) reqBest = sl;
+    }
+    excUB -= (reqSum - reqBest);
+  }
+  excUB = Math.max(currentGain, excUB);
+
+  /* ── Include bound ───────────────────────────────────────────────────────── */
+  var incBase = nodeAbsUB + Math.min(0, branchSlack);
+  var touched  = [];
+  var reductions = {};
+  for (var k = 0; k < bc.indices.length; k++) {
+    var p = bc.indices[k];
+    if (workCov[p >> 5] & (1 << (p & 31))) continue;
+    var residual = 1.0 - (BB_lagBestY[p] || 0);
+    if (residual <= 1e-18) continue;
+    var pLines = BB_ptToProdCands[p];
+    for (var m = 0; m < pLines.length; m++) {
+      var qi = pLines[m];
+      if (qi === branchIdx) continue;
+      if (!(qi in reductions)) { touched.push(qi); reductions[qi] = 0; }
+      reductions[qi] += residual;
+    }
+  }
+  var incAdj = 0;
+  for (var t = 0; t < touched.length; t++) {
+    var qi     = touched[t];
+    var oldSl  = BB_lagCandSlack[qi];
+    var newSl  = oldSl - reductions[qi];
+    incAdj    += Math.max(0, newSl) - Math.max(0, oldSl);
+    delete reductions[qi];
+  }
+  var incUB = Math.max(currentGain + (branchGain - 2), incBase + incAdj);
+
+  return { excludeUB: excUB, includeUB: incUB };
+}
 
 /* ── DFS-level forced line reduction + best-gain branching ────────────────
    Mirrors C++ ExactGainSolver::dfs() + apply_dfs_forced_line_reduction().
@@ -3506,6 +3646,13 @@ function solve(cov, avail, currentGain) {
     return;
   }
 
+  /* ── Step 5b: Child-specific branch upper bounds ─────────────────────────
+     Uses the dual cached by lagrangianUpperBound (BB_lagBestY, BB_lagCandSlack,
+     BB_ptToProdCands) to derive tighter per-child bounds in O(m) without a
+     full Lagrangian re-evaluation inside each child.
+     Mirrors C++ include_branch_upper_bound / exclude_branch_upper_bound.     */
+  var childUBs = computeChildUBs(lagUB, bestIdx, bestGain, workCov, currentGain);
+
   /* ── Step 6: Branch on bestIdx ───────────────────────────────────────────
      After forced reduction no remaining available productive line can be
      forced, so we always explore both the include and exclude branches.
@@ -3515,8 +3662,8 @@ function solve(cov, avail, currentGain) {
   var branchC    = BB_cands[bestIdx];
   var branchGain = bestGain;
 
-  /* Branch A — Include */
-  if (branchGain >= 3) {
+  /* Branch A — Include (also pruned by the tighter include-child bound) */
+  if (branchGain >= 3 && Math.floor(childUBs.includeUB + 1e-9) >= gainNeed) {
     var nxtCov   = new Int32Array(workCov);
     var nxtAvail = new Uint8Array(workAvail);
     for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
@@ -3526,8 +3673,8 @@ function solve(cov, avail, currentGain) {
     BB_chosen.pop();
   }
 
-  /* Branch B — Exclude */
-  {
+  /* Branch B — Exclude (also pruned by the tighter exclude-child bound) */
+  if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     var nxtAvail = new Uint8Array(workAvail);
     nxtAvail[bestIdx] = 0;
     solve(workCov, nxtAvail, currentGain);
@@ -3594,6 +3741,7 @@ function computeCover(primes) {
        than carrying over a stale dual from the previous N.
        Mirrors C++ initial_dual_seed_ready_ = false at the top of solve_for_n(). */
     BB_dualReady = false;
+    BB_lagReady  = false;
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
