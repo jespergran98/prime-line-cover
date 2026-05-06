@@ -252,12 +252,6 @@ The solver starts printing results immediately — one line per N.
 
 For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
 
-> **Note:** For **AMD Zen 5** CPUs you can substitute `-march=native` with `-march=znver5` for a small extra performance gain.
-
----
-
-Here's the reworked section:
-
 ---
 
 ## Understanding the Output
@@ -345,12 +339,90 @@ By default the solver runs from N = 1 up to N = 1024. To change that, edit `kSta
 
 ## Performance Tuning
 
-- The solver uses all CPU cores (`std::thread::hardware_concurrency()`).
-- The **frontier multiplier** (see extensive comments in the source) controls how many parallel tasks are generated. This is tuned automatically based on the current best cost and your available RAM. For high-memory machines (>=30 GB), you can increase the top multiplier to `131072U` for better parallelism.
-- To give WSL higher CPU priority on Windows, open **PowerShell as Administrator** while the solver is running and execute:
-  ```powershell
-  (Get-Process vmmem*).PriorityClass = 'High'
-  ```
+The solver uses all available CPU cores (`std::thread::hardware_concurrency()`) automatically. The options below are relevant for serious attempts (N > ~850).
+
+### Frontier multiplier
+
+The solver decomposes the search tree into independent tasks and distributes them across CPU cores. The number of tasks generated is:
+
+```
+frontier size  =  CPU threads  ×  frontier_multiplier
+```
+
+Larger multipliers increase parallelism but also memory usage. The multiplier is selected automatically via a cost ladder in `primecover1024.cpp`:
+
+```cpp
+const unsigned frontier_multiplier =
+//  current_best_cost() >= 143 ? 131072U  // rarely feasible
+//: current_best_cost() >= 138 ?  32768U  // days–weeks
+//: current_best_cost() >= 133 ?  16384U  // only if diagnostic confirms it is safe
+    current_best_cost() >= 128 ?   8192U  // safe on c4d-highcpu-8 (15 GB)
+  : current_best_cost() >= 125 ?   2048U  // safe on personal i9 9900k
+  : current_best_cost() >= 121 ?    512U  // safe on most machines
+  : current_best_cost() >= 113 ?    128U  // safe
+  : current_best_cost() >= 93  ?     16U  // sub-second
+                               :      4U; // trivial
+```
+
+The defaults are from the run to N = 1024. **For a world-record attempt (N > ~850) you should measure your machine's per-task RAM usage and unlock the highest multiplier that fits in your available memory.** Per-task cost varies significantly between machines — ~184 KB/task on the reference cloud instance, ~125 KB/task on some desktops — so do not guess.
+
+### Frontier diagnosis tool
+
+`tools/primecover_frontier_diagnosis.sh` automates the measurement. It compiles and runs the solver, displays a live progress dashboard, and — once N reaches 808 — fits a hyperbolic decay model (`per_task(F) = a + b/F`) to the observed RSS samples and produces a safety table like this:
+
+```
+Multiplier   Tasks        Est. RAM     Status
+──────────   ──────────   ──────────   ────────────────────
+  131072U →  1,048,576  →  193.2 GB   ✗  UNSAFE
+   32768U →    262,144  →   48.5 GB   ✗  UNSAFE
+   16384U →    131,072  →   24.4 GB   ✗  UNSAFE
+    8192U →     65,536  →   12.3 GB   ✓  SAFE
+    2048U →     16,384  →    3.2 GB   ✓  SAFE
+    ...
+```
+
+> The RAM estimates above are illustrative — your values will differ based on your hardware and thread count.
+
+To use it:
+
+1. Open `tools/primecover_frontier_diagnosis.sh` and set `SOURCE_PATH` on line 101 to the path of your `primecover1024.cpp` file.
+2. Run the script:
+   ```bash
+   bash tools/primecover_frontier_diagnosis.sh or copy paste the content of the file into your terminal.
+   ```
+3. When the safety table appears, find the highest multiplier marked **✓ SAFE**.
+4. In `primecover1024.cpp`, find the `frontier_multiplier` ladder and apply the edit shown below (example: unlocking `16384U`):
+
+   ```cpp
+   // Before:
+   //: current_best_cost() >= 133 ? 16384U
+       current_best_cost() >= 128 ?  8192U
+
+   // After:
+       current_best_cost() >= 133 ? 16384U
+     : current_best_cost() >= 128 ?  8192U
+   ```
+
+   Remove the `//` and `:` from the line you are enabling, then add a `:` before the line that was previously the first active condition. Recompile and run.
+
+The diagnostic only needs to run once per machine. It is not needed for runs up to N ≈ 850 — the default settings are safe there.
+
+### CPU architecture flag
+
+Compile with `-march=native` (already in the default command) to let GCC auto-detect your CPU. On **AMD Zen 5** machines you can be explicit for a small extra gain:
+
+```bash
+g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover
+```
+
+### WSL CPU priority (Windows only)
+
+To give WSL higher CPU priority while the solver is running, open **PowerShell as Administrator** and execute:
+
+```powershell
+(Get-Process vmmem*).PriorityClass = 'High'
+```
 
 ## File Descriptions
 
@@ -363,6 +435,7 @@ By default the solver runs from N = 1 up to N = 1024. To change that, edit `kSta
 | `results/A373813_ALL_LINES.txt` | Full line-by-line coordinates of each optimal cover, from `primecover1024_line_coordinates.cpp`. |
 | `index.html` | Self-contained interactive demo (JavaScript port of the solver). Deploy as a static site or open locally — no build step required. See [Interactive Demo](#interactive-demo). |
 | `pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
+| `tools/primecover_frontier_diagnosis.sh` | Frontier diagnosis script: compiles and runs the solver, displays a live dashboard, and produces a per-multiplier RAM safety table to help you unlock the highest safe frontier multiplier for your hardware. See [Performance Tuning](#performance-tuning). |
 | `old_solvers/` | Earlier milestone variants of the solver, preserved for reproducibility. Provided as-is; not actively maintained. |
 
 ## Old Solvers
