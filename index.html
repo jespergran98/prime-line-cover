@@ -1843,6 +1843,202 @@ details.tut.tut-cta summary::after { display: none; }
   #overlay-paper { margin-top: 0; }
 
 }
+
+/* ═══════════════════════════════════════════════════════
+   Improved OS Guide — Step Layout, Distro Tabs, Callouts
+   ═══════════════════════════════════════════════════════ */
+
+/* ── OS Tab Icons & Per-OS Active Colors ─────────────── */
+.os-tab { display: flex; align-items: center; gap: 5px; }
+.os-tab svg { flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+.os-tab.active svg { opacity: 1; }
+.os-tab.active.os-win  { background: #1e3a6e; color: var(--white); border-color: #1e3a6e; }
+.os-tab.active.os-lin  { background: #2d5a1e; color: var(--white); border-color: #2d5a1e; }
+.os-tab.active.os-mac  { background: #4a3060; color: var(--white); border-color: #4a3060; }
+
+/* ── Guide Steps ─────────────────────────────────────── */
+.guide-steps { display: flex; flex-direction: column; gap: 0; }
+
+.guide-step {
+  display: block;
+  padding: 13px 0 0;
+  position: relative;
+}
+.guide-step:not(:last-child) { border-bottom: 1px solid var(--ink-08); margin-bottom: 0; }
+
+/* Clearfix — contains the floated step-num inside each step */
+.guide-step::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* Remove old vertical connector pseudo-element */
+.guide-step::before { display: none; }
+
+.step-num {
+  float: left;
+  clear: left;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper-deep);
+  border: 1.5px solid var(--ink-18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink-70);
+  margin: 2px 8px 6px 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  position: relative;
+  z-index: 1;
+}
+/* Per-OS active step number color */
+#os-panel-windows .step-num { background: rgba(30,58,110,0.1); border-color: rgba(30,58,110,0.35); color: #1e3a6e; }
+#os-panel-linux   .step-num { background: rgba(45,90,30,0.10); border-color: rgba(45,90,30,0.35); color: #2d5a1e; }
+#os-panel-mac     .step-num { background: rgba(74,48,96,0.10); border-color: rgba(74,48,96,0.35); color: #4a3060; }
+
+.step-body { display: block; padding-bottom: 12px; }
+
+.step-title {
+  font-family: var(--serif);
+  font-size: 14.5px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 6px;
+  letter-spacing: 0.005em;
+}
+
+.step-body p {
+  font-size: 13px;
+  color: var(--ink-70);
+  line-height: 1.65;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.step-body p:last-child { margin-bottom: 0; }
+.step-body code {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-style: normal;
+  background: var(--paper-deep);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-08);
+  color: var(--ink);
+}
+
+/* ── Distro Sub-Tabs (inside Linux panel) ────────────── */
+.distro-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.distro-tab {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  background: var(--paper-alt);
+  color: var(--ink-45);
+  border: none;
+  border-right: 1px solid var(--ink-18);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.distro-tab:last-child { border-right: none; }
+.distro-tab:hover { background: var(--paper-deep); color: var(--ink-70); }
+.distro-tab.active { background: #2d5a1e; color: var(--white); }
+
+.distro-panel { display: none; }
+.distro-panel.active { display: block; }
+
+
+/* ── Code Block with Language Label ─────────────────── */
+.code-block {
+  position: relative;
+  margin: 8px 0;
+}
+.code-label {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-45);
+  background: var(--paper-deep);
+  padding: 2px 6px;
+  border-radius: 0 0 3px 3px;
+  border: 1px solid var(--ink-08);
+  border-top: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Expected Output Block ───────────────────────────── */
+.guide-output {
+  margin-top: 14px;
+  border: 1px solid var(--ink-08);
+  border-radius: var(--r3);
+  overflow: hidden;
+}
+.guide-output-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: rgba(20,115,106,0.08);
+  border-bottom: 1px solid rgba(20,115,106,0.15);
+}
+.guide-output-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--teal);
+  flex-shrink: 0;
+}
+.guide-output-label {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal);
+}
+.guide-output pre {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--ink-70);
+  background: var(--paper-alt);
+  padding: 9px 13px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  line-height: 1.85;
+  margin: 0;
+  border: none;
+  border-radius: 0;
+}
+.guide-output pre .out-val { color: var(--teal); }
+.guide-output pre .out-dim { color: var(--ink-45); }
+
+/* ── Step 3 code block with edit/copy buttons ─────────── */
+.code-block .co-edit-btn,
+.code-block .co-copy-btn { top: auto; }
+.code-block pre { padding-bottom: 30px; }
+
 </style>
 </head>
 <body>
@@ -2169,185 +2365,386 @@ details.tut.tut-cta summary::after { display: none; }
         <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
         <div class="tut-body">
 
-          <!-- OS switcher tabs -->
-          <div class="os-tabs">
-            <button class="os-tab active" id="tab-windows" onclick="switchOS('windows')">Windows</button>
-            <button class="os-tab" id="tab-linux" onclick="switchOS('linux')">Linux</button>
-            <button class="os-tab" id="tab-mac" onclick="switchOS('mac')">Mac</button>
+          <!-- ── OS Switcher Tabs with Icons ──────────────────────────────── -->
+          <div class="os-tabs" style="margin-bottom:16px;">
+            <button class="os-tab os-win active" id="tab-windows" onclick="switchOS('windows')">
+              <!-- Windows logo -->
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                <path d="M0 2.4L6.5 1.5v6H0V2.4zm7.5-.9L16 0v7.5H7.5V1.5zM0 8.5h6.5v6L0 13.6V8.5zm7.5 0H16V16l-8.5-1.4V8.5z"/>
+              </svg>
+              Windows
+            </button>
+            <button class="os-tab os-lin" id="tab-linux" onclick="switchOS('linux')">
+              <!-- Linux penguin silhouette -->
+              <svg width="12" height="13" viewBox="0 0 20 22" fill="currentColor" aria-hidden="true">
+                <ellipse cx="10" cy="7" rx="5.5" ry="6.5"/>
+                <ellipse cx="10" cy="15" rx="7" ry="6"/>
+                <ellipse cx="10" cy="14" rx="4.5" ry="4" fill="rgba(255,255,255,0.25)"/>
+                <circle cx="7.5" cy="5.5" r="1.1" fill="white"/>
+                <circle cx="12.5" cy="5.5" r="1.1" fill="white"/>
+                <ellipse cx="10" cy="8.5" rx="1.8" ry="1.2" fill="rgba(255,200,100,0.9)"/>
+                <ellipse cx="5" cy="18" rx="2.5" ry="1.4" transform="rotate(-15 5 18)"/>
+                <ellipse cx="15" cy="18" rx="2.5" ry="1.4" transform="rotate(15 15 18)"/>
+              </svg>
+              Linux
+            </button>
+            <button class="os-tab os-mac" id="tab-mac" onclick="switchOS('mac')">
+              <!-- Apple logo -->
+              <svg width="12" height="13" viewBox="0 0 170 200" fill="currentColor" aria-hidden="true">
+                <path d="M150,133c-5,11-7,16-13,26-9,13-21,29-36,30-13,0-17-9-36-8-18,0-23,8-36,8-15,0-27-15-36-28C-7,140-11,105,1,82c8-15,22-24,37-24,14,0,23,9,34,9,11,0,19-10,36-10,14,0,26,7,33,19C119,83,107,100,108,118c1,14,10,25,22,25C143,143,150,133,150,133z"/>
+                <path d="M113,20c5-7,9-17,8-27-9,1-20,7-26,15-6,7-10,17-9,27C96,35,108,28,113,20z"/>
+              </svg>
+              Mac
+            </button>
           </div>
 
           <!-- ══ WINDOWS / WSL PANEL ══════════════════════════════════════ -->
           <div id="os-panel-windows">
+            <div class="guide-steps">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Get WSL</strong></p>
-            <p>Open PowerShell as Administrator and run:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>wsl --install</pre>
-            </div>
-            <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu.</p>
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Get WSL (Windows Subsystem for Linux)</div>
+                  <p>Open <strong style="font-style:normal;">PowerShell</strong> as Administrator — right-click the Start button → <em>Terminal (Admin)</em> — and run:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">PowerShell</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>wsl --install</pre>
+                  </div>
+                  <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu to complete first-time setup.</p>
+                </div>
+              </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right repository and install it. You can paste all three at once — they will run in sequence:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default — paste all three commands at once and they'll run in sequence:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Ubuntu (WSL)</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt update
 sudo apt install g++-14 -y</pre>
-            </div>
+                  </div>
+                </div>
+              </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it to a location you'll remember on your PC — your Downloads folder or Desktop works well. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <!-- Pencil body -->
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <!-- Eraser cap divider -->
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <!-- Edit underline — signals "writing on a surface" -->
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Then edit the path below and paste the full command into Ubuntu:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Ubuntu (WSL)</span>
+                    <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                        <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                        <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                    <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                  </div>
+                  <div class="path-editor" id="step3-path-editor">
+                    <div class="path-file-toggle">
+                      <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
+                      <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                    </div>
+                    <div class="path-segs" id="path-segs"></div>
+                    <div class="path-editor-actions">
+                      <button class="path-add-btn" id="step3-add-seg">+ folder</button>
+                      <button class="path-done-btn" id="step3-done">Done</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="path-segs" id="path-segs"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-done">Done</button>
+
+            </div><!-- /.guide-steps -->
+
+            <!-- Expected output -->
+            <div class="guide-output">
+              <div class="guide-output-header">
+                <div class="guide-output-dot"></div>
+                <div class="guide-output-label">Expected output — solver running</div>
               </div>
+              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+<span class="out-dim">...</span></pre>
             </div>
-            <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
 
           </div><!-- /#os-panel-windows -->
 
-          <!-- ══ LINUX / ARCH / PACMAN PANEL ══════════════════════════════ -->
+          <!-- ══ LINUX PANEL ══════════════════════════════════════════════ -->
           <div id="os-panel-linux" style="display:none;">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Open a terminal</strong></p>
-            <p>Press <code>Ctrl+Alt+T</code> or launch a terminal from your application menu. No WSL or extra setup needed — you're already running Linux natively.</p>
-
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>The solver uses C++23 features that only GCC 14 and newer support. On Arch-based systems, install it with pacman:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo pacman -S gcc14')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>sudo pacman -S gcc14</pre>
+            <!-- Distro sub-tabs -->
+            <div class="distro-tabs">
+              <button class="distro-tab active" id="distro-tab-ubuntu" onclick="switchDistro('ubuntu')">Ubuntu / Debian</button>
+              <button class="distro-tab" id="distro-tab-arch" onclick="switchDistro('arch')">Arch / Manjaro</button>
+              <button class="distro-tab" id="distro-tab-fedora" onclick="switchDistro('fedora')">Fedora / RHEL</button>
             </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <!-- Pencil body -->
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <!-- Eraser cap divider -->
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <!-- Edit underline — signals "writing on a surface" -->
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-linux-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+            <div class="guide-steps">
+
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Open a terminal</div>
+                  <p>Press <code>Ctrl+Alt+T</code> or launch a terminal from your application menu. No extra layer needed — you're running Linux natively.</p>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>The solver requires C++23 features available only in GCC 14+. Install it for your distribution:</p>
+
+                  <!-- Ubuntu/Debian commands -->
+                  <div class="distro-panel active" id="distro-panel-ubuntu">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Ubuntu / Debian</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo apt update
+sudo apt install g++-14 -y</pre>
+                    </div>
+                  </div>
+
+                  <!-- Arch commands -->
+                  <div class="distro-panel" id="distro-panel-arch">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Arch / Manjaro</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo pacman -S gcc')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo pacman -S gcc</pre>
+                    </div>
+                  </div>
+
+                  <!-- Fedora commands -->
+                  <div class="distro-panel" id="distro-panel-fedora">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Fedora / RHEL</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo dnf install gcc-c++ -y')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo dnf install gcc-c++ -y</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Edit the path below and paste the whole command into your terminal:</p>
+
+                  <!-- Ubuntu/Debian compile -->
+                  <div class="distro-panel active" id="distro-panel-ubuntu-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                          <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                          <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                          <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                        </svg>
+                      </button>
+                      <button class="co-copy-btn" id="step3-linux-copy-btn" aria-label="Copy command">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-linux-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                    </div>
+                    <div class="path-editor" id="step3-linux-path-editor">
+                      <div class="path-file-toggle">
+                        <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                      </div>
+                      <div class="path-segs" id="path-segs-linux"></div>
+                      <div class="path-editor-actions">
+                        <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
+                        <button class="path-done-btn" id="step3-linux-done">Done</button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Arch/Manjaro compile -->
+                  <div class="distro-panel" id="distro-panel-arch-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'cp ~/path/to/primecover1024.cpp ~/primecover.cpp \&\& \\\ng++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n  primecover.cpp -o primecover \&\& \\\n./primecover')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>cp ~/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover &amp;&amp; \
+./primecover</pre>
+                    </div>
+                    <p>Replace <code>~/path/to/</code> with the actual folder where you saved the file. On Arch the binary is <code>g++</code> (not <code>g++-14</code>), which is GCC 14 on a current Arch install.</p>
+                  </div>
+
+                  <!-- Fedora/RHEL compile -->
+                  <div class="distro-panel" id="distro-panel-fedora-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'cp ~/path/to/primecover1024.cpp ~/primecover.cpp \&\& \\\ng++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n  primecover.cpp -o primecover \&\& \\\n./primecover')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>cp ~/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover &amp;&amp; \
+./primecover</pre>
+                    </div>
+                    <p>Replace <code>~/path/to/</code> with the actual folder. On Fedora 40+ the binary is <code>g++</code> (not <code>g++-14</code>), which is GCC 14 when installed via <code>gcc-c++</code>.</p>
+                  </div>
+
+                </div>
               </div>
-              <div class="path-segs" id="path-segs-linux"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-linux-done">Done</button>
+
+            </div><!-- /.guide-steps -->
+
+            <!-- Expected output -->
+            <div class="guide-output">
+              <div class="guide-output-header">
+                <div class="guide-output-dot"></div>
+                <div class="guide-output-label">Expected output — solver running</div>
               </div>
+              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+<span class="out-dim">...</span></pre>
             </div>
-            <p>Replace <code>username</code> in the path above with your actual Linux username (run <code>whoami</code> if unsure). The solver starts printing results immediately — one line per N.</p>
 
           </div><!-- /#os-panel-linux -->
 
-          <!-- ══ MAC / HOMEBREW PANEL ════════════════════════════════════════ -->
+          <!-- ══ MAC / HOMEBREW PANEL ═══════════════════════════════════════ -->
           <div id="os-panel-mac" style="display:none;">
+            <div class="guide-steps">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Install Homebrew</strong></p>
-            <p>If you don't have Homebrew yet, open <strong style="font-style:normal;">Terminal</strong> (⌘ Space → "Terminal") and run:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
-            </div>
-            <p>Already have Homebrew? Skip straight to Step 2.</p>
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Install Homebrew</div>
+                  <p>Open <strong style="font-style:normal;">Terminal</strong> (press <code>⌘ Space</code>, type "Terminal", press Enter) and run:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
+                  </div>
+                </div>
+              </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>Apple Clang does not yet support all C++23 features used by the solver — GCC 14 via Homebrew is required. Install it with:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'brew install gcc@14')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>brew install gcc@14</pre>
-            </div>
-            <p>Homebrew installs <code>g++-14</code> into its bin directory and adds it to your PATH automatically.</p>
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>Apple Clang doesn't support all C++23 features used by the solver. GCC 14 via Homebrew is required:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'brew install gcc@14')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>brew install gcc@14</pre>
+                  </div>
+                  <p>Homebrew installs <code>g++-14</code> into its bin directory and adds it to your PATH automatically.</p>
+                </div>
+              </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-mac-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it in your home folder — Downloads works perfectly. Edit the path below and paste the command into Terminal:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                        <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                        <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                    <button class="co-copy-btn" id="step3-mac-copy-btn" aria-label="Copy command">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-mac-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                  </div>
+                  <div class="path-editor" id="step3-mac-path-editor">
+                    <div class="path-file-toggle">
+                      <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
+                      <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                    </div>
+                    <div class="path-segs" id="path-segs-mac"></div>
+                    <div class="path-editor-actions">
+                      <button class="path-add-btn" id="step3-mac-add-seg">+ folder</button>
+                      <button class="path-done-btn" id="step3-mac-done">Done</button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="path-segs" id="path-segs-mac"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-mac-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-mac-done">Done</button>
+
+            </div><!-- /.guide-steps -->
+
+            <!-- Expected output -->
+            <div class="guide-output">
+              <div class="guide-output-header">
+                <div class="guide-output-dot"></div>
+                <div class="guide-output-label">Expected output — solver running</div>
               </div>
+              <pre>N=<span class="out-val">1</span>  p=<span class="out-val">2</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">2</span>  p=<span class="out-val">3</span>   lines=<span class="out-val">1</span>   <span class="out-dim">t=0.00ms</span>
+N=<span class="out-val">3</span>  p=<span class="out-val">5</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+N=<span class="out-val">4</span>  p=<span class="out-val">7</span>   lines=<span class="out-val">2</span>   <span class="out-dim">t=0.01ms</span>
+<span class="out-dim">...</span></pre>
             </div>
-            <p>Replace <code>username</code> with your macOS username (run <code>whoami</code> if unsure). The solver starts printing results immediately — one line per N.</p>
 
           </div><!-- /#os-panel-mac -->
 
@@ -4164,6 +4561,20 @@ function switchOS(os) {
     if (!panel || !tab) return;
     var active = (p === os);
     panel.style.display = active ? '' : 'none';
+    tab.classList.toggle('active', active);
+  });
+}
+
+function switchDistro(distro) {
+  var distros = ['ubuntu', 'arch', 'fedora'];
+  distros.forEach(function (d) {
+    var panel   = document.getElementById('distro-panel-' + d);
+    var panel3  = document.getElementById('distro-panel-' + d + '-step3');
+    var tab     = document.getElementById('distro-tab-' + d);
+    if (!tab) return;
+    var active = (d === distro);
+    if (panel)  panel.classList.toggle('active', active);
+    if (panel3) panel3.classList.toggle('active', active);
     tab.classList.toggle('active', active);
   });
 }
