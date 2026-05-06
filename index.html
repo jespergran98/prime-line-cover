@@ -959,6 +959,15 @@ details.tut summary::-webkit-details-marker { display: none; }
 
 
 /* Quick-start hint button inside overlay-tl */
+@keyframes qsHintPulse {
+  0%, 100% { border-color: rgba(20,115,106,0.28); box-shadow: none; }
+  50%       { border-color: rgba(20,115,106,0.58); box-shadow: 0 0 0 3px rgba(20,115,106,0.08); }
+}
+@keyframes qsHintArrow {
+  0%, 65%, 100% { transform: translateX(0);   opacity: 0.7; }
+  80%            { transform: translateX(4px); opacity: 1;   }
+}
+
 .co-quickstart-hint {
   display: flex;
   align-items: center;
@@ -975,13 +984,15 @@ details.tut summary::-webkit-details-marker { display: none; }
   padding: 8px 12px;
   cursor: pointer;
   text-align: left;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
   line-height: 1.3;
+  animation: qsHintPulse 3.6s ease-in-out infinite;
 }
 .co-quickstart-hint:hover {
   background: var(--teal);
   color: var(--white);
   border-color: var(--teal);
+  animation: none;
 }
 .co-quickstart-hint-arrow {
   font-family: var(--mono);
@@ -991,10 +1002,12 @@ details.tut summary::-webkit-details-marker { display: none; }
   opacity: 0.7;
   flex-shrink: 0;
   transition: transform 0.15s, opacity 0.15s;
+  animation: qsHintArrow 3.6s ease-in-out infinite;
 }
 .co-quickstart-hint:hover .co-quickstart-hint-arrow {
   transform: translateX(3px);
   opacity: 1;
+  animation: none;
 }
 
 details.tut.tut-cta {
@@ -1080,106 +1093,100 @@ details.tut.tut-cta summary::after { display: none; }
 .co-edit-btn:hover { color: var(--ink); background: var(--ink-08); }
 .co-edit-btn.active { color: var(--teal); background: var(--teal-light); }
 
-/* ── Inline path editor ───────────────────────────────── */
+/* ── Inline path editor (paste-to-set) ───────────────── */
 .path-editor {
   display: none;
   margin-top: 6px;
-  padding: 8px 10px 8px 10px;
+  padding: 9px 10px 9px 10px;
   background: var(--paper-alt);
   border: 1px solid var(--ink-18);
   border-radius: var(--r2);
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 3px 2px;
-  row-gap: 5px;
+  flex-direction: column;
+  gap: 7px;
 }
 .path-editor.open { display: flex; }
 
-.path-segs {
+/* The single paste input row */
+.path-paste-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.path-paste-label {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-45);
+  margin-bottom: 1px;
+  user-select: none;
+}
+
+.path-paste-input {
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: var(--ink);
+  background: var(--white);
+  border: 1.5px solid var(--teal);
+  border-radius: var(--r2);
+  padding: 6px 10px;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(20,115,106,0.10);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  line-height: 1.5;
+  caret-color: var(--teal);
+}
+.path-paste-input::placeholder {
+  color: var(--ink-45);
+  font-style: italic;
+}
+.path-paste-input:focus {
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(20,115,106,0.14);
+}
+.path-paste-input.pe-error {
+  border-color: var(--coral);
+  box-shadow: 0 0 0 2px rgba(163,50,40,0.10);
+}
+
+/* Status/hint line shown beneath the input */
+.path-paste-status {
+  font-family: var(--mono);
+  font-size: 9px;
+  min-height: 13px;
+  padding: 0 2px;
+  line-height: 1.4;
+  color: var(--ink-45);
+  transition: color 0.15s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.path-paste-status.pe-ok    { color: var(--teal); }
+.path-paste-status.pe-err   { color: var(--coral); }
+.path-paste-status.pe-hint  { color: var(--ink-45); }
+
+/* Bottom row: file toggle + done button */
+.path-editor-footer {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 2px;
+  gap: 6px;
+  width: 100%;
+}
+
+/* When the file toggle lives inside the footer row, kill its bottom margin */
+.path-editor-footer .path-file-toggle {
+  margin-bottom: 0;
   flex: 1;
   min-width: 0;
 }
 
-.path-seg-wrap {
-  display: flex;
-  align-items: center;
-  gap: 1px;
-}
-
-.path-sep {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink-45);
-  padding: 0 1px;
-  user-select: none;
-}
-
-.path-seg-input {
-  font-family: var(--mono);
-  font-size: 10px;
-  color: var(--ink);
-  background: var(--white);
-  border: 1px solid var(--ink-18);
-  border-radius: var(--r);
-  padding: 3px 5px;
-  min-width: 28px;
-  outline: none;
-  transition: border-color 0.15s, box-shadow 0.15s;
-  line-height: 1.4;
-}
-.path-seg-input:focus {
-  border-color: var(--teal);
-  box-shadow: 0 0 0 2px rgba(20,115,106,0.12);
-}
-
-.path-seg-rm {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 13px;
-  height: 13px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  color: var(--ink-45);
-  padding: 0;
-  font-size: 12px;
-  line-height: 1;
-  border-radius: 50%;
-  transition: color 0.12s, background 0.12s;
-  flex-shrink: 0;
-}
-.path-seg-rm:hover { color: var(--coral); background: rgba(163,50,40,0.09); }
-
 .path-editor-actions {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-left: 4px;
   flex-shrink: 0;
-}
-
-.path-add-btn {
-  font-family: var(--mono);
-  font-size: 9.5px;
-  color: var(--teal);
-  background: none;
-  border: 1px dashed rgba(20,115,106,0.38);
-  border-radius: var(--r);
-  padding: 2px 7px;
-  cursor: pointer;
-  letter-spacing: 0.04em;
-  transition: all 0.15s;
-  white-space: nowrap;
-}
-.path-add-btn:hover {
-  background: var(--teal-light);
-  border-style: solid;
-  border-color: rgba(20,115,106,0.5);
 }
 
 .path-done-btn {
@@ -1190,7 +1197,7 @@ details.tut.tut-cta summary::after { display: none; }
   background: var(--teal);
   border: 1px solid var(--teal);
   border-radius: var(--r);
-  padding: 3px 9px;
+  padding: 3px 11px;
   cursor: pointer;
   letter-spacing: 0.04em;
   transition: background 0.15s, border-color 0.15s;
@@ -1830,6 +1837,172 @@ details.tut.tut-cta summary::after { display: none; }
   #overlay-paper { margin-top: 0; }
 
 }
+
+/* ═══════════════════════════════════════════════════════
+   Improved OS Guide — Step Layout, Distro Tabs, Callouts
+   ═══════════════════════════════════════════════════════ */
+
+/* ── OS Tab Icons & Per-OS Active Colors ─────────────── */
+.os-tab { display: flex; align-items: center; gap: 5px; }
+.os-tab svg { flex-shrink: 0; opacity: 0.55; transition: opacity 0.15s; }
+.os-tab.active svg { opacity: 1; }
+.os-tab.active.os-win  { background: #0078D4; color: var(--white); border-color: #0078D4; }
+.os-tab.active.os-lin  { background: #E8A003; color: var(--white); border-color: #E8A003; }
+.os-tab.active.os-mac  { background: #1D1D1F; color: var(--white); border-color: #1D1D1F; }
+
+/* ── Guide Steps ─────────────────────────────────────── */
+.guide-steps { display: flex; flex-direction: column; gap: 0; }
+
+.guide-step {
+  display: block;
+  padding: 13px 0 0;
+  position: relative;
+}
+.guide-step:not(:last-child) { border-bottom: 1px solid var(--ink-08); margin-bottom: 0; }
+
+/* Clearfix — contains the floated step-num inside each step */
+.guide-step::after {
+  content: '';
+  display: table;
+  clear: both;
+}
+
+/* Remove old vertical connector pseudo-element */
+.guide-step::before { display: none; }
+
+.step-num {
+  float: left;
+  clear: left;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--paper-deep);
+  border: 1.5px solid var(--ink-18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--ink-70);
+  margin: 2px 8px 6px 0;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+  position: relative;
+  z-index: 1;
+}
+/* Per-OS active step number color */
+#os-panel-windows .step-num { background: rgba(0,120,212,0.10); border-color: rgba(0,120,212,0.35); color: #0078D4; }
+#os-panel-linux   .step-num { background: rgba(232,160,3,0.12); border-color: rgba(232,160,3,0.40); color: #B87800; }
+#os-panel-mac     .step-num { background: rgba(29,29,31,0.08);  border-color: rgba(29,29,31,0.30);  color: #1D1D1F; }
+
+.step-body { display: block; padding-bottom: 12px; }
+
+.step-title {
+  font-family: var(--serif);
+  font-size: 14.5px;
+  font-weight: 600;
+  font-style: normal;
+  color: var(--ink);
+  line-height: 1.3;
+  margin-bottom: 6px;
+  letter-spacing: 0.005em;
+}
+
+.step-body p {
+  font-size: 13px;
+  color: var(--ink-70);
+  line-height: 1.65;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.step-body p:last-child { margin-bottom: 0; }
+.step-body code {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-style: normal;
+  background: var(--paper-deep);
+  padding: 1px 5px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-08);
+  color: var(--ink);
+}
+
+/* ── Distro Sub-Tabs (inside Linux panel) ────────────── */
+.distro-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 10px;
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.distro-tab {
+  flex: 1;
+  font-family: var(--mono);
+  font-size: 8.5px;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 5px 8px;
+  background: var(--paper-alt);
+  color: var(--ink-45);
+  border: none;
+  border-right: 1px solid var(--ink-18);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.distro-tab:last-child { border-right: none; }
+.distro-tab:hover { background: var(--paper-deep); color: var(--ink-70); }
+/* Per-distro brand colors */
+#distro-tab-ubuntu.active  { background: #E95420; color: var(--white); border-color: #E95420; } /* Ubuntu orange */
+#distro-tab-arch.active    { background: #1793D1; color: var(--white); border-color: #1793D1; } /* Arch Linux blue */
+#distro-tab-fedora.active  { background: #294172; color: var(--white); border-color: #294172; } /* Fedora navy */
+
+.distro-panel { display: none; }
+.distro-panel.active { display: block; }
+
+
+/* ── Code Block with Language Label ─────────────────── */
+.code-block {
+  position: relative;
+  margin: 8px 0;
+}
+.code-label {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-45);
+  background: var(--paper-deep);
+  padding: 2px 6px;
+  border-radius: 0 0 3px 3px;
+  border: 1px solid var(--ink-08);
+  border-top: none;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* ── Wait notice after step 3 ────────────────────────── */
+.tut-body .guide-wait-notice {
+  margin-top: 10px;
+  margin-bottom: 0;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--ink-45);
+  letter-spacing: 0.03em;
+  font-style: normal;
+  line-height: 1.5;
+}
+
+/* ── Step 3 code block with edit/copy buttons ─────────── */
+.code-block .co-edit-btn,
+.code-block .co-copy-btn { top: auto; }
+.code-block pre { padding-bottom: 12px; }
+
 </style>
 </head>
 <body>
@@ -2156,185 +2329,436 @@ details.tut.tut-cta summary::after { display: none; }
         <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
         <div class="tut-body">
 
-          <!-- OS switcher tabs -->
-          <div class="os-tabs">
-            <button class="os-tab active" id="tab-windows" onclick="switchOS('windows')">Windows</button>
-            <button class="os-tab" id="tab-linux" onclick="switchOS('linux')">Linux</button>
-            <button class="os-tab" id="tab-mac" onclick="switchOS('mac')">Mac</button>
+          <!-- ── OS Switcher Tabs with Icons ──────────────────────────────── -->
+          <div class="os-tabs" style="margin-bottom:16px;">
+            <button class="os-tab os-win active" id="tab-windows" onclick="switchOS('windows')">
+              <!-- Windows 11 logo — exact 4-pane flag -->
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M0 3.449L9.75 2.1v9.451H0m10.949-9.602L24 0v11.4H10.949M0 12.6h9.75v9.451L0 20.699M10.949 12.6H24V24l-12.9-1.801"/>
+              </svg>
+              Windows
+            </button>
+            <button class="os-tab os-lin" id="tab-linux" onclick="switchOS('linux')">
+              <!-- Tux penguin — faithful silhouette -->
+              <svg width="12" height="14" viewBox="0 0 100 118" fill="currentColor" aria-hidden="true">
+                <!-- Body -->
+                <ellipse cx="50" cy="75" rx="36" ry="40"/>
+                <!-- Head -->
+                <ellipse cx="50" cy="28" rx="26" ry="26"/>
+                <!-- Left wing -->
+                <ellipse cx="14" cy="72" rx="11" ry="22" transform="rotate(-8 14 72)"/>
+                <!-- Right wing -->
+                <ellipse cx="86" cy="72" rx="11" ry="22" transform="rotate(8 86 72)"/>
+                <!-- White belly -->
+                <ellipse cx="50" cy="78" rx="21" ry="26" fill="white" opacity="0.22"/>
+                <!-- Eyes -->
+                <circle cx="40" cy="22" r="6" fill="white"/>
+                <circle cx="60" cy="22" r="6" fill="white"/>
+                <circle cx="41" cy="23" r="2.8" fill="#111"/>
+                <circle cx="61" cy="23" r="2.8" fill="#111"/>
+                <!-- Beak -->
+                <path d="M41,37 Q50,46 59,37 Q50,32 41,37Z" fill="rgba(230,160,20,0.95)"/>
+                <!-- Left foot -->
+                <ellipse cx="37" cy="113" rx="16" ry="6" transform="rotate(-10 37 113)" fill="rgba(230,160,20,0.95)"/>
+                <!-- Right foot -->
+                <ellipse cx="63" cy="113" rx="16" ry="6" transform="rotate(10 63 113)" fill="rgba(230,160,20,0.95)"/>
+              </svg>
+              Linux
+            </button>
+            <button class="os-tab os-mac" id="tab-mac" onclick="switchOS('mac')">
+              <!-- Apple logo — refined accurate path -->
+              <svg width="11" height="13" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true">
+                <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105-57.8-155.5-127.4C46 790.9 0 663.8 0 541.8c0-194.3 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
+              </svg>
+              Mac
+            </button>
           </div>
 
           <!-- ══ WINDOWS / WSL PANEL ══════════════════════════════════════ -->
           <div id="os-panel-windows">
+            <div class="guide-steps">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Get WSL</strong></p>
-            <p>Open PowerShell as Administrator and run:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>wsl --install</pre>
-            </div>
-            <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu.</p>
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Get WSL (Windows Subsystem for Linux)</div>
+                  <p>Open <strong style="font-style:normal;">PowerShell</strong> as Administrator — right-click the Start button → <em>Terminal (Admin)</em> — and run:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">PowerShell</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'wsl --install')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>wsl --install</pre>
+                  </div>
+                  <p>Restart when prompted, then open the <strong style="font-style:normal;">Ubuntu</strong> app from the Start menu to complete first-time setup.</p>
+                </div>
+              </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default, so these three commands add the right repository and install it. You can paste all three at once — they will run in sequence:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>The solver uses C++23 features that only GCC 14 and newer support. Ubuntu doesn't ship it by default — paste all three commands at once and they'll run in sequence:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Ubuntu (WSL)</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
 sudo apt update
 sudo apt install g++-14 -y</pre>
-            </div>
+                  </div>
+                </div>
+              </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it to a location you'll remember on your PC — your Downloads folder or Desktop works well. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <!-- Pencil body -->
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <!-- Eraser cap divider -->
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <!-- Edit underline — signals "writing on a surface" -->
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Click the edit button (✎) below and <strong style="font-style:normal;">paste the full path</strong> to the file. The command updates instantly:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Ubuntu (WSL)</span>
+                    <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                        <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                        <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                    <button class="co-copy-btn" id="step3-copy-btn" aria-label="Copy command">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                  </div>
+                  <div class="path-editor" id="step3-path-editor">
+                    <div class="path-paste-row">
+                      <div class="path-paste-label">Paste your file path</div>
+                      <input class="path-paste-input" id="step3-paste-input" type="text"
+                             placeholder="C:\Users\you\Downloads\primecover1024.cpp"
+                             spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                      <div class="path-paste-status pe-hint" id="step3-paste-status">Works with Windows paths (C:\…) and WSL paths (/mnt/c/…)</div>
+                    </div>
+                    <div class="path-editor-footer">
+                      <div class="path-file-toggle">
+                        <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                      </div>
+                      <div class="path-editor-actions">
+                        <button class="path-done-btn" id="step3-done">Done</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="path-segs" id="path-segs"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-done">Done</button>
-              </div>
-            </div>
-            <p>Your Windows <code>C:\</code> drive is always at <code>/mnt/c/</code> inside WSL. The solver starts printing results immediately — one line per N.</p>
+
+            </div><!-- /.guide-steps -->
+
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-windows -->
 
-          <!-- ══ LINUX / ARCH / PACMAN PANEL ══════════════════════════════ -->
+          <!-- ══ LINUX PANEL ══════════════════════════════════════════════ -->
           <div id="os-panel-linux" style="display:none;">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Open a terminal</strong></p>
-            <p>Press <code>Ctrl+Alt+T</code> or launch a terminal from your application menu. No WSL or extra setup needed — you're already running Linux natively.</p>
-
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>The solver uses C++23 features that only GCC 14 and newer support. On Arch-based systems, install it with pacman:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo pacman -S gcc14')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>sudo pacman -S gcc14</pre>
+            <!-- Distro sub-tabs -->
+            <div class="distro-tabs">
+              <button class="distro-tab active" id="distro-tab-ubuntu" onclick="switchDistro('ubuntu')">Ubuntu / Debian</button>
+              <button class="distro-tab" id="distro-tab-arch" onclick="switchDistro('arch')">Arch / Manjaro</button>
+              <button class="distro-tab" id="distro-tab-fedora" onclick="switchDistro('fedora')">Fedora / RHEL</button>
             </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <!-- Pencil body -->
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <!-- Eraser cap divider -->
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <!-- Edit underline — signals "writing on a surface" -->
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-linux-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+            <div class="guide-steps">
+
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Open a terminal</div>
+                  <p>Press <code>Ctrl+Alt+T</code> or launch a terminal from your application menu. No extra layer needed — you're running Linux natively.</p>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>The solver requires C++23 features available only in GCC 14+. Install it for your distribution:</p>
+
+                  <!-- Ubuntu/Debian commands -->
+                  <div class="distro-panel active" id="distro-panel-ubuntu">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Ubuntu / Debian</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y\nsudo apt update\nsudo apt install g++-14 -y')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+sudo apt update
+sudo apt install g++-14 -y</pre>
+                    </div>
+                  </div>
+
+                  <!-- Arch commands -->
+                  <div class="distro-panel" id="distro-panel-arch">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Arch / Manjaro</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo pacman -S gcc')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo pacman -S gcc</pre>
+                    </div>
+                  </div>
+
+                  <!-- Fedora commands -->
+                  <div class="distro-panel" id="distro-panel-fedora">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">Fedora / RHEL</span>
+                      <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'sudo dnf install gcc-c++ -y')">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre>sudo dnf install gcc-c++ -y</pre>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
+
+                  <!-- Ubuntu/Debian compile -->
+                  <div class="distro-panel active" id="distro-panel-ubuntu-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button id="step3-linux-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                          <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                          <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                          <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                        </svg>
+                      </button>
+                      <button class="co-copy-btn" id="step3-linux-copy-btn" aria-label="Copy command">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-linux-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                    </div>
+                    <div class="path-editor" id="step3-linux-path-editor">
+                      <div class="path-paste-row">
+                        <div class="path-paste-label">Paste your file path</div>
+                        <input class="path-paste-input" id="step3-linux-paste-input" type="text"
+                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                        <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path (/home/…) or ~/…</div>
+                      </div>
+                      <div class="path-editor-footer">
+                        <div class="path-file-toggle">
+                          <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                        </div>
+                        <div class="path-editor-actions">
+                          <button class="path-done-btn" id="step3-linux-done">Done</button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Arch/Manjaro compile -->
+                  <div class="distro-panel" id="distro-panel-arch-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button id="step3-arch-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                          <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                          <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                          <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                        </svg>
+                      </button>
+                      <button class="co-copy-btn" id="step3-arch-copy-btn" aria-label="Copy command">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre id="step3-arch-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover &amp;&amp; \
+./primecover</pre>
+                    </div>
+                    <div class="path-editor" id="step3-arch-path-editor">
+                      <div class="path-paste-row">
+                        <div class="path-paste-label">Paste your file path</div>
+                        <input class="path-paste-input" id="step3-arch-paste-input" type="text"
+                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                        <div class="path-paste-status pe-hint" id="step3-arch-paste-status">Paste an absolute path (/home/…) or ~/…</div>
+                      </div>
+                      <div class="path-editor-footer">
+                        <div class="path-file-toggle">
+                          <button class="path-file-btn active" id="step3-arch-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn" id="step3-arch-file-variant">..._line_coords.cpp</button>
+                        </div>
+                        <div class="path-editor-actions">
+                          <button class="path-done-btn" id="step3-arch-done">Done</button>
+                        </div>
+                      </div>
+                    </div>
+                    <p>On Arch the binary is <code>g++</code> (not <code>g++-14</code>), which is GCC 14 on a current Arch install.</p>
+                  </div>
+
+                  <!-- Fedora/RHEL compile -->
+                  <div class="distro-panel" id="distro-panel-fedora-step3">
+                    <div class="code-block" style="position:relative;">
+                      <span class="code-label">bash</span>
+                      <button id="step3-fedora-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                        <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                          <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                          <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                          <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                        </svg>
+                      </button>
+                      <button class="co-copy-btn" id="step3-fedora-copy-btn" aria-label="Copy command">
+                        <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                        <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                      </button>
+                      <pre id="step3-fedora-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  primecover.cpp -o primecover &amp;&amp; \
+./primecover</pre>
+                    </div>
+                    <div class="path-editor" id="step3-fedora-path-editor">
+                      <div class="path-paste-row">
+                        <div class="path-paste-label">Paste your file path</div>
+                        <input class="path-paste-input" id="step3-fedora-paste-input" type="text"
+                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                        <div class="path-paste-status pe-hint" id="step3-fedora-paste-status">Paste an absolute path (/home/…) or ~/…</div>
+                      </div>
+                      <div class="path-editor-footer">
+                        <div class="path-file-toggle">
+                          <button class="path-file-btn active" id="step3-fedora-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn" id="step3-fedora-file-variant">..._line_coords.cpp</button>
+                        </div>
+                        <div class="path-editor-actions">
+                          <button class="path-done-btn" id="step3-fedora-done">Done</button>
+                        </div>
+                      </div>
+                    </div>
+                    <p>On Fedora 40+ the binary is <code>g++</code> (not <code>g++-14</code>), which is GCC 14 when installed via <code>gcc-c++</code>.</p>
+                  </div>
+
+                </div>
               </div>
-              <div class="path-segs" id="path-segs-linux"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-linux-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-linux-done">Done</button>
-              </div>
-            </div>
-            <p>Replace <code>username</code> in the path above with your actual Linux username (run <code>whoami</code> if unsure). The solver starts printing results immediately — one line per N.</p>
+
+            </div><!-- /.guide-steps -->
+
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-linux -->
 
-          <!-- ══ MAC / HOMEBREW PANEL ════════════════════════════════════════ -->
+          <!-- ══ MAC / HOMEBREW PANEL ═══════════════════════════════════════ -->
           <div id="os-panel-mac" style="display:none;">
+            <div class="guide-steps">
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 1 — Install Homebrew</strong></p>
-            <p>If you don't have Homebrew yet, open <strong style="font-style:normal;">Terminal</strong> (⌘ Space → "Terminal") and run:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
-            </div>
-            <p>Already have Homebrew? Skip straight to Step 2.</p>
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Install Homebrew</div>
+                  <p>Open <strong style="font-style:normal;">Terminal</strong> (press <code>⌘ Space</code>, type "Terminal", press Enter) and run:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'/bin/bash -c &quot;$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)&quot;')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"</pre>
+                  </div>
+                </div>
+              </div>
 
-            <p><strong style="font-style:normal;color:var(--ink);">Step 2 — Install GCC 14</strong></p>
-            <p>Apple Clang does not yet support all C++23 features used by the solver — GCC 14 via Homebrew is required. Install it with:</p>
-            <div style="position:relative;">
-              <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'brew install gcc@14')">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre>brew install gcc@14</pre>
-            </div>
-            <p>Homebrew installs <code>g++-14</code> into its bin directory and adds it to your PATH automatically.</p>
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>Apple Clang doesn't support all C++23 features used by the solver. GCC 14 via Homebrew is required:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'brew install gcc@14')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>brew install gcc@14</pre>
+                  </div>
+                  <p>Homebrew installs <code>g++-14</code> into its bin directory and adds it to your PATH automatically.</p>
+                </div>
+              </div>
 
-            <p style="margin-top: 20px;"><strong style="font-style:normal;color:var(--ink);">Step 3 — Copy, compile, and run</strong></p>
-            <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:</p>
-            <div style="position:relative;">
-              <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
-                <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
-                  <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
-                  <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
-                  <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
-                </svg>
-              </button>
-              <button class="co-copy-btn" id="step3-mac-copy-btn" aria-label="Copy command">
-                <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
-                <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </button>
-              <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Copy, compile, and run</div>
+                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it in your home folder — Downloads works perfectly. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">Terminal</span>
+                    <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
+                      <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
+                        <path d="M9.5 1.5L12.5 4.5L4.5 12.5H1.5V9.5L9.5 1.5Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round" stroke-linecap="round"/>
+                        <path d="M8 3L11 6" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/>
+                        <path d="M1.5 13.5H8" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+                      </svg>
+                    </button>
+                    <button class="co-copy-btn" id="step3-mac-copy-btn" aria-label="Copy command">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   primecover.cpp -o primecover &amp;&amp; \
 ./primecover</pre>
-            </div>
-            <div class="path-editor" id="step3-mac-path-editor">
-              <div class="path-file-toggle">
-                <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
-                <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                  </div>
+                  <div class="path-editor" id="step3-mac-path-editor">
+                    <div class="path-paste-row">
+                      <div class="path-paste-label">Paste your file path</div>
+                      <input class="path-paste-input" id="step3-mac-paste-input" type="text"
+                             placeholder="/Users/you/Downloads/primecover1024.cpp"
+                             spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
+                      <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path (/Users/…) or ~/…</div>
+                    </div>
+                    <div class="path-editor-footer">
+                      <div class="path-file-toggle">
+                        <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                      </div>
+                      <div class="path-editor-actions">
+                        <button class="path-done-btn" id="step3-mac-done">Done</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div class="path-segs" id="path-segs-mac"></div>
-              <div class="path-editor-actions">
-                <button class="path-add-btn" id="step3-mac-add-seg">+ folder</button>
-                <button class="path-done-btn" id="step3-mac-done">Done</button>
-              </div>
-            </div>
-            <p>Replace <code>username</code> with your macOS username (run <code>whoami</code> if unsure). The solver starts printing results immediately — one line per N.</p>
+
+            </div><!-- /.guide-steps -->
+
+            <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-mac -->
 
@@ -2580,47 +3004,94 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
 /* ── Cover-inequality lower bound ──────────────────────────────────────── */
 var BB_counts = new Int32Array(1024);
 function coverInequalityLB(cov, cands, avail, N, uw) {
-  /* Build the set of currently uncovered points into BB_sMask (pre-allocated). */
-  var fullWords = N >> 5;
-  var tail      = N & 31;
-  for (var w = 0; w < fullWords; w++) BB_sMask[w] = ~cov[w];
-  if (tail) BB_sMask[fullWords] = (~cov[fullWords]) & ((1 << tail) - 1);
-  /* Zero any words beyond the active range. */
-  for (var w = fullWords + (tail ? 1 : 0); w < uw; w++) BB_sMask[w] = 0;
-  var sPop = countUncovered(cov, N, uw);
+  /* ── Cover-inequality lower bound ──────────────────────────────────────
+     Mirrors C++ cover_inequality_lb() (primecover1024.cpp lines 2927-2983).
 
+     Goal: find the largest subset S of uncovered points such that no
+     available heavy line covers >= 3 members of S.  Because every line
+     covers at most 2 members of S, any cover needs at least ceil(|S|/2)
+     lines, giving a valid lower bound on the remaining cost.
+
+     The C++ solver uses an incremental approach: it maintains
+       lineSz[li]    = # of in-S points on line li
+       violCount[p]  = # of violated lines (lineSz >= 3) that cover point p
+     and, when removing the highest-violCount point from S, decrements
+     violCount for all remaining in-S points on any line whose lineSz just
+     dropped from 3 to 2.  This costs O(|pts_per_line|) per removal —
+     O(N × avg_incident × avg_pts) total — instead of the previous
+     O(|cands| × |pts_per_line|) per removal (O(N²×|active_lines|) total).
+     ──────────────────────────────────────────────────────────────────── */
+
+  /* 1. Initialise inS[p]: uncovered points start in the support set S. */
+  var inS  = new Uint8Array(N);
+  var sPop = 0;
+  for (var p = 0; p < N; p++) {
+    if (!(cov[p >> 5] & (1 << (p & 31)))) { inS[p] = 1; sPop++; }
+  }
   if (sPop <= 2) return Math.ceil(sPop / 2);
 
-  while (true) {
-    BB_counts.fill(0, 0, N);
-    var numViolated = 0;
-    for (var i = 0; i < cands.length; i++) {
-      if (!avail[i]) continue;
-      var c = cands[i];
-      var intersectPop = 0;
-      for (var w = 0; w < uw; w++) {
-        var a = c.mask[w] & BB_sMask[w];
-        if (a) intersectPop += popcount32(a);
+  var M = cands.length;
+
+  /* 2. Build per-point incidence lists restricted to available lines,
+        lineSz[li] = # of in-S points on line li, and
+        violCount[p] = # of violated lines (lineSz >= 3) covering p.
+        Mirrors C++ local_inc[], line_size[], violation_count[] init.   */
+  var incident  = [];
+  for (var p = 0; p < N; p++) incident.push([]);
+
+  var lineSz    = new Int32Array(M);
+  var violCount = new Int32Array(N);
+
+  for (var i = 0; i < M; i++) {
+    if (!avail[i]) continue;
+    var pts = cands[i].indices;
+    var sz  = 0;
+    for (var k = 0; k < pts.length; k++) {
+      if (inS[pts[k]]) { sz++; incident[pts[k]].push(i); }
+    }
+    lineSz[i] = sz;
+    if (sz >= 3) {
+      /* Violated constraint: all in-S points on this line get a credit. */
+      for (var k = 0; k < pts.length; k++) {
+        if (inS[pts[k]]) violCount[pts[k]]++;
       }
-      if (intersectPop >= 3) {
-        numViolated++;
-        for (var k = 0; k < c.indices.length; k++) {
-          var pt = c.indices[k];
-          if (BB_sMask[pt >> 5] & (1 << (pt & 31))) BB_counts[pt]++;
+    }
+  }
+
+  /* 3. Greedily remove the most-violated point until no constraint is
+        violated.  Mirrors C++ while-loop with incremental updates.     */
+  while (true) {
+    /* Find in-S point with the highest violation count. */
+    var maxV = 0, maxP = -1;
+    for (var p = 0; p < N; p++) {
+      if (inS[p] && violCount[p] > maxV) { maxV = violCount[p]; maxP = p; }
+    }
+    if (maxV === 0) break;   /* No violated constraints remain. */
+
+    /* Remove maxP from S. */
+    inS[maxP] = 0;
+    sPop--;
+
+    /* Incrementally update lineSz and violCount.
+       Mirrors C++ inner loop: for each line incident to removed point,
+       decrement lineSz; if it just dropped from >=3 to <3, subtract 1
+       from violCount of all remaining in-S points on that line.        */
+    var inc = incident[maxP];
+    for (var j = 0; j < inc.length; j++) {
+      var li          = inc[j];
+      var wasViolated = lineSz[li] >= 3;
+      lineSz[li]--;
+      if (wasViolated && lineSz[li] < 3) {
+        /* Line li is no longer violated — update counts for remaining S. */
+        var pts = cands[li].indices;
+        for (var k = 0; k < pts.length; k++) {
+          if (inS[pts[k]]) violCount[pts[k]]--;
         }
       }
     }
-
-    if (numViolated === 0) return Math.ceil(sPop / 2);
-
-    var maxC = 0, maxP = -1;
-    for (var p = 0; p < N; p++) {
-      if (BB_counts[p] > maxC) { maxC = BB_counts[p]; maxP = p; }
-    }
-
-    BB_sMask[maxP >> 5] &= ~(1 << (maxP & 31));
-    sPop--;
   }
+
+  return Math.ceil(sPop / 2);
 }
 
 /* ── Lagrangian relaxation upper bound on remaining achievable gain ─────────
@@ -2649,8 +3120,12 @@ function coverInequalityLB(cov, cands, avail, N, uw) {
         g[p] = 1 − #{L : covers p and slack > 0},
         step = (L(y) − target) / ||g||²,  target = gainNeeded − currentGain.
    ────────────────────────────────────────────────────────────────────────── */
-function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
-  /* 1. Build compact active-point index (uncovered → 0..AP-1). */
+function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
+  if (maxIters === undefined) maxIters = 48;
+  /* 1. Build compact active-point index (uncovered → 0..AP-1) and its
+        inverse apToPoint (ap → global point index).
+        The inverse is needed to persist the best dual vector in BB_bestDual,
+        which is indexed by global point index — mirrors C++ best_y[p]. */
   var AP = 0;
   var ptToAp = new Int32Array(N);
   for (var p = 0; p < N; p++) {
@@ -2659,11 +3134,14 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
   }
   if (AP === 0) return 0;
 
+  var apToPoint = new Int32Array(AP);
+  for (var p = 0; p < N; p++) { if (ptToAp[p] >= 0) apToPoint[ptToAp[p]] = p; }
+
   /* 2. Collect productive lines (active coverage >= 3) in compact form.
         plRem2[li] = active_count - 2.
         plAps      = flat list of compact ap-indices for all productive lines.
         plOff      = start/end offsets into plAps per line. */
-  var plRem2 = [], plAps = [], plOff = [0];
+  var plRem2 = [], plAps = [], plOff = [0], plCandIdx = [];
   for (var i = 0; i < cands.length; i++) {
     if (!avail[i]) continue;
     var c = cands[i], st = plAps.length, cnt = 0;
@@ -2671,19 +3149,37 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
       var ap = ptToAp[c.indices[k]];
       if (ap >= 0) { plAps.push(ap); cnt++; }
     }
-    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); }
+    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); plCandIdx.push(i); }
     else          { plAps.length = st; }  /* roll back: not productive */
   }
   var PL = plRem2.length;
   if (PL === 0) return 0;
 
-  /* 3. Density-based dual initialisation (mirrors C++ warm-start heuristic):
-        y[p] = max over productive lines covering p of rem2/(rem2+2). */
+  /* 3. Dual initialisation.
+     ── Warm-start (BB_dualReady = true) ────────────────────────────────────
+        Seed y[ap] from BB_bestDual[point] — the best dual vector saved by the
+        most recent prior Lagrangian evaluation (typically the parent DFS node).
+        Mirrors C++ scratch.dual_ready branch:
+          active_y[ai] = clamp(best_y[active_points[ai]], 0, 1)
+        The parent's solution is near-optimal for the child (the child subproblem
+        is the parent with some points covered and some lines removed), so the
+        subgradient loop needs far fewer iterations to converge.
+     ── Cold-start (BB_dualReady = false) ────────────────────────────────────
+        Density heuristic: y[p] = max rem2/(rem2+2) over productive lines
+        covering p.  Mirrors C++ cold-start path. */
+  var warmStart = BB_dualReady && BB_bestDual !== null;
   var y = new Float64Array(AP), bestY = null;
-  for (var li = 0; li < PL; li++) {
-    var density = plRem2[li] / (plRem2[li] + 2);
-    for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
-      if (density > y[plAps[pos]]) y[plAps[pos]] = density;
+  if (warmStart) {
+    for (var ai = 0; ai < AP; ai++) {
+      var v = BB_bestDual[apToPoint[ai]];
+      y[ai] = v < 0 ? 0 : (v > 1 ? 1 : v);
+    }
+  } else {
+    for (var li = 0; li < PL; li++) {
+      var density = plRem2[li] / (plRem2[li] + 2);
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
+        if (density > y[plAps[pos]]) y[plAps[pos]] = density;
+      }
     }
   }
 
@@ -2706,42 +3202,137 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
     return val;
   }
 
+  /* Persist bestY into BB_bestDual[global point index].
+     Called at every return path so sibling and child DFS nodes can
+     warm-start from this node's dual solution — mirrors C++ store_best_dual(). */
+  function saveDual() {
+    if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
+    for (var ai = 0; ai < AP; ai++) BB_bestDual[apToPoint[ai]] = bestY[ai];
+    BB_dualReady = true;
+
+    /* ── Persist branch-cap data for computeChildUBs() ─────────────────────
+       BB_lagBestY[p]      ← y*[p] by global point index
+       BB_lagCandSlack[i]  ← slack for cands[i]; NaN for non-productive lines
+       BB_ptToProdCands[p] ← productive cand indices covering point p
+       Mirrors C++ ctx.lagrangian.best_y + work_line_slack_compact.          */
+    var numCands = cands.length;
+    if (BB_lagBestY === null || BB_lagBestY.length < N)
+      BB_lagBestY = new Float64Array(N);
+    if (BB_lagCandSlack === null || BB_lagCandSlack.length < numCands) {
+      BB_lagCandSlack = new Float64Array(numCands);
+    }
+    /* Mark all candidates as non-productive; productive ones are overwritten below. */
+    for (var i = 0; i < numCands; i++) BB_lagCandSlack[i] = NaN;
+
+    for (var ai = 0; ai < AP; ai++) BB_lagBestY[apToPoint[ai]] = bestY[ai];
+
+    /* Compute slack wlc[li] = plRem2[li] − Σ bestY[p] for each productive line
+       and write into BB_lagCandSlack[original cands index].                   */
+    for (var li = 0; li < PL; li++) {
+      var slack = plRem2[li];
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) slack -= bestY[plAps[pos]];
+      BB_lagCandSlack[plCandIdx[li]] = slack;
+    }
+
+    /* Build inverse index: BB_ptToProdCands[p] = [productive cand indices covering p].
+       Reuse existing arrays to avoid allocation churn across DFS nodes.       */
+    if (BB_ptToProdCands === null || BB_ptToProdCands.length < N) {
+      BB_ptToProdCands = [];
+      for (var p = 0; p < N; p++) BB_ptToProdCands.push([]);
+    } else {
+      for (var p = 0; p < N; p++) BB_ptToProdCands[p].length = 0;
+    }
+    for (var li = 0; li < PL; li++) {
+      var ci = plCandIdx[li];
+      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++)
+        BB_ptToProdCands[apToPoint[plAps[pos]]].push(ci);
+    }
+
+    BB_lagReady = true;
+  }
+
   /* 4. Evaluate initial bound and fast-exit if already tight enough to prune. */
   var best = evalLag(y, false);
   bestY = new Float64Array(y);
   var gainNeeded = BB_N - 2 * BB_bestCnt + 2;   /* minimum total gain to beat incumbent */
-  if (currentGain + best + 1e-9 < gainNeeded) return best;  /* fast exit */
+  if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }  /* fast exit */
 
-  /* 5. Subgradient descent with Polyak step, up to 48 iterations. */
-  for (var iter = 0; iter < 48; iter++) {
+  /* 5. Subgradient descent — two-stage iteration, adaptive step scale.
+     ─────────────────────────────────────────────────────────────────────
+     Three step-scale regimes mirror C++ run_subgradient_iters():
+
+       aggressiveTailWarm (1.75): warm + BB_bestCnt ≥ 113 + deep in DFS.
+         More overrelaxed step for fast convergence on the gap-1 tail of
+         large-N instances.  C++ condition: aggressive_tail_warm, line 1879.
+
+       warmStart (1.5): parent dual already near-optimal.
+
+       cold (1.35): density-heuristic initialisation.
+
+     Two-stage iteration mirrors C++ use_short_warm_stage (line 1941):
+       When warm + BB_bestCnt ≥ 112 + chosenDepth ≥ 4, run only the first
+       min(maxIters, 16) iterations (kWarmStartFirstStageIters = 16).
+       Continue to maxIters only when the bound after stage 1 is within
+       1.0 of the pruning threshold (kWarmStartRefineWindow = 1.0).
+       Nodes comfortably above or below the threshold skip stage 2 entirely,
+       saving ~66 % of the Lagrangian budget for clear nodes.
+
+     The adaptive lag_max_iters at the DFS call site
+       (Math.min(64, 8 + uncovPop >> 3))
+     mirrors C++ ExactGainSolver::dfs() line 1276:
+       const int lag_max_iters = std::min(64, 8 + task.active_count / 8);
+     ───────────────────────────────────────────────────────────────────── */
+  var chosenDepth        = BB_chosen ? BB_chosen.length : 0;
+  var aggressiveTailWarm = warmStart && BB_bestCnt >= 113 && chosenDepth >= 4;
+  var useShortWarmStage  = warmStart && BB_bestCnt >= 112 && chosenDepth >= 4;
+  var step_scale         = aggressiveTailWarm ? 1.75 : (warmStart ? 1.5 : 1.35);
+  var firstStageEnd      = (useShortWarmStage && maxIters > 16) ? 16 : maxIters;
+
+  /* ── Stage 1: run up to firstStageEnd iterations ── */
+  var s1AtOptimum = false;
+  for (var iter = 0; iter < firstStageEnd; iter++) {
     var val = evalLag(y, true);   /* computes val and fills sg[] */
-
     if (val < best - 1e-18) {
       best = val;
       for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
-      if (currentGain + best + 1e-9 < gainNeeded) return best;   /* tight: exit early */
+      if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }   /* tight: exit early */
     }
-
-    /* Polyak step size: (L(y) - target) / ||g||^2,
-       where target is a lower bound on the dual optimum. */
+    /* Polyak step size: (L(y) − target) / ‖g‖², target = gainNeeded − currentGain. */
     var norm2 = 0;
     for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
-    if (norm2 < 1e-20) break;   /* subgradient is zero → at optimum */
-
-    /* Overrelaxed Polyak step — mirrors C++ step_scale = 1.35 (cold start).
-       gap = L(y) − target; when gap ≤ 1e-9 the bound is already at or below
-       the pruning threshold, so exit immediately — mirrors C++:
-         if (gap <= 1e-9) return false;
-       Using step = 1.35 * gap / norm2 (no diminishing cap) matches C++
-       exactly and converges ~35 % faster than the plain Polyak step. */
+    if (norm2 < 1e-20) { s1AtOptimum = true; break; }   /* subgradient zero → at optimum */
     var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
-    if (gap <= 1e-9) break;
-    var step = 1.35 * gap / norm2;
-
-    /* Projected update: y[p] ← clamp(y[p] - step * g[p], 0, 1). */
+    if (gap <= 1e-9) { s1AtOptimum = true; break; }      /* gap closed → converged */
+    var step = step_scale * gap / norm2;
     for (var ai = 0; ai < AP; ai++) {
       var ny = y[ai] - step * sg[ai];
       y[ai] = ny < 0 ? 0 : (ny > 1 ? 1 : ny);
+    }
+  }
+
+  /* ── Stage 2: run remaining iterations only when close to the pruning
+     threshold.  Mirrors C++ use_short_warm_stage second-stage gate:
+       staged_total < gain_needed + kWarmStartRefineWindow → run remaining.
+     Skipped entirely when s1AtOptimum (dual already converged).         ── */
+  if (!s1AtOptimum && useShortWarmStage && firstStageEnd < maxIters &&
+      currentGain + best < gainNeeded + 1.0) {
+    for (var iter = firstStageEnd; iter < maxIters; iter++) {
+      var val = evalLag(y, true);
+      if (val < best - 1e-18) {
+        best = val;
+        for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
+        if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }
+      }
+      var norm2 = 0;
+      for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
+      if (norm2 < 1e-20) break;
+      var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
+      if (gap <= 1e-9) break;
+      var step = step_scale * gap / norm2;
+      for (var ai = 0; ai < AP; ai++) {
+        var ny = y[ai] - step * sg[ai];
+        y[ai] = ny < 0 ? 0 : (ny > 1 ? 1 : ny);
+      }
     }
   }
 
@@ -2824,6 +3415,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain) {
     if (polished < best) best = polished;
   }
 
+  saveDual();
   return best;
 }
 
@@ -2833,12 +3425,119 @@ var BB_nodes = 0;
 var BB_N  = 0;
 var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
+/* Persistent dual solution for Lagrangian warm-starting across DFS nodes.
+   BB_bestDual[p] holds the best dual weight y*[p] (0..1) from the most
+   recent Lagrangian evaluation.  BB_dualReady is set to true after the
+   first evaluation and cleared at the start of each new computeCover call.
+   Mirrors C++ LagrangianScratch::dual_ready / best_y[]. */
+var BB_bestDual  = null;
+var BB_dualReady = false;
+/* Branch-child upper-bound data — populated by lagrangianUpperBound() and
+   consumed by computeChildUBs() before each recursive solve() call.
+   Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
+     BB_lagBestY[p]      — best dual weight y*[p] (0..1) by global point index
+     BB_lagCandSlack[i]  — Lagrangian slack of BB_cands[i]; NaN if not productive
+     BB_ptToProdCands[p] — list of productive BB_cands indices covering point p
+     BB_lagReady         — true once the arrays above are freshly populated */
+var BB_lagBestY      = null;
+var BB_lagCandSlack  = null;
+var BB_ptToProdCands = null;
+var BB_lagReady      = false;
 /* Pre-allocated scratch arrays — avoids per-node Int32Array allocations.
    Safe to share across the recursive call stack because each caller finishes
    using these arrays before the recursive call that would overwrite them. */
 var BB_remMask     = new Int32Array(WORDS);
 var BB_overlapMask = new Int32Array(WORDS);
 var BB_sMask       = new Int32Array(WORDS);
+
+/* ── Branch-child upper bounds using cached Lagrangian dual ────────────────
+   Mirrors C++ ExactGainSolver::include_branch_upper_bound() and
+   exclude_branch_upper_bound() (primecover1024.cpp lines 2215–2286).
+
+   After the parent-node Lagrangian evaluation has run, the cached dual
+   (BB_lagBestY, BB_lagCandSlack, BB_ptToProdCands) lets us derive tighter
+   child-specific bounds in O(|branch line points| · avg productive lines per
+   point) without a full re-evaluation inside the child.
+
+   Algorithm
+   ---------
+   Exclude child — prune if bestIdx is removed:
+     excUB = nodeAbsUB − max(0, slack[branch])
+     For each uncovered point p on branch_line with residual = 1 − y*[p] > 0:
+       other productive lines L' covering p with slack[L'] ≤ residual
+       "require" p's contribution; all but the largest one will lose their
+       slack share → subtract (Σ_requiring_slack − best_requiring_slack).
+
+   Include child — prune if bestIdx is selected:
+     incBase = nodeAbsUB + min(0, slack[branch])
+     Including branch_line covers its active points, reducing the effective
+     gain of every other productive line sharing those points.
+     For each uncovered p on branch_line with residual > 0, accumulate
+       reduction[L'] += residual for every other productive L' covering p.
+     Then: incBase += Σ_L' [max(0, slack[L']−reduction[L']) − max(0, slack[L'])].
+
+   Both return absolute total-gain upper bounds (currentGain included),
+   directly comparable to gainNeed.
+   ──────────────────────────────────────────────────────────────────────────── */
+function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
+  var nodeAbsUB = currentGain + lagUB;
+  var fallback  = { excludeUB: nodeAbsUB, includeUB: nodeAbsUB };
+  if (!BB_lagReady) return fallback;
+  var branchSlack = BB_lagCandSlack[branchIdx];
+  if (isNaN(branchSlack)) return fallback;
+
+  var bc = BB_cands[branchIdx];
+
+  /* ── Exclude bound ───────────────────────────────────────────────────────── */
+  var excUB = nodeAbsUB - Math.max(0, branchSlack);
+  for (var k = 0; k < bc.indices.length; k++) {
+    var p = bc.indices[k];
+    if (workCov[p >> 5] & (1 << (p & 31))) continue;       /* already covered */
+    var residual = 1.0 - (BB_lagBestY[p] || 0);
+    if (residual <= 1e-18) continue;
+    var reqSum = 0, reqBest = 0;
+    var pLines = BB_ptToProdCands[p];
+    for (var m = 0; m < pLines.length; m++) {
+      var qi = pLines[m];
+      if (qi === branchIdx) continue;
+      var sl = BB_lagCandSlack[qi];
+      if (sl <= 1e-18 || sl > residual + 1e-18) continue;
+      reqSum += sl;
+      if (sl > reqBest) reqBest = sl;
+    }
+    excUB -= (reqSum - reqBest);
+  }
+  excUB = Math.max(currentGain, excUB);
+
+  /* ── Include bound ───────────────────────────────────────────────────────── */
+  var incBase = nodeAbsUB + Math.min(0, branchSlack);
+  var touched  = [];
+  var reductions = {};
+  for (var k = 0; k < bc.indices.length; k++) {
+    var p = bc.indices[k];
+    if (workCov[p >> 5] & (1 << (p & 31))) continue;
+    var residual = 1.0 - (BB_lagBestY[p] || 0);
+    if (residual <= 1e-18) continue;
+    var pLines = BB_ptToProdCands[p];
+    for (var m = 0; m < pLines.length; m++) {
+      var qi = pLines[m];
+      if (qi === branchIdx) continue;
+      if (!(qi in reductions)) { touched.push(qi); reductions[qi] = 0; }
+      reductions[qi] += residual;
+    }
+  }
+  var incAdj = 0;
+  for (var t = 0; t < touched.length; t++) {
+    var qi     = touched[t];
+    var oldSl  = BB_lagCandSlack[qi];
+    var newSl  = oldSl - reductions[qi];
+    incAdj    += Math.max(0, newSl) - Math.max(0, oldSl);
+    delete reductions[qi];
+  }
+  var incUB = Math.max(currentGain + (branchGain - 2), incBase + incAdj);
+
+  return { excludeUB: excUB, includeUB: incUB };
+}
 
 /* ── DFS-level forced line reduction + best-gain branching ────────────────
    Mirrors C++ ExactGainSolver::dfs() + apply_dfs_forced_line_reduction().
@@ -2932,10 +3631,14 @@ function solve(cov, avail, currentGain) {
     BB_bestSol = BB_chosen.slice();
   }
 
-  /* ── Step 3: Find best productive candidate ─────────────────────────────
+  /* ── Step 3: Find best productive candidate + build top-4 shortlist ─────
      Best = max active-coverage productive available line (mirrors C++ choose_branch
-     prior to strong branching: the max-coverage heuristic dominates static ordering). */
+     prior to strong branching: the max-coverage heuristic dominates static ordering).
+     We collect the top-4 candidates by gain in one pass to feed strong branching
+     (step 5c) without a second scan.  Shortlist is kept sorted gain-descending. */
   var bestIdx = -1, bestGain = 0, maxG = 0;
+  /* SB_shortlist: [{idx, gain}], max 4 entries, gain-descending. */
+  var SB_shortlist = [];
 
   for (var i = 0; i < BB_cands.length; i++) {
     if (!workAvail[i]) continue;
@@ -2944,6 +3647,18 @@ function solve(cov, avail, currentGain) {
     if (gi < 3) continue;   /* non-productive */
     if (gi > maxG) maxG = gi;
     if (gi > bestGain) { bestGain = gi; bestIdx = i; }
+    /* Insert into shortlist if it belongs in the top 4 by gain. */
+    if (SB_shortlist.length < 4 || gi > SB_shortlist[SB_shortlist.length - 1].gain) {
+      var entry = { idx: i, gain: gi };
+      var pos = SB_shortlist.length;
+      SB_shortlist.push(entry);
+      /* Bubble up to maintain gain-descending order (shortlist ≤ 4 items). */
+      while (pos > 0 && SB_shortlist[pos].gain > SB_shortlist[pos - 1].gain) {
+        var tmp = SB_shortlist[pos]; SB_shortlist[pos] = SB_shortlist[pos - 1]; SB_shortlist[pos - 1] = tmp;
+        pos--;
+      }
+      if (SB_shortlist.length > 4) SB_shortlist.pop();
+    }
   }
 
   if (bestIdx < 0 || maxG < 3 || uncovPop === 0) {
@@ -2964,12 +3679,167 @@ function solve(cov, avail, currentGain) {
   /* ── Step 5: Lagrangian relaxation upper bound ───────────────────────────
      Computed on the post-forced-reduction problem: fewer uncovered points and
      fewer available lines → tighter bound than the original JS which computed
-     the bound before forced reduction.                                       */
-  var lagUB    = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain);
+     the bound before forced reduction.
+
+     Adaptive iteration count mirrors C++ ExactGainSolver::dfs() line 1276:
+       const int lag_max_iters = std::min(64, 8 + task.active_count / 8);
+     Near-leaf nodes (small uncovPop) use fewer iterations; root-like nodes
+     get up to 64.  This halves per-node cost on small-residual branches
+     while giving the full budget where it counts.                          */
+  var lagMaxIters = Math.min(64, 8 + (uncovPop >> 3));
+  var lagUB       = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain, lagMaxIters);
   var gainNeed = BB_N - 2 * BB_bestCnt + 2;
   if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) {
     for (var i = 0; i < nForced; i++) BB_chosen.pop();
     return;
+  }
+
+  /* ── Step 5b: Child-specific branch upper bounds + Strong Branching ────────
+     Phase 1 (always): lightweight child caps from the cached dual.
+       Mirrors C++ include_branch_upper_bound / exclude_branch_upper_bound.
+
+     Phase 2 (conditional strong branching):
+       When the cost gap is ≤ 1 (floor(lagUB) is barely above what we need)
+       AND ≥ 64 points remain uncovered, we can pay for a full Lagrangian
+       simulation of the include branch for each of the top-4 shortlisted
+       candidates and pick the variable that maximises combined child pruning.
+       Mirrors C++ choose_branch() strong-branching path:
+         kStrongBranchShortlist = 4, kStrongBranchMaxIters = 24.            */
+
+  /* ── Phase 1: annotate shortlist with Lagrangian slack; re-sort by
+     (gain desc, slack desc) to match C++ shortlist ordering.              */
+  for (var si = 0; si < SB_shortlist.length; si++) {
+    var sli = SB_shortlist[si].idx;
+    var slk = (BB_lagReady && BB_lagCandSlack && !isNaN(BB_lagCandSlack[sli]))
+              ? Math.max(0.0, BB_lagCandSlack[sli]) : 0.0;
+    SB_shortlist[si].slack = slk;
+  }
+  /* Stable re-sort: gain desc, then slack desc. */
+  SB_shortlist.sort(function(a, b) {
+    if (b.gain !== a.gain) return b.gain - a.gain;
+    return b.slack - a.slack;
+  });
+  /* Update bestIdx/bestGain to follow the refined ordering. */
+  if (SB_shortlist.length > 0) { bestIdx = SB_shortlist[0].idx; bestGain = SB_shortlist[0].gain; }
+
+  /* Default child bounds for the (possibly re-ranked) best candidate. */
+  var childUBs = computeChildUBs(lagUB, bestIdx, bestGain, workCov, currentGain);
+
+  /* ── Phase 2: Strong branching ──────────────────────────────────────────
+     Condition: more than 1 candidate, gap ≤ 1, ≥ 64 uncovered points.    */
+  var SB_totalGainFloor = Math.floor(currentGain + lagUB + 1e-9);
+  var SB_nodeCostLb     = Math.ceil((N - SB_totalGainFloor) / 2);
+  var SB_gapCost        = BB_bestCnt - SB_nodeCostLb;
+  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64;
+
+  if (SB_useStrong) {
+    /* Pre-compute exclude UBs for the whole shortlist while Lagrangian data
+       is still intact (computeChildUBs is read-only on the cached arrays). */
+    for (var si = 0; si < SB_shortlist.length; si++) {
+      var cu = computeChildUBs(lagUB, SB_shortlist[si].idx, SB_shortlist[si].gain, workCov, currentGain);
+      SB_shortlist[si].excludeUB = cu.excludeUB;
+    }
+
+    /* Save the parent dual so we can warm-start each simulation from it
+       and restore it afterwards for the actual DFS branches.
+       Mirrors C++ save_current_dual() / restore_saved_dual().             */
+    var SB_savedDualReady    = BB_dualReady;
+    var SB_savedBestDual     = BB_bestDual     ? BB_bestDual.slice()     : null;
+    var SB_savedLagBestY     = BB_lagBestY     ? BB_lagBestY.slice()     : null;
+    var SB_savedLagCandSlack = BB_lagCandSlack ? BB_lagCandSlack.slice() : null;
+    var SB_savedLagReady     = BB_lagReady;
+
+    var SB_gainNeed       = BB_N - 2 * BB_bestCnt + 2;
+    var SB_bestPruned     = -1;
+    var SB_bestWorst      = Infinity;
+    var SB_bestTotal      = Infinity;
+
+    for (var si = 0; si < SB_shortlist.length; si++) {
+      var s     = SB_shortlist[si];
+      var delta = s.gain - 2;          /* net gain of including this line */
+
+      /* Restore parent dual before each simulation so every candidate
+         is evaluated from the same warm-start point.                    */
+      BB_dualReady = SB_savedDualReady;
+      if (SB_savedBestDual) {
+        if (!BB_bestDual || BB_bestDual.length < SB_savedBestDual.length)
+          BB_bestDual = SB_savedBestDual.slice();
+        else
+          for (var di = 0; di < SB_savedBestDual.length; di++)
+            BB_bestDual[di] = SB_savedBestDual[di];
+      }
+
+      /* Build include-branch subproblem: cover branch line's points,
+         remove branch line from availability.                           */
+      var sbCov   = new Int32Array(workCov);
+      var sbAvail = new Uint8Array(workAvail);
+      for (var w = 0; w < uw; w++) sbCov[w] |= BB_cands[s.idx].mask[w];
+      sbAvail[s.idx] = 0;
+      var simGain = currentGain + delta;
+
+      /* Full Lagrangian simulation with capped iterations (24).
+         lagrangianUpperBound returns the *additional* gain bound;
+         includeUB is the absolute total-gain upper bound for the include
+         child, directly comparable with SB_gainNeed.                    */
+      var simLagAdd  = lagrangianUpperBound(sbCov, BB_cands, sbAvail, N, uw, simGain, 24);
+      var includeUB  = simGain + simLagAdd;
+      var excludeUB  = s.excludeUB;
+
+      var incPruned  = Math.floor(includeUB + 1e-9) < SB_gainNeed ? 1 : 0;
+      var excPruned  = Math.floor(excludeUB + 1e-9) < SB_gainNeed ? 1 : 0;
+      var pruned     = incPruned + excPruned;
+      var worstChild = Math.max(includeUB, excludeUB);
+      var totalChild = includeUB + excludeUB;
+
+      /* Selection criterion mirrors C++:
+           1. Maximise pruned children (0, 1, or 2).
+           2. Minimise worst-child bound (tightest constraint on the tree).
+           3. Minimise total-child bound (combined tightness).             */
+      var better = (si === 0) ||
+                   (pruned > SB_bestPruned) ||
+                   (pruned === SB_bestPruned && worstChild + 1e-9 < SB_bestWorst) ||
+                   (pruned === SB_bestPruned &&
+                    Math.abs(worstChild - SB_bestWorst) <= 1e-9 &&
+                    totalChild + 1e-9 < SB_bestTotal);
+
+      if (better) {
+        SB_bestPruned = pruned;
+        SB_bestWorst  = worstChild;
+        SB_bestTotal  = totalChild;
+        bestIdx       = s.idx;
+        bestGain      = s.gain;
+        /* childUBs for the winning candidate.  includeUB here is the full
+           Lagrangian simulation result; excludeUB is the lightweight cap. */
+        childUBs      = { includeUB: includeUB, excludeUB: excludeUB };
+      }
+    }
+
+    /* Restore parent Lagrangian state so the recursive DFS calls in step 6
+       warm-start from the parent's dual rather than from the last simulation.
+       Mirrors C++ restore_parent_lagrangian_view().                        */
+    BB_dualReady = SB_savedDualReady;
+    if (SB_savedBestDual) {
+      if (!BB_bestDual || BB_bestDual.length < SB_savedBestDual.length)
+        BB_bestDual = SB_savedBestDual.slice();
+      else
+        for (var di = 0; di < SB_savedBestDual.length; di++)
+          BB_bestDual[di] = SB_savedBestDual[di];
+    }
+    if (SB_savedLagBestY) {
+      if (!BB_lagBestY || BB_lagBestY.length < SB_savedLagBestY.length)
+        BB_lagBestY = SB_savedLagBestY.slice();
+      else
+        for (var di = 0; di < SB_savedLagBestY.length; di++)
+          BB_lagBestY[di] = SB_savedLagBestY[di];
+    }
+    if (SB_savedLagCandSlack) {
+      if (!BB_lagCandSlack || BB_lagCandSlack.length < SB_savedLagCandSlack.length)
+        BB_lagCandSlack = SB_savedLagCandSlack.slice();
+      else
+        for (var di = 0; di < SB_savedLagCandSlack.length; di++)
+          BB_lagCandSlack[di] = SB_savedLagCandSlack[di];
+    }
+    BB_lagReady = SB_savedLagReady;
   }
 
   /* ── Step 6: Branch on bestIdx ───────────────────────────────────────────
@@ -2981,8 +3851,8 @@ function solve(cov, avail, currentGain) {
   var branchC    = BB_cands[bestIdx];
   var branchGain = bestGain;
 
-  /* Branch A — Include */
-  if (branchGain >= 3) {
+  /* Branch A — Include (also pruned by the tighter include-child bound) */
+  if (branchGain >= 3 && Math.floor(childUBs.includeUB + 1e-9) >= gainNeed) {
     var nxtCov   = new Int32Array(workCov);
     var nxtAvail = new Uint8Array(workAvail);
     for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
@@ -2992,8 +3862,8 @@ function solve(cov, avail, currentGain) {
     BB_chosen.pop();
   }
 
-  /* Branch B — Exclude */
-  {
+  /* Branch B — Exclude (also pruned by the tighter exclude-child bound) */
+  if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     var nxtAvail = new Uint8Array(workAvail);
     nxtAvail[bestIdx] = 0;
     solve(workCov, nxtAvail, currentGain);
@@ -3004,17 +3874,227 @@ function solve(cov, avail, currentGain) {
 }
 
 /* ── Main entry ─────────────────────────────────────────────────────────── */
+/* -- Incremental witness-cover shortcut ------------------------------------
+   Mirrors the C++ sweep's W mode: after an exact solve, keep a full cover as
+   a witness for future N. If the next prime already lies on one of those
+   lines, f(N) cannot increase, so the worker can return the realised witness
+   immediately without rebuilding heavy-line candidates or entering DFS.
+
+   The C++ build_witness_cover() also chooses residual pair-lines with a
+   greedy look-ahead over future primes. This port does the same up to 1024,
+   which is the visualizer's maximum N. */
+var WITNESS_MAX_N = 1024;
+var WORKER_WITNESS = null;
+var WORKER_LAST_N = 0;
+var WORKER_FUTURE_PRIMES = null;
+
+function isPrimeForWitness(n) {
+  if (n < 2) return false;
+  if (n === 2) return true;
+  if ((n & 1) === 0) return false;
+  for (var d = 3; d * d <= n; d += 2) if (n % d === 0) return false;
+  return true;
+}
+
+function getWitnessPrimes(limit) {
+  if (WORKER_FUTURE_PRIMES && WORKER_FUTURE_PRIMES.length >= limit) return WORKER_FUTURE_PRIMES;
+  var out = [];
+  var candidate = 2;
+  while (out.length < limit) {
+    if (isPrimeForWitness(candidate)) out.push(candidate);
+    candidate++;
+  }
+  WORKER_FUTURE_PRIMES = out;
+  return out;
+}
+
+function canonicalWitnessLine(i, j, primes) {
+  var a = primes[i] - primes[j];
+  var b = j - i;
+  var c = -(a * i + b * primes[i]);
+  var g = gcd(gcd(Math.abs(a), Math.abs(b)), Math.abs(c));
+  if (g) { a /= g; b /= g; c /= g; }
+  if (a < 0 || (a === 0 && b < 0)) { a = -a; b = -b; c = -c; }
+  return {
+    a: a, b: b, c: c,
+    p1: { x: i, y: primes[i] },
+    p2: { x: j, y: primes[j] }
+  };
+}
+
+function witnessLineContains(line, x, y) {
+  if (line.singleIndex !== undefined) return x === line.singleIndex;
+  return line.a * x + line.b * y + line.c === 0;
+}
+
+function buildWitnessCover(N, primes, selectedHeavyLines) {
+  var futureEnd = Math.max(N, WITNESS_MAX_N);
+  var futurePrimes = getWitnessPrimes(futureEnd).slice(0, futureEnd);
+  for (var p = 0; p < N; p++) futurePrimes[p] = primes[p];
+
+  var witness = { baseN: N, lines: [] };
+  var covered = new Uint8Array(N);
+
+  for (var h = 0; h < selectedHeavyLines.length; h++) {
+    var heavy = selectedHeavyLines[h];
+    if (!heavy.indices || heavy.indices.length < 2) continue;
+    witness.lines.push(canonicalWitnessLine(heavy.indices[0], heavy.indices[1], futurePrimes));
+    for (var k = 0; k < heavy.indices.length; k++) {
+      var hp = heavy.indices[k];
+      if (hp < N) covered[hp] = 1;
+    }
+  }
+
+  var residual = [];
+  for (var r = 0; r < N; r++) if (!covered[r]) residual.push(r);
+
+  function pushResidualPairs(available) {
+    var pending = -1;
+    for (var i = 0; i < residual.length; i++) {
+      if (available && !available[i]) continue;
+      var p = residual[i];
+      if (pending < 0) { pending = p; continue; }
+      witness.lines.push(canonicalWitnessLine(pending, p, futurePrimes));
+      pending = -1;
+    }
+    if (pending >= 0) witness.lines.push({ singleIndex: pending });
+  }
+
+  if (futureEnd > N && residual.length >= 2) {
+    var available = new Uint8Array(residual.length);
+    for (var ai = 0; ai < available.length; ai++) available[ai] = 1;
+    var futureCovered = new Uint8Array(futureEnd);
+
+    function updateFutureCovered(line) {
+      for (var t = N; t < futureEnd; t++) {
+        if (!futureCovered[t] && witnessLineContains(line, t, futurePrimes[t])) futureCovered[t] = 1;
+      }
+    }
+
+    for (var wi = 0; wi < witness.lines.length; wi++) updateFutureCovered(witness.lines[wi]);
+
+    while (true) {
+      var nextMiss = -1;
+      for (var t = N; t < futureEnd; t++) {
+        if (!futureCovered[t]) { nextMiss = t; break; }
+      }
+      if (nextMiss < 0) break;
+
+      var bestI = -1, bestJ = -1, bestReach = -1, bestHits = -1, bestLine = null;
+      for (var i = 0; i < residual.length; i++) {
+        if (!available[i]) continue;
+        for (var j = i + 1; j < residual.length; j++) {
+          if (!available[j]) continue;
+          var candidate = canonicalWitnessLine(residual[i], residual[j], futurePrimes);
+          if (!witnessLineContains(candidate, nextMiss, futurePrimes[nextMiss])) continue;
+
+          var reach = 0;
+          for (var rt = nextMiss; rt < futureEnd; rt++) {
+            if (futureCovered[rt] || witnessLineContains(candidate, rt, futurePrimes[rt])) reach++;
+            else break;
+          }
+
+          var hits = 0;
+          for (var ht = nextMiss; ht < futureEnd; ht++) {
+            if (!futureCovered[ht] && witnessLineContains(candidate, ht, futurePrimes[ht])) hits++;
+          }
+
+          var better = (reach > bestReach) ||
+                       (reach === bestReach && hits > bestHits) ||
+                       (reach === bestReach && hits === bestHits &&
+                        (bestI < 0 || residual[i] < residual[bestI] ||
+                         (residual[i] === residual[bestI] && residual[j] < residual[bestJ])));
+          if (better) {
+            bestI = i; bestJ = j; bestReach = reach; bestHits = hits; bestLine = candidate;
+          }
+        }
+      }
+
+      if (bestI < 0) break;
+      available[bestI] = 0;
+      available[bestJ] = 0;
+      witness.lines.push(bestLine);
+      updateFutureCovered(bestLine);
+    }
+
+    pushResidualPairs(available);
+    return witness;
+  }
+
+  pushResidualPairs(null);
+  return witness;
+}
+
+function realiseWitnessCover(witness, N, primes) {
+  var lines = [];
+  var heavyIndex = 0;
+  for (var i = 0; i < witness.lines.length; i++) {
+    var wl = witness.lines[i];
+    var idxs = [];
+    if (wl.singleIndex !== undefined) {
+      if (wl.singleIndex < N) idxs.push(wl.singleIndex);
+    } else {
+      for (var p = 0; p < N; p++) {
+        if (witnessLineContains(wl, p, primes[p])) idxs.push(p);
+      }
+    }
+    if (idxs.length === 0) continue;
+
+    if (idxs.length === 1) {
+      var sp = idxs[0];
+      lines.push({
+        indices: [sp],
+        p1: { x: sp - 0.5, y: primes[sp] },
+        p2: { x: sp + 0.5, y: primes[sp] },
+        isHeavy: false,
+        singlePoint: true
+      });
+      continue;
+    }
+
+    var isHeavy = idxs.length >= 3;
+    lines.push({
+      indices: idxs,
+      p1: wl.p1,
+      p2: wl.p2,
+      isHeavy: isHeavy,
+      heavyIndex: isHeavy ? heavyIndex++ : undefined
+    });
+  }
+  return { lines: lines, mode: 'W' };
+}
+
+function tryWitnessCover(primes) {
+  var N = primes.length;
+  if (!WORKER_WITNESS || N !== WORKER_LAST_N + 1) return null;
+  var x = N - 1, y = primes[x];
+  for (var i = 0; i < WORKER_WITNESS.lines.length; i++) {
+    if (witnessLineContains(WORKER_WITNESS.lines[i], x, y)) {
+      WORKER_LAST_N = N;
+      return realiseWitnessCover(WORKER_WITNESS, N, primes);
+    }
+  }
+  return null;
+}
+
 function computeCover(primes) {
   var N = primes.length;
   BB_N = N;
-  if (N === 0) return { lines: [], pointHues: [] };
+  if (N === 0) {
+    WORKER_WITNESS = null;
+    WORKER_LAST_N = 0;
+    return { lines: [], pointHues: [] };
+  }
 
   if (N === 1) {
     var p0 = primes[0];
-    return {
+    var singleResult = {
       lines: [{ indices: [0], p1: { x: 0, y: p0 }, p2: { x: 1, y: p0 }, singlePoint: true }],
       pointHues: []
     };
+    WORKER_WITNESS = buildWitnessCover(N, primes, []);
+    WORKER_LAST_N = N;
+    return singleResult;
   }
 
   /* Number of 32-bit words actually needed for N bits.
@@ -3055,6 +4135,12 @@ function computeCover(primes) {
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
+    /* Clear the persistent dual warm-start state so the first Lagrangian
+       evaluation at this N cold-starts from the density heuristic rather
+       than carrying over a stale dual from the previous N.
+       Mirrors C++ initial_dual_seed_ready_ = false at the top of solve_for_n(). */
+    BB_dualReady = false;
+    BB_lagReady  = false;
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
@@ -3062,6 +4148,8 @@ function computeCover(primes) {
     bestSol = BB_bestSol;
   }
 
+  WORKER_WITNESS = buildWitnessCover(N, primes, bestSol);
+  WORKER_LAST_N = N;
   return finalise(N, primes, bestSol);
 }
 
@@ -3106,7 +4194,9 @@ function finalise(N, primes, sol) {
 }
 
 self.onmessage = function(e) {
-  var result = computeCover(e.data.primes);
+  var primes = e.data.primes || [];
+  var witnessResult = tryWitnessCover(primes);
+  var result = witnessResult || computeCover(primes);
   self.postMessage(result);
 };
 `;
@@ -3994,151 +5084,171 @@ function tutCopy(btn, text) {
 </script>
 
 <script>
-/* ── Step 3 path editor ────────────────────────────────────────────────── */
+/* ── Windows/WSL step-3 path editor — paste-to-set ─────────────────────────
+   Accepts:
+     • Windows native:  C:\Users\you\Downloads\primecover1024.cpp  (or folder)
+     • WSL path:        /mnt/c/Users/you/Downloads/
+   The file name is stripped and controlled separately by the variant toggle.
+   Paths with spaces are automatically single-quoted in the shell command.
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  /* Default path segments: first is always the Windows drive letter ("C:"),
-     the rest are folder names the user can edit freely.                    */
-  var segs     = ['C:', 'path', 'to'];
+  var dirPath  = '/mnt/c/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  /* Build the WSL path from current segments */
-  function wslPath() {
-    var drive = (segs[0] || 'C').replace(':', '').toLowerCase() || 'c';
-    var rest  = segs.slice(1).filter(function (s) { return s.trim() !== ''; });
-    return '/mnt/' + drive + '/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  /* Wraps in single quotes if the path contains any character that the shell
+     would interpret (space, $, &, (, ), etc.). Single quotes are safe for
+     all characters except a literal single-quote, which is vanishingly rare
+     in file paths and not worth the extra escaping complexity.               */
+  function shellQuote(s) {
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(s) ? "'" + s + "'" : s;
   }
 
-  /* Build the full shell command */
+  /* ── Path parser ────────────────────────────────────────── */
+  function parseWindowsInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Case 1 — Windows native: C:\...  or  C:/...  */
+    if (/^[A-Za-z]:[\\\/]/.test(raw)) {
+      var drive = raw[0].toLowerCase();
+      /* Slice past "C:", normalise all separators to forward-slash */
+      var body  = raw.slice(2).replace(/\\/g, '/');
+      /* Strip the leading slash (always present after normalising "C:\") */
+      if (body.charAt(0) === '/') body = body.slice(1);
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      /* If the last segment looks like a filename, drop it */
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '/mnt/' + drive + '/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, label: 'Windows path → ' + dir };
+    }
+
+    /* Case 2 — WSL path: /mnt/<letter>/...  */
+    if (/^\/mnt\/[a-z]\//i.test(raw)) {
+      var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '/' + parts.join('/') + '/';
+      return { dir: dir, label: 'WSL path → ' + dir };
+    }
+
+    return null;
+  }
+
+  /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
-    return 'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
+    var src = shellQuote(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
   }
 
-  /* Update the <pre> display to reflect current path */
   function syncPre() {
     var pre = document.getElementById('step3-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + wslPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  /* Re-render the segment chips inside #path-segs */
-  function renderSegs() {
-    var container = document.getElementById('path-segs');
-    if (!container) return;
-    container.innerHTML = '';
+  /* ── Wire up input ──────────────────────────────────────── */
+  var inp    = document.getElementById('step3-paste-input');
+  var status = document.getElementById('step3-paste-status');
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+  function handleInput() {
+    var raw    = inp ? inp.value : '';
+    var result = parseWindowsInput(raw);
 
-      /* Slash separator between segments */
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
+    if (!raw.trim()) {
+      dirPath = '/mnt/c/path/to/';
+      if (inp) inp.classList.remove('pe-error');
+      status.className    = 'path-paste-status pe-hint';
+      status.textContent  = 'Works with Windows paths (C:\\…) and WSL paths (/mnt/c/…)';
+      syncPre();
+      return;
+    }
 
-      /* Editable input */
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
+    if (result) {
+      dirPath = result.dir;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
+      syncPre();
+    } else {
+      /* Leave dirPath unchanged so the pre stays valid */
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected a Windows path (C:\\…) or WSL path (/mnt/c/…)';
+    }
+  }
 
-      /* Live-resize and sync */
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-
-      wrap.appendChild(inp);
-
-      /* Remove button — only on non-drive segments */
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
+  /* Support typing, paste via keyboard, and drag-and-drop of path strings */
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
     });
   }
 
-  /* Toggle the editor open / closed */
+  /* ── Toggle editor open/closed ──────────────────────────── */
   var editBtn = document.getElementById('step3-edit-btn');
   var editor  = document.getElementById('step3-path-editor');
 
-  editBtn.addEventListener('click', function () {
-    var isOpen = editor.classList.contains('open');
-    if (isOpen) {
-      editor.classList.remove('open');
-      editBtn.classList.remove('active');
-    } else {
-      renderSegs();
-      editor.classList.add('open');
-      editBtn.classList.add('active');
-    }
-  });
-
-  /* Add a new folder segment */
-  document.getElementById('step3-add-seg').addEventListener('click', function () {
-    segs.push('folder');
-    renderSegs();
-    syncPre();
-    /* Auto-focus + select the new input */
-    var inputs = document.querySelectorAll('#path-segs .path-seg-input');
-    if (inputs.length) {
-      var last = inputs[inputs.length - 1];
-      last.focus();
-      last.select();
-    }
-  });
-
-  /* Done button closes the editor */
-  document.getElementById('step3-done').addEventListener('click', function () {
-    editor.classList.remove('open');
-    editBtn.classList.remove('active');
-  });
-
-  /* File-variant toggle */
-  document.getElementById('step3-file-primary').addEventListener('click', function () {
-    fileName = 'primecover1024.cpp';
-    document.getElementById('step3-file-primary').classList.add('active');
-    document.getElementById('step3-file-variant').classList.remove('active');
-    syncPre();
-  });
-  document.getElementById('step3-file-variant').addEventListener('click', function () {
-    fileName = 'primecover1024_line_coordinates.cpp';
-    document.getElementById('step3-file-variant').classList.add('active');
-    document.getElementById('step3-file-primary').classList.remove('active');
-    syncPre();
-  });
-
-  /* Copy button wired to the live command */
-  document.getElementById('step3-copy-btn').addEventListener('click', function () {
-    var btn = this;
-    navigator.clipboard.writeText(buildCmd()).then(function () {
-      btn.classList.add('co-copy-ok');
-      setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      var isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        editBtn.classList.remove('active');
+      } else {
+        editor.classList.add('open');
+        editBtn.classList.add('active');
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
+      }
     });
-  });
+  }
+
+  /* ── Done ───────────────────────────────────────────────── */
+  var doneBtn = document.getElementById('step3-done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      editor.classList.remove('open');
+      if (editBtn) editBtn.classList.remove('active');
+    });
+  }
+
+  /* ── File-variant toggle ────────────────────────────────── */
+  var filePrimary = document.getElementById('step3-file-primary');
+  var fileVariant = document.getElementById('step3-file-variant');
+  if (filePrimary) {
+    filePrimary.addEventListener('click', function () {
+      fileName = 'primecover1024.cpp';
+      filePrimary.classList.add('active');
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+  if (fileVariant) {
+    fileVariant.addEventListener('click', function () {
+      fileName = 'primecover1024_line_coordinates.cpp';
+      fileVariant.classList.add('active');
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+
+  /* ── Copy ───────────────────────────────────────────────── */
+  var copyBtn = document.getElementById('step3-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var btn = this;
+      navigator.clipboard.writeText(buildCmd()).then(function () {
+        btn.classList.add('co-copy-ok');
+        setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+      });
+    });
+  }
 })();
 </script>
 <script>
@@ -4154,96 +5264,130 @@ function switchOS(os) {
     tab.classList.toggle('active', active);
   });
 }
+
+function switchDistro(distro) {
+  var distros = ['ubuntu', 'arch', 'fedora'];
+  distros.forEach(function (d) {
+    var panel   = document.getElementById('distro-panel-' + d);
+    var panel3  = document.getElementById('distro-panel-' + d + '-step3');
+    var tab     = document.getElementById('distro-tab-' + d);
+    if (!tab) return;
+    var active = (d === distro);
+    if (panel)  panel.classList.toggle('active', active);
+    if (panel3) panel3.classList.toggle('active', active);
+    tab.classList.toggle('active', active);
+  });
+}
 </script>
 
 <script>
-/* ── Linux step-3 path editor ───────────────────────────────────────────── */
+/* ── Linux step-3 path editor — paste-to-set ───────────────────────────────
+   Accepts:
+     • Absolute paths:     /home/you/Downloads/primecover1024.cpp  (or folder)
+     • Tilde-home paths:   ~/Downloads/  or  ~/Downloads/primecover1024.cpp
+   Paths with spaces are single-quoted in the generated shell command.
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  /* Default path segments: username + folder names the user can edit. */
-  var segs     = ['username', 'path', 'to'];
+  var dirPath  = '/home/username/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  /* Build the Linux /home path from current segments */
-  function linuxPath() {
-    var rest = segs.filter(function (s) { return s.trim() !== ''; });
-    return '/home/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  /* Tilde paths (~/…) must NOT be wrapped in single quotes because the shell
+     expands ~ before quoting, and single-quoting suppresses that expansion.
+     Instead, we keep ~ unquoted and double-quote only the suffix when it
+     contains shell-special characters (spaces, $, &, etc.).
+     Absolute paths (/…) are safe to single-quote in full.               */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);                         /* strip leading ~/ */
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    /* Absolute path — single-quote protects all chars (no variable expansion) */
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
   }
 
-  /* Build the full shell command */
+  /* ── Path parser ────────────────────────────────────────── */
+  function parseLinuxInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Tilde shorthand — require ~ alone OR ~/  (not ~username) */
+    if (/^~($|[\/\\])/.test(raw)) {
+      var body  = raw.slice(1).replace(/\\/g, '/');        /* '/Downloads/...' or '' */
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, label: 'Home path → ' + dir };
+    }
+
+    /* Absolute path — must start with / */
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+    if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, label: 'Linux path → ' + dir };
+  }
+
+  /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
-    return 'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
+    var src = shellSafePath(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
   }
 
-  /* Update the <pre> display */
   function syncPre() {
     var pre = document.getElementById('step3-linux-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + linuxPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  /* Re-render segment chips */
-  function renderSegs() {
-    var container = document.getElementById('path-segs-linux');
-    if (!container) return;
-    container.innerHTML = '';
+  /* ── Wire up input ──────────────────────────────────────── */
+  var inp    = document.getElementById('step3-linux-paste-input');
+  var status = document.getElementById('step3-linux-paste-status');
 
-    /* Static /home/ prefix label */
-    var prefix = document.createElement('span');
-    prefix.className = 'path-sep';
-    prefix.textContent = '/home/';
-    container.appendChild(prefix);
+  function handleInput() {
+    var raw    = inp ? inp.value : '';
+    var result = parseLinuxInput(raw);
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+    if (!raw.trim()) {
+      dirPath = '/home/username/path/to/';
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path (/home/…) or ~/…';
+      syncPre();
+      return;
+    }
 
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
+    if (result) {
+      dirPath = result.dir;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
+      syncPre();
+    } else {
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected an absolute path (/home/…) or ~/…';
+    }
+  }
 
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-      wrap.appendChild(inp);
-
-      /* Remove button — only on non-username segments */
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
     });
   }
 
-  /* Toggle editor open/closed */
+  /* ── Toggle editor open/closed ──────────────────────────── */
   var editBtn = document.getElementById('step3-linux-edit-btn');
   var editor  = document.getElementById('step3-linux-path-editor');
   if (editBtn) {
@@ -4253,35 +5397,23 @@ function switchOS(os) {
         editor.classList.remove('open');
         editBtn.classList.remove('active');
       } else {
-        renderSegs();
         editor.classList.add('open');
         editBtn.classList.add('active');
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
       }
     });
   }
 
-  /* Add folder segment */
-  var addBtn = document.getElementById('step3-linux-add-seg');
-  if (addBtn) {
-    addBtn.addEventListener('click', function () {
-      segs.push('folder');
-      renderSegs();
-      syncPre();
-      var inputs = document.querySelectorAll('#path-segs-linux .path-seg-input');
-      if (inputs.length) { var last = inputs[inputs.length - 1]; last.focus(); last.select(); }
-    });
-  }
-
-  /* Done button */
+  /* ── Done ───────────────────────────────────────────────── */
   var doneBtn = document.getElementById('step3-linux-done');
   if (doneBtn) {
     doneBtn.addEventListener('click', function () {
       editor.classList.remove('open');
-      editBtn.classList.remove('active');
+      if (editBtn) editBtn.classList.remove('active');
     });
   }
 
-  /* Copy button */
+  /* ── Copy ───────────────────────────────────────────────── */
   var copyBtn = document.getElementById('step3-linux-copy-btn');
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
@@ -4293,40 +5425,78 @@ function switchOS(os) {
     });
   }
 
-  /* File-variant toggle */
+  /* ── File-variant toggle ────────────────────────────────── */
   var filePrimary = document.getElementById('step3-linux-file-primary');
   var fileVariant = document.getElementById('step3-linux-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
-      fileVariant.classList.remove('active');
-      syncPre();
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
   if (fileVariant) {
     fileVariant.addEventListener('click', function () {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
-      filePrimary.classList.remove('active');
-      syncPre();
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
 })();
 </script>
 <script>
-/* ── Mac step-3 path editor ─────────────────────────────────────────────── */
+/* ── Mac step-3 path editor — paste-to-set ──────────────────────────────────
+   Accepts:
+     • Absolute Unix paths:  /Users/you/Downloads/
+     • Tilde paths:          ~/Downloads/
+   ─────────────────────────────────────────────────────────────────────────── */
 (function () {
-  var segs     = ['username', 'path', 'to'];
+  var dirPath  = '/Users/username/path/to/';
   var fileName = 'primecover1024.cpp';
 
-  function macPath() {
-    var rest = segs.filter(function (s) { return s.trim() !== ''; });
-    return '/Users/' + (rest.length ? rest.join('/') + '/' : '') + fileName;
+  function parseMacInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Tilde shorthand — require ~ alone OR ~/ (not ~username expansion) */
+    if (/^~($|[\/\\])/.test(raw)) {
+      var rest  = raw.slice(1).replace(/\\/g, '/');
+      if (!rest || rest === '/') rest = '/';
+      var parts = rest.split('/').filter(function(p){ return p.length > 0; });
+      if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, kind: 'Home-relative path' };
+    }
+
+    /* Absolute path */
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function(p){ return p.length > 0; });
+    if (parts.length && /\.[^.]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, kind: 'Mac path' };
+  }
+
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  /* Same tilde-aware strategy as the Linux tool: never single-quote a ~/…
+     path (tilde expansion would be suppressed); double-quote only the suffix
+     when it contains shell-special chars. Absolute paths are single-quoted. */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);                         /* strip leading ~/ */
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
   }
 
   function buildCmd() {
-    return 'cp ' + macPath() + ' ~/primecover.cpp && \\\n'
+    var src = shellSafePath(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
          + '  primecover.cpp -o primecover && \\\n'
          + './primecover';
@@ -4334,63 +5504,46 @@ function switchOS(os) {
 
   function syncPre() {
     var pre = document.getElementById('step3-mac-pre');
-    if (!pre) return;
-    pre.textContent =
-        'cp ' + macPath() + ' ~/primecover.cpp && \\\n'
-      + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-      + '  primecover.cpp -o primecover && \\\n'
-      + './primecover';
+    if (pre) pre.textContent = buildCmd();
   }
 
-  function renderSegs() {
-    var container = document.getElementById('path-segs-mac');
-    if (!container) return;
-    container.innerHTML = '';
+  var inp    = document.getElementById('step3-mac-paste-input');
+  var status = document.getElementById('step3-mac-paste-status');
 
-    var prefix = document.createElement('span');
-    prefix.className = 'path-sep';
-    prefix.textContent = '/Users/';
-    container.appendChild(prefix);
+  function handleInput() {
+    var raw    = inp.value;
+    var result = parseMacInput(raw);
 
-    segs.forEach(function (seg, i) {
-      var wrap = document.createElement('div');
-      wrap.className = 'path-seg-wrap';
+    if (!raw.trim()) {
+      dirPath = '/Users/username/path/to/';
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path (/Users/…) or ~/…';
+      syncPre();
+      return;
+    }
 
-      if (i > 0) {
-        var sep = document.createElement('span');
-        sep.className = 'path-sep';
-        sep.textContent = '/';
-        wrap.appendChild(sep);
-      }
+    if (result) {
+      dirPath = result.dir;
+      inp.classList.remove('pe-error');
+      status.className = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.kind + ' → ' + result.dir + fileName;
+      syncPre();
+    } else {
+      inp.classList.add('pe-error');
+      status.className = 'path-paste-status pe-err';
+      status.textContent = 'Use an absolute path (/Users/…) or ~/…';
+    }
+  }
 
-      var inp = document.createElement('input');
-      inp.className  = 'path-seg-input';
-      inp.type       = 'text';
-      inp.value      = seg;
-      inp.style.width = Math.max(32, seg.length * 7.5 + 14) + 'px';
-      inp.setAttribute('spellcheck', 'false');
-      inp.setAttribute('autocomplete', 'off');
-      inp.addEventListener('input', function () {
-        segs[i] = this.value;
-        this.style.width = Math.max(32, this.value.length * 7.5 + 14) + 'px';
-        syncPre();
-      });
-      wrap.appendChild(inp);
-
-      if (i > 0) {
-        var rm = document.createElement('button');
-        rm.className = 'path-seg-rm';
-        rm.title     = 'Remove folder';
-        rm.innerHTML = '&times;';
-        rm.addEventListener('click', function () {
-          segs.splice(i, 1);
-          renderSegs();
-          syncPre();
-        });
-        wrap.appendChild(rm);
-      }
-
-      container.appendChild(wrap);
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function() { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
     });
   }
 
@@ -4403,21 +5556,10 @@ function switchOS(os) {
         editor.classList.remove('open');
         editBtn.classList.remove('active');
       } else {
-        renderSegs();
         editor.classList.add('open');
         editBtn.classList.add('active');
+        if (inp) setTimeout(function(){ inp.focus(); inp.select(); }, 50);
       }
-    });
-  }
-
-  var addBtn = document.getElementById('step3-mac-add-seg');
-  if (addBtn) {
-    addBtn.addEventListener('click', function () {
-      segs.push('folder');
-      renderSegs();
-      syncPre();
-      var inputs = document.querySelectorAll('#path-segs-mac .path-seg-input');
-      if (inputs.length) { var last = inputs[inputs.length - 1]; last.focus(); last.select(); }
     });
   }
 
@@ -4446,16 +5588,329 @@ function switchOS(os) {
     filePrimary.addEventListener('click', function () {
       fileName = 'primecover1024.cpp';
       filePrimary.classList.add('active');
-      fileVariant.classList.remove('active');
-      syncPre();
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
   if (fileVariant) {
     fileVariant.addEventListener('click', function () {
       fileName = 'primecover1024_line_coordinates.cpp';
       fileVariant.classList.add('active');
-      filePrimary.classList.remove('active');
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+})();
+</script>
+<script>
+/* ── Arch/Manjaro step-3 path editor — paste-to-set ────────────────────────
+   Identical logic to the Ubuntu block; only differences are the element IDs
+   and the compiler binary (g++ instead of g++-14).
+   ─────────────────────────────────────────────────────────────────────────── */
+(function () {
+  var dirPath  = '/home/username/path/to/';
+  var fileName = 'primecover1024.cpp';
+
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
+  }
+
+  /* ── Path parser ────────────────────────────────────────── */
+  function parseLinuxInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    /* Tilde shorthand — require ~ alone OR ~/ (not ~username) */
+    if (/^~($|[\/\\])/.test(raw)) {
+      var body  = raw.slice(1).replace(/\\/g, '/');
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, label: 'Home path → ' + dir };
+    }
+
+    /* Absolute path — must start with / */
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+    if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, label: 'Linux path → ' + dir };
+  }
+
+  /* ── Command builder (Arch uses g++, not g++-14) ────────── */
+  function buildCmd() {
+    var src = shellSafePath(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+         + 'g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+         + '  primecover.cpp -o primecover && \\\n'
+         + './primecover';
+  }
+
+  function syncPre() {
+    var pre = document.getElementById('step3-arch-pre');
+    if (pre) pre.textContent = buildCmd();
+  }
+
+  /* ── Wire up input ──────────────────────────────────────── */
+  var inp    = document.getElementById('step3-arch-paste-input');
+  var status = document.getElementById('step3-arch-paste-status');
+
+  function handleInput() {
+    var raw    = inp ? inp.value : '';
+    var result = parseLinuxInput(raw);
+
+    if (!raw.trim()) {
+      dirPath = '/home/username/path/to/';
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path (/home/…) or ~/…';
       syncPre();
+      return;
+    }
+
+    if (result) {
+      dirPath = result.dir;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
+      syncPre();
+    } else {
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected an absolute path (/home/…) or ~/…';
+    }
+  }
+
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
+    });
+  }
+
+  /* ── Toggle editor open/closed ──────────────────────────── */
+  var editBtn = document.getElementById('step3-arch-edit-btn');
+  var editor  = document.getElementById('step3-arch-path-editor');
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      var isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        editBtn.classList.remove('active');
+      } else {
+        editor.classList.add('open');
+        editBtn.classList.add('active');
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
+      }
+    });
+  }
+
+  /* ── Done ───────────────────────────────────────────────── */
+  var doneBtn = document.getElementById('step3-arch-done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      editor.classList.remove('open');
+      if (editBtn) editBtn.classList.remove('active');
+    });
+  }
+
+  /* ── Copy ───────────────────────────────────────────────── */
+  var copyBtn = document.getElementById('step3-arch-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var btn = this;
+      navigator.clipboard.writeText(buildCmd()).then(function () {
+        btn.classList.add('co-copy-ok');
+        setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+      });
+    });
+  }
+
+  /* ── File-variant toggle ────────────────────────────────── */
+  var filePrimary = document.getElementById('step3-arch-file-primary');
+  var fileVariant = document.getElementById('step3-arch-file-variant');
+  if (filePrimary) {
+    filePrimary.addEventListener('click', function () {
+      fileName = 'primecover1024.cpp';
+      filePrimary.classList.add('active');
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+  if (fileVariant) {
+    fileVariant.addEventListener('click', function () {
+      fileName = 'primecover1024_line_coordinates.cpp';
+      fileVariant.classList.add('active');
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+})();
+</script>
+<script>
+/* ── Fedora/RHEL step-3 path editor — paste-to-set ─────────────────────────
+   Identical logic to the Arch block; only the element IDs differ.
+   ─────────────────────────────────────────────────────────────────────────── */
+(function () {
+  var dirPath  = '/home/username/path/to/';
+  var fileName = 'primecover1024.cpp';
+
+  /* ── Shell-safe quoting ─────────────────────────────────── */
+  function shellSafePath(fullPath) {
+    if (fullPath.charAt(0) === '~') {
+      var rest = fullPath.slice(2);
+      if (/[ \t\$&()*;<>?`{|}!#"\\]/.test(rest)) {
+        return '~/"' + rest.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
+      }
+      return '~/' + rest;
+    }
+    return /[ \t\$&()*;<>?`{|}~!#]/.test(fullPath) ? "'" + fullPath + "'" : fullPath;
+  }
+
+  /* ── Path parser ────────────────────────────────────────── */
+  function parseLinuxInput(raw) {
+    raw = (raw || '').trim();
+    if (!raw) return null;
+
+    if (/^~($|[\/\\])/.test(raw)) {
+      var body  = raw.slice(1).replace(/\\/g, '/');
+      var parts = body.split('/').filter(function (p) { return p.length > 0; });
+      if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+      var dir = '~/' + (parts.length ? parts.join('/') + '/' : '');
+      return { dir: dir, label: 'Home path → ' + dir };
+    }
+
+    if (!raw.startsWith('/')) return null;
+
+    var parts = raw.split('/').filter(function (p) { return p.length > 0; });
+    if (parts.length && /\.[^./\\]+$/.test(parts[parts.length - 1])) parts.pop();
+    var dir = '/' + parts.join('/') + '/';
+    return { dir: dir, label: 'Linux path → ' + dir };
+  }
+
+  /* ── Command builder (Fedora uses g++, not g++-14) ──────── */
+  function buildCmd() {
+    var src = shellSafePath(dirPath + fileName);
+    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+         + 'g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
+         + '  primecover.cpp -o primecover && \\\n'
+         + './primecover';
+  }
+
+  function syncPre() {
+    var pre = document.getElementById('step3-fedora-pre');
+    if (pre) pre.textContent = buildCmd();
+  }
+
+  /* ── Wire up input ──────────────────────────────────────── */
+  var inp    = document.getElementById('step3-fedora-paste-input');
+  var status = document.getElementById('step3-fedora-paste-status');
+
+  function handleInput() {
+    var raw    = inp ? inp.value : '';
+    var result = parseLinuxInput(raw);
+
+    if (!raw.trim()) {
+      dirPath = '/home/username/path/to/';
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-hint';
+      status.textContent = 'Paste an absolute path (/home/…) or ~/…';
+      syncPre();
+      return;
+    }
+
+    if (result) {
+      dirPath = result.dir;
+      if (inp) inp.classList.remove('pe-error');
+      status.className   = 'path-paste-status pe-ok';
+      status.textContent = '✓ ' + result.label + fileName;
+      syncPre();
+    } else {
+      if (inp) inp.classList.add('pe-error');
+      status.className   = 'path-paste-status pe-err';
+      status.textContent = 'Expected an absolute path (/home/…) or ~/…';
+    }
+  }
+
+  if (inp) {
+    inp.addEventListener('input', handleInput);
+    inp.addEventListener('paste', function () { setTimeout(handleInput, 0); });
+    inp.addEventListener('dragover', function (e) { e.preventDefault(); });
+    inp.addEventListener('drop', function (e) {
+      e.preventDefault();
+      var text = e.dataTransfer.getData('text');
+      if (text) { inp.value = text; handleInput(); }
+    });
+  }
+
+  /* ── Toggle editor open/closed ──────────────────────────── */
+  var editBtn = document.getElementById('step3-fedora-edit-btn');
+  var editor  = document.getElementById('step3-fedora-path-editor');
+  if (editBtn) {
+    editBtn.addEventListener('click', function () {
+      var isOpen = editor.classList.contains('open');
+      if (isOpen) {
+        editor.classList.remove('open');
+        editBtn.classList.remove('active');
+      } else {
+        editor.classList.add('open');
+        editBtn.classList.add('active');
+        if (inp) setTimeout(function () { inp.focus(); inp.select(); }, 50);
+      }
+    });
+  }
+
+  /* ── Done ───────────────────────────────────────────────── */
+  var doneBtn = document.getElementById('step3-fedora-done');
+  if (doneBtn) {
+    doneBtn.addEventListener('click', function () {
+      editor.classList.remove('open');
+      if (editBtn) editBtn.classList.remove('active');
+    });
+  }
+
+  /* ── Copy ───────────────────────────────────────────────── */
+  var copyBtn = document.getElementById('step3-fedora-copy-btn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', function () {
+      var btn = this;
+      navigator.clipboard.writeText(buildCmd()).then(function () {
+        btn.classList.add('co-copy-ok');
+        setTimeout(function () { btn.classList.remove('co-copy-ok'); }, 1400);
+      });
+    });
+  }
+
+  /* ── File-variant toggle ────────────────────────────────── */
+  var filePrimary = document.getElementById('step3-fedora-file-primary');
+  var fileVariant = document.getElementById('step3-fedora-file-variant');
+  if (filePrimary) {
+    filePrimary.addEventListener('click', function () {
+      fileName = 'primecover1024.cpp';
+      filePrimary.classList.add('active');
+      if (fileVariant) fileVariant.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
+    });
+  }
+  if (fileVariant) {
+    fileVariant.addEventListener('click', function () {
+      fileName = 'primecover1024_line_coordinates.cpp';
+      fileVariant.classList.add('active');
+      if (filePrimary) filePrimary.classList.remove('active');
+      if (inp && inp.value.trim()) handleInput(); else syncPre();
     });
   }
 })();
