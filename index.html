@@ -3004,47 +3004,94 @@ function applyRootForcedReduction(cands, N, initCov, uw) {
 /* ── Cover-inequality lower bound ──────────────────────────────────────── */
 var BB_counts = new Int32Array(1024);
 function coverInequalityLB(cov, cands, avail, N, uw) {
-  /* Build the set of currently uncovered points into BB_sMask (pre-allocated). */
-  var fullWords = N >> 5;
-  var tail      = N & 31;
-  for (var w = 0; w < fullWords; w++) BB_sMask[w] = ~cov[w];
-  if (tail) BB_sMask[fullWords] = (~cov[fullWords]) & ((1 << tail) - 1);
-  /* Zero any words beyond the active range. */
-  for (var w = fullWords + (tail ? 1 : 0); w < uw; w++) BB_sMask[w] = 0;
-  var sPop = countUncovered(cov, N, uw);
+  /* ── Cover-inequality lower bound ──────────────────────────────────────
+     Mirrors C++ cover_inequality_lb() (primecover1024.cpp lines 2927-2983).
 
+     Goal: find the largest subset S of uncovered points such that no
+     available heavy line covers >= 3 members of S.  Because every line
+     covers at most 2 members of S, any cover needs at least ceil(|S|/2)
+     lines, giving a valid lower bound on the remaining cost.
+
+     The C++ solver uses an incremental approach: it maintains
+       lineSz[li]    = # of in-S points on line li
+       violCount[p]  = # of violated lines (lineSz >= 3) that cover point p
+     and, when removing the highest-violCount point from S, decrements
+     violCount for all remaining in-S points on any line whose lineSz just
+     dropped from 3 to 2.  This costs O(|pts_per_line|) per removal —
+     O(N × avg_incident × avg_pts) total — instead of the previous
+     O(|cands| × |pts_per_line|) per removal (O(N²×|active_lines|) total).
+     ──────────────────────────────────────────────────────────────────── */
+
+  /* 1. Initialise inS[p]: uncovered points start in the support set S. */
+  var inS  = new Uint8Array(N);
+  var sPop = 0;
+  for (var p = 0; p < N; p++) {
+    if (!(cov[p >> 5] & (1 << (p & 31)))) { inS[p] = 1; sPop++; }
+  }
   if (sPop <= 2) return Math.ceil(sPop / 2);
 
-  while (true) {
-    BB_counts.fill(0, 0, N);
-    var numViolated = 0;
-    for (var i = 0; i < cands.length; i++) {
-      if (!avail[i]) continue;
-      var c = cands[i];
-      var intersectPop = 0;
-      for (var w = 0; w < uw; w++) {
-        var a = c.mask[w] & BB_sMask[w];
-        if (a) intersectPop += popcount32(a);
+  var M = cands.length;
+
+  /* 2. Build per-point incidence lists restricted to available lines,
+        lineSz[li] = # of in-S points on line li, and
+        violCount[p] = # of violated lines (lineSz >= 3) covering p.
+        Mirrors C++ local_inc[], line_size[], violation_count[] init.   */
+  var incident  = [];
+  for (var p = 0; p < N; p++) incident.push([]);
+
+  var lineSz    = new Int32Array(M);
+  var violCount = new Int32Array(N);
+
+  for (var i = 0; i < M; i++) {
+    if (!avail[i]) continue;
+    var pts = cands[i].indices;
+    var sz  = 0;
+    for (var k = 0; k < pts.length; k++) {
+      if (inS[pts[k]]) { sz++; incident[pts[k]].push(i); }
+    }
+    lineSz[i] = sz;
+    if (sz >= 3) {
+      /* Violated constraint: all in-S points on this line get a credit. */
+      for (var k = 0; k < pts.length; k++) {
+        if (inS[pts[k]]) violCount[pts[k]]++;
       }
-      if (intersectPop >= 3) {
-        numViolated++;
-        for (var k = 0; k < c.indices.length; k++) {
-          var pt = c.indices[k];
-          if (BB_sMask[pt >> 5] & (1 << (pt & 31))) BB_counts[pt]++;
+    }
+  }
+
+  /* 3. Greedily remove the most-violated point until no constraint is
+        violated.  Mirrors C++ while-loop with incremental updates.     */
+  while (true) {
+    /* Find in-S point with the highest violation count. */
+    var maxV = 0, maxP = -1;
+    for (var p = 0; p < N; p++) {
+      if (inS[p] && violCount[p] > maxV) { maxV = violCount[p]; maxP = p; }
+    }
+    if (maxV === 0) break;   /* No violated constraints remain. */
+
+    /* Remove maxP from S. */
+    inS[maxP] = 0;
+    sPop--;
+
+    /* Incrementally update lineSz and violCount.
+       Mirrors C++ inner loop: for each line incident to removed point,
+       decrement lineSz; if it just dropped from >=3 to <3, subtract 1
+       from violCount of all remaining in-S points on that line.        */
+    var inc = incident[maxP];
+    for (var j = 0; j < inc.length; j++) {
+      var li          = inc[j];
+      var wasViolated = lineSz[li] >= 3;
+      lineSz[li]--;
+      if (wasViolated && lineSz[li] < 3) {
+        /* Line li is no longer violated — update counts for remaining S. */
+        var pts = cands[li].indices;
+        for (var k = 0; k < pts.length; k++) {
+          if (inS[pts[k]]) violCount[pts[k]]--;
         }
       }
     }
-
-    if (numViolated === 0) return Math.ceil(sPop / 2);
-
-    var maxC = 0, maxP = -1;
-    for (var p = 0; p < N; p++) {
-      if (BB_counts[p] > maxC) { maxC = BB_counts[p]; maxP = p; }
-    }
-
-    BB_sMask[maxP >> 5] &= ~(1 << (maxP & 31));
-    sPop--;
   }
+
+  return Math.ceil(sPop / 2);
 }
 
 /* ── Lagrangian relaxation upper bound on remaining achievable gain ─────────
