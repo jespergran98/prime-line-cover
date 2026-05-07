@@ -495,11 +495,12 @@ Built by Jesper Gran Mikkelsen, an independent researcher in Norway with no prio
 If you use this code or the computed results in your work, please cite the accompanying paper:
 
 ```bibtex
-@unpublished{primecover2026,
-  author = {Jesper Gran Mikkelsen},
-  title  = {An Incremental Exact Solver for the Minimum Line Cover of Prime Points},
-  note   = {Unpublished manuscript},
-  year   = {2026}
+@misc{primecover2026,
+  author       = {Jesper Gran Mikkelsen},
+  title        = {An Exact Solver for the Minimum Line Cover of Prime-Indexed Points},
+  year         = {2026},
+  howpublished = {\url{https://github.com/jespergran98/prime-line-cover}},
+  note         = {Preprint; Zenodo DOI forthcoming}
 }
 ```
 
