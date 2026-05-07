@@ -1,6 +1,9 @@
 # =============================================================================
 # convert_to_a373813_statistics.py
 # =============================================================================
+# SPDX-License-Identifier: CC0-1.0
+# This file is dedicated to the public domain. See LICENSE in this directory.
+#
 # Converts A373813_ALL_LINES.txt into the clean A373813_STATISTICS.txt format.
 # (converts primecover1024_line_coordinates.cpp output to default output)
 #

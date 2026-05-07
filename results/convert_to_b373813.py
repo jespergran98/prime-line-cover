@@ -1,6 +1,9 @@
 # =============================================================================
 # convert_to_b373813.py
 # =============================================================================
+# SPDX-License-Identifier: CC0-1.0
+# This file is dedicated to the public domain. See LICENSE in this directory.
+#
 # Converts A373813_ALL_LINES.txt into the compact B373813.txt format.
 #
 # A373813_ALL_LINES.txt is a detailed log where each entry describes one prime
