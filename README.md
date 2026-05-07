@@ -82,7 +82,7 @@ The solver is optimised for **N <= 1024** (hence the `1024` in the filename).
 
 **Live at: [https://prime-line-cover.vercel.app](https://prime-line-cover.vercel.app)**
 
-`index.html` in the root of this repository is a complete single-file interactive demo. It is deployed as a static site on Vercel and requires no server – just open it in any modern browser. The JavaScript version is able to reach the 250th prime in 10 seconds (increase speed with the slider), but struggles beyond N = 280 (compared to the C++ version getting to N = 800 in 35-70 seconds depending on hardware).
+`index.html` in the root of this repository is a complete single-file interactive demo. It is deployed as a static site on Vercel and requires no server – just open it in any modern browser. The JavaScript version is able to reach the 300th prime in 20 seconds (increase speed with the slider), but struggles beyond N = 700 (compared to the C++ version getting to N = 800 in 35-70 seconds depending on hardware).
 
 The demo runs a faithful **JavaScript port of the C++ solver** (using the same bitmask-based algorithm, heavy-line enumeration, and branch-and-bound logic) directly in a Web Worker so the UI never blocks. It then animates the result step by step, incrementing N one prime at a time.
 

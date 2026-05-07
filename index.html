@@ -4535,6 +4535,9 @@ function drawMain(t) {
   if (!primes.length) { mctx.restore(); return; }
 
   const N = primes.length, maxV = primes[N - 1];
+  /* Scaling factor: 1.0 at N=1, smoothly tapers to 0.25 at N=1024.
+     Applied to all line widths and point radii so dense plots stay legible. */
+  const nScale = Math.max(0.25, 1.0 - 0.75 * (N - 1) / 1023);
   const xStep = Math.max(1, Math.ceil(N / 10));
 
   /* ── Vertical guide lines ── */
@@ -4662,7 +4665,7 @@ function drawMain(t) {
               at nL=80 → haloAlpha≈0.04 (min), haloWidth=2.4 (min)
      ───────────────────────────────────────────────────────────────────── */
   const haloAlpha = Math.max(0.035, 0.155 - nL * 0.0032);
-  const haloWidth = Math.max(2.4,   5.8   - nL * 0.085);
+  const haloWidth = Math.max(2.4,   5.8   - nL * 0.085) * nScale;
 
   coverLines.forEach((line, li) => {
     if (!line.isHeavy) return;
@@ -4700,7 +4703,7 @@ function drawMain(t) {
 
     mctx.globalAlpha = 0.28 + p * 0.28;
     mctx.strokeStyle = COLOR_INK;
-    mctx.lineWidth   = 1.1;
+    mctx.lineWidth   = 1.1 * nScale;
     mctx.setLineDash([3, 6]);
     mctx.beginPath();
     mctx.moveTo(seg.from.x, seg.from.y);
@@ -4725,7 +4728,7 @@ function drawMain(t) {
 
     mctx.globalAlpha = 0.80 + p * 0.18;
     mctx.strokeStyle = col;
-    mctx.lineWidth   = 1.75;
+    mctx.lineWidth   = 1.75 * nScale;
 
     mctx.beginPath();
     mctx.moveTo(seg.from.x, seg.from.y);
@@ -4737,19 +4740,19 @@ function drawMain(t) {
       mctx.globalAlpha = 1;
       /* Outer halo */
       mctx.beginPath();
-      mctx.arc(ex, ey, 5.5, 0, Math.PI * 2);
+      mctx.arc(ex, ey, 5.5 * nScale, 0, Math.PI * 2);
       mctx.fillStyle = col;
       mctx.globalAlpha = 0.2;
       mctx.fill();
       /* Core dot */
       mctx.beginPath();
-      mctx.arc(ex, ey, 2.8, 0, Math.PI * 2);
+      mctx.arc(ex, ey, 2.8 * nScale, 0, Math.PI * 2);
       mctx.fillStyle = col;
       mctx.globalAlpha = 1;
       mctx.fill();
       /* Tiny bright center */
       mctx.beginPath();
-      mctx.arc(ex, ey, 1.2, 0, Math.PI * 2);
+      mctx.arc(ex, ey, 1.2 * nScale, 0, Math.PI * 2);
       mctx.fillStyle = '#FDFCF8';
       mctx.fill();
     }
@@ -4767,7 +4770,7 @@ function drawMain(t) {
   primes.forEach((pt, i) => {
     const { x: sx, y: sy } = toScreen(i, pt, w, h, x, y, N, maxV);
     const isNew = i === N - 1;
-    const r     = isNew ? 5.5 : 3.2;
+    const r     = (isNew ? 5.5 : 3.2) * nScale;
 
     /* Ripple rings for newest point */
     if (isNew && rAge < 2200) {
@@ -4779,7 +4782,7 @@ function drawMain(t) {
         mctx.beginPath();
         mctx.arc(sx, sy, r + rp * 32, 0, Math.PI * 2);
         mctx.strokeStyle = `rgba(154,107,10,${alpha})`;
-        mctx.lineWidth   = ring === 0 ? 1.4 : 0.8;
+        mctx.lineWidth   = (ring === 0 ? 1.4 : 0.8) * nScale;
         mctx.stroke();
       }
     }
@@ -4808,14 +4811,14 @@ function drawMain(t) {
     mctx.arc(sx, sy, r, 0, Math.PI * 2);
     mctx.fillStyle   = isNew ? '#FDFCF8' : ptColor;
     mctx.strokeStyle = isNew ? ptColor   : '#FDFCF8';
-    mctx.lineWidth   = isNew ? 2.2       : 1.4;
+    mctx.lineWidth   = (isNew ? 2.2 : 1.4) * nScale;
     mctx.fill();
     mctx.stroke();
 
     /* Inner dot for newest point */
     if (isNew) {
       mctx.beginPath();
-      mctx.arc(sx, sy, 2.2, 0, Math.PI * 2);
+      mctx.arc(sx, sy, 2.2 * nScale, 0, Math.PI * 2);
       mctx.fillStyle = ptColor;
       mctx.fill();
     }
