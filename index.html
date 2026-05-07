@@ -4646,8 +4646,11 @@ function drawMain(t) {
   mctx.lineCap  = 'round';
   mctx.lineJoin = 'round';
 
-  /* Helper: get animation progress for line i (0..1) */
+  /* Helper: get animation progress for line i (0..1).
+     At INTERVAL ≤ 300 ms the step rate is too fast for a draw-on sweep to
+     be meaningful — skip it and show every line fully-formed immediately.  */
   function lineProgress(i) {
+    if (INTERVAL <= 300) return 1;
     if (!linesBirth[i] && linesBirth[i] !== 0) return 1;
     const age = t - linesBirth[i];
     if (age <= 0) return 0;
@@ -4772,8 +4775,8 @@ function drawMain(t) {
     const isNew = i === N - 1;
     const r     = (isNew ? 5.5 : 3.2) * nScale;
 
-    /* Ripple rings for newest point */
-    if (isNew && rAge < 2200) {
+    /* Ripple rings for newest point — suppressed at high step rates */
+    if (isNew && rAge < 2200 && INTERVAL > 100) {
       for (let ring = 0; ring < 3; ring++) {
         const age2  = rAge - ring * 280;
         if (age2 < 0) continue;
