@@ -960,12 +960,22 @@ details.tut summary::-webkit-details-marker { display: none; }
 
 /* Quick-start hint button inside overlay-tl */
 @keyframes qsHintPulse {
-  0%, 100% { border-color: rgba(20,115,106,0.28); box-shadow: none; }
-  50%       { border-color: rgba(20,115,106,0.58); box-shadow: 0 0 0 3px rgba(20,115,106,0.08); }
+  0%, 100% {
+    border-color: rgba(20,115,106,0.42);
+    box-shadow: 0 0 0 0 rgba(20,115,106,0);
+  }
+  50% {
+    border-color: rgba(20,115,106,0.80);
+    box-shadow: 0 0 0 4px rgba(20,115,106,0.13);
+  }
 }
 @keyframes qsHintArrow {
-  0%, 65%, 100% { transform: translateX(0);   opacity: 0.7; }
-  80%            { transform: translateX(4px); opacity: 1;   }
+  0%, 55%, 100% { transform: translateX(0);   opacity: 0.8; }
+  72%            { transform: translateX(5px); opacity: 1;   }
+}
+@keyframes qsHintEntry {
+  from { opacity: 0; transform: translateY(5px); }
+  to   { opacity: 1; transform: translateY(0);   }
 }
 
 .co-quickstart-hint {
@@ -973,39 +983,50 @@ details.tut summary::-webkit-details-marker { display: none; }
   align-items: center;
   gap: 7px;
   width: 100%;
-  margin-top: 8px;
+  margin-top: 10px;
   font-family: var(--serif);
-  font-size: 13px;
+  font-size: 13.5px;
   font-style: italic;
   color: var(--teal);
-  background: var(--teal-light);
-  border: 1px solid rgba(20,115,106,0.28);
+  background: rgba(20,115,106,0.10);
+  border: 1px solid rgba(20,115,106,0.42);
+  border-left: 3px solid var(--teal);
   border-radius: var(--r2);
-  padding: 8px 12px;
+  padding: 9px 12px 9px 11px;
   cursor: pointer;
   text-align: left;
   transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
-  line-height: 1.3;
-  animation: qsHintPulse 3.6s ease-in-out infinite;
+  line-height: 1.35;
+  animation: qsHintEntry 0.5s 0.8s both, qsHintPulse 3.2s 1.5s ease-in-out infinite;
 }
-.co-quickstart-hint:hover {
+/* Once entry is done (class added by JS), only pulse — no re-entry on hover out */
+.co-quickstart-hint.qs-entered {
+  animation: qsHintPulse 3.2s ease-in-out infinite;
+}
+.co-quickstart-hint:hover,
+.co-quickstart-hint.qs-entered:hover {
   background: var(--teal);
   color: var(--white);
   border-color: var(--teal);
+  border-left-color: var(--teal);
   animation: none;
+  box-shadow: 0 2px 10px rgba(20,115,106,0.22);
 }
 .co-quickstart-hint-arrow {
   font-family: var(--mono);
   font-style: normal;
-  font-size: 11px;
+  font-size: 12px;
   margin-left: auto;
-  opacity: 0.7;
+  opacity: 0.8;
   flex-shrink: 0;
   transition: transform 0.15s, opacity 0.15s;
-  animation: qsHintArrow 3.6s ease-in-out infinite;
+  animation: qsHintArrow 3.2s 1.5s ease-in-out infinite;
+}
+.co-quickstart-hint.qs-entered .co-quickstart-hint-arrow {
+  animation: qsHintArrow 3.2s ease-in-out infinite;
 }
 .co-quickstart-hint:hover .co-quickstart-hint-arrow {
-  transform: translateX(3px);
+  transform: translateX(4px);
   opacity: 1;
   animation: none;
 }
@@ -2050,7 +2071,7 @@ details.tut.tut-cta summary::after { display: none; }
 
       <div class="co-mono-label">Primary Solver File</div>
       <div class="co-file-link-row">
-        <a class="co-primary-btn" href="./primecover1024.cpp" download>
+        <a class="co-primary-btn" href="./solver1024.cpp" download>
           <span class="co-dl-icon">↓</span>primecover1024.cpp
         </a>
         <span class="co-file-tag">C++23 &middot; parallel B&B<br>bitmask N ≤ 1024</span>
@@ -2144,7 +2165,7 @@ details.tut.tut-cta summary::after { display: none; }
         <a class="h-badge" href="https://oeis.org/A373813" target="_blank" rel="noopener">↗ OEIS A373813</a>
         <a class="h-badge gold" href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">PDF Paper</a>
         <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover.git" target="_blank" rel="noopener">↗ GitHub</a>
-        <a class="h-badge ink" href="./primecover1024.cpp" download>↓ .cpp</a>
+        <a class="h-badge ink" href="./solver1024.cpp" download>↓ .cpp</a>
         <button class="h-badge qs" id="btn-quick-start">▶ Quick Start</button>
       </div>
     </div>
@@ -2299,7 +2320,7 @@ details.tut.tut-cta summary::after { display: none; }
       </div>
 
       <!-- Primary download -->
-      <a class="dl-primary" href="./primecover1024.cpp" download>
+      <a class="dl-primary" href="./solver1024.cpp" download>
         <span class="dl-ico">↓</span>
         <span class="dl-name">primecover1024.cpp</span>
         <span class="dl-chip">Primary</span>
@@ -2308,7 +2329,7 @@ details.tut.tut-cta summary::after { display: none; }
       <!-- Secondary files -->
       <div class="dl-files-label">Variant &amp; WR data files</div>
       <div class="dl-row-secondary">
-        <a class="dl-btn secondary" href="./primecover1024_line_coordinates.cpp" download>
+        <a class="dl-btn secondary" href="./solver1024_line_coordinates.cpp" download>
           <span class="ico">↓</span> primecover1024_line_coordinates.cpp
         </a>
         <a class="dl-btn secondary" href="./results/b373813.txt" download>
@@ -2434,10 +2455,10 @@ sudo apt install g++-14 -y</pre>
                       <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                       <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+                    <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover &amp;&amp; \
-./primecover</pre>
+  solver.cpp -o solver &amp;&amp; \
+./solver</pre>
                   </div>
                   <div class="path-editor" id="step3-path-editor">
                     <div class="path-paste-row">
@@ -2556,10 +2577,10 @@ sudo apt install g++-14 -y</pre>
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover &amp;&amp; \
-./primecover</pre>
+  solver.cpp -o solver &amp;&amp; \
+./solver</pre>
                     </div>
                     <div class="path-editor" id="step3-linux-path-editor">
                       <div class="path-paste-row">
@@ -2596,10 +2617,10 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-arch-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+                      <pre id="step3-arch-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover &amp;&amp; \
-./primecover</pre>
+  solver.cpp -o solver &amp;&amp; \
+./solver</pre>
                     </div>
                     <div class="path-editor" id="step3-arch-path-editor">
                       <div class="path-paste-row">
@@ -2637,10 +2658,10 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-fedora-pre">cp /home/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+                      <pre id="step3-fedora-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover &amp;&amp; \
-./primecover</pre>
+  solver.cpp -o solver &amp;&amp; \
+./solver</pre>
                     </div>
                     <div class="path-editor" id="step3-fedora-path-editor">
                       <div class="path-paste-row">
@@ -2730,10 +2751,10 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                       <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/primecover.cpp &amp;&amp; \
+                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover &amp;&amp; \
-./primecover</pre>
+  solver.cpp -o solver &amp;&amp; \
+./solver</pre>
                   </div>
                   <div class="path-editor" id="step3-mac-path-editor">
                     <div class="path-paste-row">
@@ -5047,7 +5068,13 @@ requestAnimationFrame(loop);
   }
 
   document.getElementById('btn-quick-start').addEventListener('click', openQuickStart);
-  document.getElementById('btn-quick-start-overlay').addEventListener('click', openQuickStart);
+  var qsOverlayBtn = document.getElementById('btn-quick-start-overlay');
+  qsOverlayBtn.addEventListener('click', openQuickStart);
+  qsOverlayBtn.addEventListener('animationend', function (e) {
+    if (e.animationName === 'qsHintEntry') {
+      qsOverlayBtn.classList.add('qs-entered');
+    }
+  });
 })();
 
 /* ── Tutorial code-block copy helper ──────────────────────────────────── */
@@ -5143,10 +5170,10 @@ function tutCopy(btn, text) {
   /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
     var src = shellQuote(dirPath + fileName);
-    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + src + ' ~/solver.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-         + '  primecover.cpp -o primecover && \\\n'
-         + './primecover';
+         + '  solver.cpp -o solver && \\\n'
+         + './solver';
   }
 
   function syncPre() {
@@ -5341,10 +5368,10 @@ function switchDistro(distro) {
   /* ── Command builder ────────────────────────────────────── */
   function buildCmd() {
     var src = shellSafePath(dirPath + fileName);
-    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + src + ' ~/solver.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-         + '  primecover.cpp -o primecover && \\\n'
-         + './primecover';
+         + '  solver.cpp -o solver && \\\n'
+         + './solver';
   }
 
   function syncPre() {
@@ -5502,10 +5529,10 @@ function switchDistro(distro) {
 
   function buildCmd() {
     var src = shellSafePath(dirPath + fileName);
-    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + src + ' ~/solver.cpp && \\\n'
          + 'g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-         + '  primecover.cpp -o primecover && \\\n'
-         + './primecover';
+         + '  solver.cpp -o solver && \\\n'
+         + './solver';
   }
 
   function syncPre() {
@@ -5655,10 +5682,10 @@ function switchDistro(distro) {
   /* ── Command builder (Arch uses g++, not g++-14) ────────── */
   function buildCmd() {
     var src = shellSafePath(dirPath + fileName);
-    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + src + ' ~/solver.cpp && \\\n'
          + 'g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-         + '  primecover.cpp -o primecover && \\\n'
-         + './primecover';
+         + '  solver.cpp -o solver && \\\n'
+         + './solver';
   }
 
   function syncPre() {
@@ -5810,10 +5837,10 @@ function switchDistro(distro) {
   /* ── Command builder (Fedora uses g++, not g++-14) ──────── */
   function buildCmd() {
     var src = shellSafePath(dirPath + fileName);
-    return 'cp ' + src + ' ~/primecover.cpp && \\\n'
+    return 'cp ' + src + ' ~/solver.cpp && \\\n'
          + 'g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \\\n'
-         + '  primecover.cpp -o primecover && \\\n'
-         + './primecover';
+         + '  solver.cpp -o solver && \\\n'
+         + './solver';
   }
 
   function syncPre() {
