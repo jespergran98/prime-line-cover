@@ -4647,10 +4647,10 @@ function drawMain(t) {
   mctx.lineJoin = 'round';
 
   /* Helper: get animation progress for line i (0..1).
-     At INTERVAL ≤ 300 ms the step rate is too fast for a draw-on sweep to
+     At INTERVAL ≤ 100 ms the step rate is too fast for a draw-on sweep to
      be meaningful — skip it and show every line fully-formed immediately.  */
   function lineProgress(i) {
-    if (INTERVAL <= 300) return 1;
+    if (INTERVAL <= 100) return 1;
     if (!linesBirth[i] && linesBirth[i] !== 0) return 1;
     const age = t - linesBirth[i];
     if (age <= 0) return 0;
