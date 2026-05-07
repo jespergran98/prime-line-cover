@@ -1183,9 +1183,9 @@ details.tut.tut-cta summary::after { display: none; }
   line-height: 1.4;
   color: var(--ink-45);
   transition: color 0.15s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  white-space: normal;
+  overflow: visible;
+  word-break: break-all;
 }
 .path-paste-status.pe-ok    { color: var(--teal); }
 .path-paste-status.pe-err   { color: var(--coral); }
@@ -1194,7 +1194,7 @@ details.tut.tut-cta summary::after { display: none; }
 /* Bottom row: file toggle + done button */
 .path-editor-footer {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 6px;
   width: 100%;
 }
@@ -1228,8 +1228,9 @@ details.tut.tut-cta summary::after { display: none; }
 
 /* ── File-variant toggle inside path editor ──────────── */
 .path-file-toggle {
-  width: 100%;                      /* full-width row in the flex-wrap parent */
+  width: 100%;
   display: flex;
+  flex-direction: column;           /* stack buttons so full filenames are visible */
   gap: 0;
   border: 1px solid var(--ink-18);
   border-radius: var(--r);
@@ -1238,26 +1239,30 @@ details.tut.tut-cta summary::after { display: none; }
   margin-bottom: 4px;
 }
 .path-file-btn {
-  flex: 1;
+  width: 100%;
   font-family: var(--mono);
   font-size: 8.5px;
   font-weight: 400;
   letter-spacing: 0.04em;
-  padding: 4px 7px;
+  padding: 5px 9px;
   background: var(--paper-alt);
   color: var(--ink-45);
   border: none;
-  border-right: 1px solid var(--ink-18);
+  border-bottom: 1px solid var(--ink-18);
   cursor: pointer;
   transition: background 0.15s, color 0.15s;
-  text-align: center;
+  text-align: left;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  line-height: 1.4;
+  line-height: 1.5;
 }
-.path-file-btn:last-child { border-right: none; }
-.path-file-btn.active { background: var(--ink); color: var(--white); }
+.path-file-btn:last-child { border-bottom: none; }
+.path-file-btn.active {
+  background: var(--ink);
+  color: var(--white);
+  font-weight: 500;
+}
 .path-file-btn:hover:not(.active) { background: var(--paper-deep); color: var(--ink-70); }
 
 /* ── Paper Overlay ───────────────────────────────────── */
@@ -1569,7 +1574,7 @@ details.tut.tut-cta summary::after { display: none; }
   letter-spacing: 0.04em;
   box-shadow: 0 2px 8px rgba(24,38,58,0.15);
   transition: background 0.15s, border-color 0.15s, transform 0.12s, box-shadow 0.15s;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 .dl-primary:hover {
   background: var(--gold);
@@ -1591,6 +1596,42 @@ details.tut.tut-cta summary::after { display: none; }
   letter-spacing: 0.12em;
   text-transform: uppercase;
   flex-shrink: 0;
+}
+
+/* Variant download link — sits directly under the primary button */
+.dl-variant-link {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-70);
+  background: var(--paper-alt);
+  border: 1px solid var(--ink-18);
+  border-radius: var(--r2);
+  padding: 6px 11px;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  margin-bottom: 7px;
+}
+.dl-variant-link:hover {
+  background: var(--ink);
+  color: var(--white);
+  border-color: var(--ink);
+}
+.dl-variant-ico {
+  font-size: 11px;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+.dl-variant-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Secondary files group label */
@@ -2319,19 +2360,24 @@ details.tut.tut-cta summary::after { display: none; }
         </div>
       </div>
 
-      <!-- Primary download -->
+      <!-- Variants section -->
+      <div class="dl-files-label">Variants</div>
       <a class="dl-primary" href="./solver1024.cpp" download>
         <span class="dl-ico">↓</span>
         <span class="dl-name">primecover1024.cpp</span>
         <span class="dl-chip">Primary</span>
       </a>
+      <a class="dl-variant-link" href="./solver1024_line_coordinates.cpp" download>
+        <span class="dl-variant-ico">↓</span>
+        <span class="dl-variant-name">primecover1024_line_coordinates.cpp</span>
+      </a>
+      <p class="dl-variant-note">
+        <code>primecover1024_line_coordinates.cpp</code> is the same exact solver — it additionally writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation.
+      </p>
 
-      <!-- Secondary files -->
-      <div class="dl-files-label">Variant &amp; WR data files</div>
+      <!-- Results section -->
+      <div class="dl-files-label" style="margin-top:4px;">Results</div>
       <div class="dl-row-secondary">
-        <a class="dl-btn secondary" href="./solver1024_line_coordinates.cpp" download>
-          <span class="ico">↓</span> primecover1024_line_coordinates.cpp
-        </a>
         <a class="dl-btn secondary" href="./results/b373813.txt" download>
           <span class="ico">↓</span> b373813.txt
         </a>
@@ -2342,9 +2388,6 @@ details.tut.tut-cta summary::after { display: none; }
           <span class="ico">↓</span> a373813_all_lines.txt
         </a>
       </div>
-      <p class="dl-variant-note">
-        <code>primecover1024_line_coordinates.cpp</code> is the same exact solver — it additionally writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation.
-      </p>
 
       <details class="tut tut-cta">
         <summary><span class="tut-cta-inner"><span class="tut-cta-icon">▶</span>Quick Start — Run the C++ Solver</span></summary>
@@ -2471,7 +2514,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                     <div class="path-editor-footer">
                       <div class="path-file-toggle">
                         <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
-                        <button class="path-file-btn" id="step3-file-variant">..._line_coords.cpp</button>
+                        <button class="path-file-btn" id="step3-file-variant">primecover1024_line_coordinates.cpp</button>
                       </div>
                       <div class="path-editor-actions">
                         <button class="path-done-btn" id="step3-done">Done</button>
@@ -2593,7 +2636,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
                           <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
-                          <button class="path-file-btn" id="step3-linux-file-variant">..._line_coords.cpp</button>
+                          <button class="path-file-btn" id="step3-linux-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
                           <button class="path-done-btn" id="step3-linux-done">Done</button>
@@ -2633,7 +2676,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
                           <button class="path-file-btn active" id="step3-arch-file-primary">primecover1024.cpp</button>
-                          <button class="path-file-btn" id="step3-arch-file-variant">..._line_coords.cpp</button>
+                          <button class="path-file-btn" id="step3-arch-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
                           <button class="path-done-btn" id="step3-arch-done">Done</button>
@@ -2674,7 +2717,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
                           <button class="path-file-btn active" id="step3-fedora-file-primary">primecover1024.cpp</button>
-                          <button class="path-file-btn" id="step3-fedora-file-variant">..._line_coords.cpp</button>
+                          <button class="path-file-btn" id="step3-fedora-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
                           <button class="path-done-btn" id="step3-fedora-done">Done</button>
@@ -2767,7 +2810,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                     <div class="path-editor-footer">
                       <div class="path-file-toggle">
                         <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
-                        <button class="path-file-btn" id="step3-mac-file-variant">..._line_coords.cpp</button>
+                        <button class="path-file-btn" id="step3-mac-file-variant">primecover1024_line_coordinates.cpp</button>
                       </div>
                       <div class="path-editor-actions">
                         <button class="path-done-btn" id="step3-mac-done">Done</button>
