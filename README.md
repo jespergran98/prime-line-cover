@@ -161,27 +161,31 @@ sudo apt install g++-14 -y
 Download `primecover1024.cpp` and save it to a location you'll remember — your Downloads folder or Desktop works well. Then replace the path in the command below with where you saved it, and paste the whole thing into your Ubuntu terminal:
 
 ```bash
-cp /mnt/c/Users/YourName/Downloads/primecover1024.cpp ~/primecover.cpp && \
+cp /mnt/c/Users/YourName/Downloads/primecover1024.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover && \
-./primecover
+  solver.cpp -o solver && \
+./solver
 ```
 
 > **Tip:** Your Windows `C:\` drive is always accessible inside WSL at `/mnt/c/`. So `C:\Users\Alice\Downloads` becomes `/mnt/c/Users/Alice/Downloads`.
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
 
 ---
 
-### Linux (Ubuntu / Debian)
+### Linux (Ubuntu / Debian · Arch / Manjaro · Fedora / RHEL)
 
-No extra setup needed — you're already running Linux natively. Open a terminal with `Ctrl+Alt+T` or from your application menu.
+**Step 1 — Open a terminal**
 
-**Step 1 — Install GCC 14**
+Press `Ctrl+Alt+T` or launch a terminal from your application menu. No extra layer needed — you're running Linux natively.
 
-The solver uses C++23 features that only GCC 14 and newer support. Ubuntu and Debian don't ship it by default, so these three commands add the right package repository and install it. You can paste all three at once:
+**Step 2 — Install GCC 14**
+
+The solver uses C++23 features that only GCC 14 and newer support. Run the command for your distribution:
+
+*Ubuntu / Debian* — adds the toolchain PPA and installs `g++-14` (paste all three at once):
 
 ```bash
 sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
@@ -189,51 +193,54 @@ sudo apt update
 sudo apt install g++-14 -y
 ```
 
-**Step 2 — Compile and run**
+*Arch / Manjaro* — GCC on a current Arch install is already GCC 14:
+
+```bash
+sudo pacman -S gcc
+```
+
+*Fedora / RHEL* — GCC on Fedora 40+ is already GCC 14:
+
+```bash
+sudo dnf install gcc-c++ -y
+```
+
+**Step 3 — Copy, compile, and run**
 
 Download `primecover1024.cpp` and save it somewhere in your home directory — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into your terminal:
 
+*Ubuntu / Debian*
+
 ```bash
-cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
+cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover && \
-./primecover
+  solver.cpp -o solver && \
+./solver
+```
+
+*Arch / Manjaro* — the compiler binary is `g++`, not `g++-14`:
+
+```bash
+cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  solver.cpp -o solver && \
+./solver
+```
+
+*Fedora / RHEL* — likewise, use `g++`:
+
+```bash
+cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
+  solver.cpp -o solver && \
+./solver
 ```
 
 > Replace `username` with your actual Linux username. Run `whoami` in your terminal if you're unsure what it is.
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
-
----
-
-### Linux (Arch / pacman)
-
-Open a terminal and install GCC 14 with pacman:
-
-**Step 1 — Install GCC 14**
-
-```bash
-sudo pacman -S gcc14
-```
-
-**Step 2 — Compile and run**
-
-Download `primecover1024.cpp` and save it somewhere in your home directory. Then replace the path below with where you saved it and paste the whole command into your terminal:
-
-```bash
-cp /home/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover && \
-./primecover
-```
-
-> Replace `username` with your actual Linux username. Run `whoami` in your terminal if you're unsure what it is.
-
-The solver starts printing results immediately — one line per N.
-
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
 
 ---
 
@@ -264,17 +271,17 @@ Homebrew installs `g++-14` into its bin directory and adds it to your PATH autom
 Download `primecover1024.cpp` and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:
 
 ```bash
-cp /Users/username/Downloads/primecover1024.cpp ~/primecover.cpp && \
+cp /Users/username/Downloads/primecover1024.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover && \
-./primecover
+  solver.cpp -o solver && \
+./solver
 ```
 
 > Replace `username` with your macOS username. Run `whoami` in Terminal if you're unsure what it is.
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the commands above.
+For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
 
 ---
 
@@ -437,7 +444,7 @@ Compile with `-march=native` (already in the default command) to let GCC auto-de
 
 ```bash
 g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti \
-  primecover.cpp -o primecover
+  solver.cpp -o solver
 ```
 
 ### WSL CPU priority (Windows only)
