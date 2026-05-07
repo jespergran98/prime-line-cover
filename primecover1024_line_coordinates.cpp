@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 //
-// primecover1024_line_coordinates.cpp 
+// primecover1024_line_coordinates.cpp
 // Exact Minimum Line Cover Solver for Prime Points
 // Copyright (c) 2026 Jesper Gran Mikkelsen
 //
