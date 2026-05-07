@@ -36,7 +36,7 @@ point 1 is at (1, 2), point 2 is at (2, 3), point 3 at (3, 5), point 4 at (4, 7)
 - One line passes through (1, 2) and (5, 11).
 - Another line passes through (2, 3), (3, 5), and (4, 7) – three points on one straight line.
 
-That's the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**.
+That's the best possible – you cannot cover all five points with only 1 line. So the answer for N = 5 is **2**. This is the last time two lines ever suffice: from N = 6 onward, no cover with fewer than three lines exists.
 
 ## Introduction to the Problem
 
@@ -46,15 +46,19 @@ If you're new to the problem, this Numberphile video by Brady Haran — featurin
   <img src="https://img.youtube.com/vi/VFoIPlUalRY/maxresdefault.jpg" alt="Awkward Primes – Numberphile" width="400">
 </a>
 
+In the video, Brady Haran and Neil Sloane (founder of the OEIS) call the primes that force a new line **awkward primes** — with a particularly stubborn one earning the nickname the **"party-pooper prime"**.
+
 ---
 
 ## Performance
 
 Despite the enormous number of possible line combinations (which grows exponentially with N), this solver computes the optimal cover for the first 800 prime points in **less than 60 seconds** on a 10-year-old laptop.
 
-On a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB RAM), it reaches the previous world-record boundary at N = 861 in **just 22 minutes** – obliterating the prior certified record, which required **282 hours** using a general-purpose mixed-integer programming (MIP) solver.
+On a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB RAM), it reaches the previous world-record boundary at N = 861 in **just 22 minutes** – obliterating the prior certified record, which required **282 hours, 26 minutes, and 31.5 seconds** using a general-purpose mixed-integer programming (MIP) solver.
 
 For larger N up to 1024, the hardest instances take about an hour on the same hardware – but the incremental sweep is so efficient that most N are solved in milliseconds. The current certified world record stands at **N = 1024**, also computed on that machine.
+
+A concrete illustration of that efficiency: the 111-step plateau at f = 69 (N = 465–575) — 111 consecutive primes each silently falling onto an existing optimal line — was certified entirely in **111 milliseconds**. The full breakdown across N = 1–1024: **615 witness hits** (constant-time certification), **236 root-only closures** (no branching), **173 full branch-and-bound searches**. On all 74 non-witness steps in the new N = 862–1024 block, the root gap ub − lb was exactly 1 before the first branch.
 
 **What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 1024 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS).
 
@@ -67,6 +71,7 @@ Two versions are provided:
 
 Both implement the exact algorithm described in the accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf). Key features:
 
+- **Integer arithmetic throughout** – collinearity is checked via one integer multiply-compare; coverage counting is popcount over word-wise AND. No floating point anywhere on the hot path.
 - **Heavy-line enumeration** – all lines containing at least three points of the final horizon are pre-computed once.
 - **Bitmask representation** – supports up to N = 1024 points using 16x64-bit words.
 - **Exclusive Dependency Rule** – unconditional forcing of certain heavy lines (proved optimal).
@@ -469,9 +474,21 @@ To give WSL higher CPU priority while the solver is running, open **PowerShell a
 | `tools/primecover_frontier_diagnosis.sh` | Frontier diagnosis script: compiles and runs the solver, displays a live dashboard, and produces a per-multiplier RAM safety table to help you unlock the highest safe frontier multiplier for your hardware. See [Performance Tuning](#performance-tuning). |
 | `old_solvers/` | Earlier milestone variants of the solver, preserved for reproducibility. Provided as-is; not actively maintained. |
 
+## Open Problems
+
+Three questions the sequence raises that remain unanswered:
+
+1. **Depth ceiling.** Maximum BnB depth across N = 1–1024 was 108, over 12,162 binary variables. Is there a structural theorem about prime collinearity that explains this ceiling, or does it degrade for larger N?
+2. **Collinearity density.** What is the expected number of heavy lines through (i, pᵢ) as i → ∞? Can Bateman–Horn-style heuristics handle the index–value coupling, or does it add structure not captured by standard prime-tuple models?
+3. **Convergence of f(N)/N.** Currently f(1024)/1024 ≈ 0.14. Does this ratio converge, and if so, to what?
+
 ## Contributing
 
 Bug reports and correctness challenges are welcome via [GitHub Issues](../../issues).
+
+## About
+
+Built by Jesper Gran Mikkelsen, an independent researcher in Norway with no prior background in operations research. The solver was developed over approximately 300 hours of AI-assisted iteration using Claude Code and ChatGPT (GPT-5.5 in Codex), prompted by watching the [Numberphile video on awkward primes](https://youtu.be/VFoIPlUalRY) in April 2026.
 
 ## Citation
 
