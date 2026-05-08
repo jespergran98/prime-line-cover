@@ -3274,6 +3274,22 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     for (var ai = 0; ai < AP; ai++) BB_bestDual[apToPoint[ai]] = bestY[ai];
     BB_dualReady = true;
 
+    /* ── Root-dual capture: persist the first (root-node) dual for the next N.
+       Mirrors C++ store_best_dual(): the guard "if (!root_dual_seed_captured_)"
+       ensures only the first call per N writes initial_dual_seed_, then sets
+       root_dual_seed_captured_ = true.  BB_warmDualSeed is then loaded back
+       into BB_bestDual at the start of computeCover(N+1) so subgradient descent
+       at the root node of N+1 begins near-optimal instead of from the density
+       heuristic.  Indexed by global point (0..N-1), zero-filled for inactive
+       points, mirroring initial_dual_seed_.assign(n, 0) + per-active copy. */
+    if (!BB_rootDualCaptured) {
+      if (BB_warmDualSeed === null || BB_warmDualSeed.length < N)
+        BB_warmDualSeed = new Float64Array(N);
+      BB_warmDualSeed.fill(0, 0, N);
+      for (var ai = 0; ai < AP; ai++) BB_warmDualSeed[apToPoint[ai]] = bestY[ai];
+      BB_rootDualCaptured = true;
+    }
+
     /* ── Persist branch-cap data for computeChildUBs() ─────────────────────
        BB_lagBestY[p]      ← y*[p] by global point index
        BB_lagCandSlack[i]  ← slack for cands[i]; NaN for non-productive lines
@@ -3492,10 +3508,22 @@ var BB_NODE_LIMIT = 5000000;
 /* Persistent dual solution for Lagrangian warm-starting across DFS nodes.
    BB_bestDual[p] holds the best dual weight y*[p] (0..1) from the most
    recent Lagrangian evaluation.  BB_dualReady is set to true after the
-   first evaluation and cleared at the start of each new computeCover call.
+   first evaluation and reset at the start of each new computeCover call
+   only when no inter-N warm seed is available.
    Mirrors C++ LagrangianScratch::dual_ready / best_y[]. */
 var BB_bestDual  = null;
 var BB_dualReady = false;
+/* Inter-N warm dual seed — the root-level Lagrangian dual captured at the
+   first saveDual() call of each N, persisted to hot-start subgradient descent
+   at N+1.  Mirrors C++ warm_dual_seed (the vector threaded through solve_exact
+   and loaded into initial_dual_seed_ / initial_dual_seed_ready_ at the top of
+   solve_for_n()).  Null until the first N produces a root dual. */
+var BB_warmDualSeed     = null;
+/* Per-N flag: true once BB_warmDualSeed has been written for this N.
+   Reset to false at the start of every computeCover() call so that only the
+   root-node dual (the first saveDual() invocation) is captured.
+   Mirrors C++ root_dual_seed_captured_. */
+var BB_rootDualCaptured = false;
 /* Branch-child upper-bound data — populated by lagrangianUpperBound() and
    consumed by computeChildUBs() before each recursive solve() call.
    Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
@@ -4199,11 +4227,23 @@ function computeCover(primes) {
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
-    /* Clear the persistent dual warm-start state so the first Lagrangian
-       evaluation at this N cold-starts from the density heuristic rather
-       than carrying over a stale dual from the previous N.
-       Mirrors C++ initial_dual_seed_ready_ = false at the top of solve_for_n(). */
-    BB_dualReady = false;
+    /* Reset root-capture flag so saveDual() records a fresh root dual for N+1.
+       Mirrors C++ root_dual_seed_captured_ = false at the top of solve_for_n().
+       Then conditionally hot-start BB_bestDual from the previous N's root dual:
+         • BB_warmDualSeed non-null  → load into BB_bestDual, set BB_dualReady = true
+           (mirrors: initial_dual_seed_ ← warm_dual_seed; initial_dual_seed_ready_ = true)
+         • BB_warmDualSeed null      → cold density-heuristic start, BB_dualReady = false
+           (mirrors: initial_dual_seed_ready_ = false)
+       Points beyond the old seed length receive 0, matching initial_dual_seed_.resize(n,0). */
+    BB_rootDualCaptured = false;
+    if (BB_warmDualSeed !== null) {
+      if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
+      for (var p = 0; p < N; p++)
+        BB_bestDual[p] = p < BB_warmDualSeed.length ? BB_warmDualSeed[p] : 0.0;
+      BB_dualReady = true;
+    } else {
+      BB_dualReady = false;
+    }
     BB_lagReady  = false;
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
