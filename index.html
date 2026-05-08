@@ -3392,20 +3392,73 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
   }
 
+  /* ── Size-specialized line arrays for evalLag ─────────────────────────────
+     Mirrors C++ build_compact_productive_lines(): split productive lines by
+     active-point count into flat typed arrays so the inner summation in
+     evalLag can be replaced by direct indexed reads with no loop.
+       pl3T  — flat triples   [a,b,c, a,b,c, …]    rem2 = 1  (size−2)
+       pl4T  — flat quads     [a,b,c,d, …]          rem2 = 2
+       pl5T  — flat quintuples[a,b,c,d,e, …]        rem2 = 3
+       plOLiT/plORem2T — li-indices and rem2 for 6+ point lines (generic loop)
+     Mirrors C++ compact_eval3 / compact_eval4 / compact_eval5 /
+     compact_eval_other_lines built in build_compact_productive_lines().     */
+  var _pl3 = [], _pl4 = [], _pl5 = [], _plOLi = [], _plORem2 = [];
+  for (var _li = 0; _li < PL; _li++) {
+    var _b = plOff[_li], _e = plOff[_li + 1], _cnt = _e - _b;
+    if      (_cnt === 3) { _pl3.push(plAps[_b], plAps[_b+1], plAps[_b+2]); }
+    else if (_cnt === 4) { _pl4.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3]); }
+    else if (_cnt === 5) { _pl5.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3], plAps[_b+4]); }
+    else                 { _plOLi.push(_li); _plORem2.push(plRem2[_li]); }
+  }
+  var pl3T     = new Int32Array(_pl3),   nL3 = pl3T.length  / 3 | 0;
+  var pl4T     = new Int32Array(_pl4),   nL4 = pl4T.length  / 4 | 0;
+  var pl5T     = new Int32Array(_pl5),   nL5 = pl5T.length  / 5 | 0;
+  var plOLiT   = new Int32Array(_plOLi);
+  var plORem2T = new Float64Array(_plORem2);
+  var nLO      = plOLiT.length;
+
   /* Evaluate L(y); optionally populate subgradient array sg[].
-     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] - sum_{p in L} y[p]). */
+     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] − sum_{p∈L} y[p]).
+     Inner loops unrolled by line size — mirrors C++ eval_dense_fast()
+     which iterates compact_eval3/4/5 with direct field reads, eliminating
+     per-entry loop overhead for the dominant size-3/4/5 classes.           */
   var sg = new Float64Array(AP);
   function evalLag(yy, computeSg) {
-    var val = 0;
+    var val = 0, rc = 0, i, ip;
     for (var ai = 0; ai < AP; ai++) { val += yy[ai]; if (computeSg) sg[ai] = 1; }
-    for (var li = 0; li < PL; li++) {
-      var sY = 0;
-      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sY += yy[plAps[pos]];
-      var rc = plRem2[li] - sY;
+    /* size-3 (rem2 = 1): mirrors compact_eval3 loop in C++ */
+    for (i = 0, ip = 0; i < nL3; i++, ip += 3) {
+      rc = 1.0 - (yy[pl3T[ip]] + yy[pl3T[ip+1]] + yy[pl3T[ip+2]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl3T[ip]]--; sg[pl3T[ip+1]]--; sg[pl3T[ip+2]]--; }
+      }
+    }
+    /* size-4 (rem2 = 2): mirrors compact_eval4 loop */
+    for (i = 0, ip = 0; i < nL4; i++, ip += 4) {
+      rc = 2.0 - (yy[pl4T[ip]] + yy[pl4T[ip+1]] + yy[pl4T[ip+2]] + yy[pl4T[ip+3]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl4T[ip]]--; sg[pl4T[ip+1]]--; sg[pl4T[ip+2]]--; sg[pl4T[ip+3]]--; }
+      }
+    }
+    /* size-5 (rem2 = 3): mirrors compact_eval5 loop */
+    for (i = 0, ip = 0; i < nL5; i++, ip += 5) {
+      rc = 3.0 - (yy[pl5T[ip]] + yy[pl5T[ip+1]] + yy[pl5T[ip+2]] + yy[pl5T[ip+3]] + yy[pl5T[ip+4]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl5T[ip]]--; sg[pl5T[ip+1]]--; sg[pl5T[ip+2]]--; sg[pl5T[ip+3]]--; sg[pl5T[ip+4]]--; }
+      }
+    }
+    /* size 6+ (generic loop): mirrors compact_eval_other_lines path */
+    for (var oi = 0; oi < nLO; oi++) {
+      var li = plOLiT[oi], sY = 0;
+      for (var pos = plOff[li]; pos < plOff[li+1]; pos++) sY += yy[plAps[pos]];
+      rc = plORem2T[oi] - sY;
       if (rc > 1e-18) {
         val += rc;
         if (computeSg)
-          for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sg[plAps[pos]]--;
+          for (var pos = plOff[li]; pos < plOff[li+1]; pos++) sg[plAps[pos]]--;
       }
     }
     return val;
