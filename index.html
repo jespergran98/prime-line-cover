@@ -3741,6 +3741,11 @@ var BB_rootDualCaptured = false;
    by seed_from_line_ids() + greedy_complete_from_seed() in solve_for_n().
    Null until the first exact solve completes. */
 var BB_warmPrimalSeed = null;
+/* Previous N's optimal heavy-line count.  Mirrors C++ prev used to form
+   lb0_floor = warm_start_solution.empty() ? 0 : prev inside the main loop.
+   Fed together with cover_lb into effective_lb_floor for the DFS root gate.
+   Zero until the first exact solve completes (cold-start semantics). */
+var BB_prevAnswer = 0;
 /* Branch-child upper-bound data — populated by lagrangianUpperBound() and
    consumed by computeChildUBs() before each recursive solve() call.
    Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
@@ -4488,9 +4493,29 @@ function computeCover(primes) {
     }
   }
 
-  /* Simple lower bound (valid for the whole problem). */
-  var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
-  var lb        = Math.ceil(N / Math.max(maxSingle, 2));
+  /* Pre-DFS cover-inequality lower bound gate.
+     Mirrors C++ solve_exact() before it calls solver.solve_for_n():
+       cover_lb          = cover_inequality_lb(n, active_ids, lines)
+       effective_lb_floor = std::max(root_lb_floor, cover_lb)
+     where root_lb_floor  = lb0_floor = warm_start_solution.empty() ? 0 : prev.
+
+     cover_lb is computed over the FULL problem (all N points uncovered,
+     all candidates available) — exactly as C++ does before forced-line
+     reduction enters the DFS.  lb0Floor mirrors the C++ prev-based floor:
+     the optimal heavy-line count of the previous N is a valid lower bound
+     because the sequence a(N) is non-decreasing.
+
+     Together these form the effective_lb_floor that is fed into
+     root_cost_lb_floor_ in the C++ DFS.  When the greedy/warm-start
+     incumbent already equals this bound, root_interval_closed() fires
+     at the very top of dfs() and the search returns in O(1) — this is
+     the dominant saving for R-mode N values (~881 of 1024 steps). */
+  var lb0Floor = (BB_warmPrimalSeed !== null) ? BB_prevAnswer : 0;
+  var zeroCov  = new Int32Array(uw);            /* all N points uncovered  */
+  var allAvail = new Uint8Array(cands.length);  /* all candidates available */
+  for (var _i = 0; _i < allAvail.length; _i++) allAvail[_i] = 1;
+  var coverLB  = coverInequalityLB(zeroCov, cands, allAvail, N, uw);
+  var lb       = Math.max(lb0Floor, coverLB);
 
   /* 4. Branch-and-bound on remaining candidates if greedy is not provably optimal. */
   if (ub > lb) {
@@ -4541,6 +4566,17 @@ function computeCover(primes) {
   BB_warmPrimalSeed = bestSol.map(function(l) {
     return [l.indices[0], l.indices[1]];
   });
+
+  /* Record the optimal total cost for the next N's lb0Floor.
+     Mirrors C++ prev = exact_result.answer at the end of each main-loop
+     iteration.  C++ answer = (n - best_gain + 1)/2 = heavy lines + ceil(uncov/2),
+     i.e. the TOTAL line count (heavy + 2-point fillers), NOT just the heavy count.
+     BB_bestCnt holds this correctly when DFS ran; when DFS was skipped, ub holds it.
+     We recompute from bestSol coverage to be correct in both cases. */
+  var _bsCov = new Int32Array(uw);
+  for (var _bi = 0; _bi < bestSol.length; _bi++)
+    for (var _bw = 0; _bw < uw; _bw++) _bsCov[_bw] |= bestSol[_bi].mask[_bw];
+  BB_prevAnswer = bestSol.length + Math.ceil(countUncovered(_bsCov, N, uw) / 2);
 
   WORKER_WITNESS = buildWitnessCover(N, primes, bestSol);
   WORKER_LAST_N = N;
