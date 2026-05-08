@@ -1721,6 +1721,68 @@ details.tut.tut-cta summary::after { display: none; }
 #overlay-vis-toggle.overlays-off .vis-lbl-off { display: inline; }
 
 /* ═══════════════════════════════════════════════════════
+   INTERMEDIATE / NARROW DESKTOP  951px – 1200px
+   -------------------------------------------------------
+   overlay-paper is positioned relative to the viewport
+   (its ancestor #side has no position set), so there is
+   no way to fit it next to overlay-tl at these widths:
+     overlay-tl  : left 90px + min-width 340px = 430 px
+     overlay-paper: left 510px + width  258px  = 768 px
+     …but canvas width at 1024 px is only 664 px.
+   Solution: stack overlay-paper directly on top of
+   overlay-tl and cross-fade between them every 5 s.
+   ═══════════════════════════════════════════════════════ */
+
+/* Keyframes live outside the media-query so they are
+   registered once and can be referenced by any rule.    */
+@keyframes ov-cycle-a {
+  /* overlay-tl: solid 0–10 s, fade out, hidden, fade in ≈ 10 s on */
+  0%,  71%  { opacity: 1; visibility: visible; transform: translateY(0);  }
+  75%, 96%  { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+  100%      { opacity: 1; visibility: visible; transform: translateY(0);  }
+}
+@keyframes ov-cycle-b {
+  /* overlay-paper: hidden 0–10 s, fade in, solid, fade out  ≈ 4 s on */
+  0%,  71%  { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+  75%, 96%  { opacity: 1; visibility: visible; transform: translateY(0);  }
+  100%      { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+}
+
+@media (min-width: 951px) and (max-width: 1200px) {
+  /* Place overlay-paper at the same viewport-relative
+     position as overlay-tl so they share the same slot. */
+  #overlay-paper {
+    top: 48px;
+    left: 90px;
+    width: 340px;
+    max-width: 400px;
+  }
+
+  /* Suppress the base transition so it doesn't fight the
+     keyframe animation on opacity / transform.           */
+  #overlay-tl,
+  #overlay-paper {
+    transition: none;
+  }
+
+  /* Run a 10-second cycle: each overlay is visible for
+     ~5 s and fades over ~0.6 s. fill-mode: both ensures
+     overlay-paper starts hidden before its first reveal. */
+  #overlay-tl    { animation: ov-cycle-a 14s ease-in-out infinite both; }
+  #overlay-paper { animation: ov-cycle-b 14s ease-in-out infinite both; }
+
+  /* Eye-button: when JS adds .overlays-hidden, force both
+     overlays invisible with !important so the animation
+     cannot override it, and pause so position is held.   */
+  #overlay-tl.overlays-hidden,
+  #overlay-paper.overlays-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    animation-play-state: paused !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
    MOBILE / RESPONSIVE OVERHAUL
    ═══════════════════════════════════════════════════════ */
 
