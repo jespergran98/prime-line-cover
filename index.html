@@ -3048,6 +3048,89 @@ function greedySolve(cands, N, initCov, uw) {
   return { cost: sol.length + Math.ceil(uncovPop / 2), lines: sol, cov: cov };
 }
 
+/* ── Warm primal seed helpers ────────────────────────────────────────────────
+   Mirrors C++ seed_from_line_ids() and greedy_complete_from_seed() in
+   ExactGainSolver::solve_for_n() (primecover1024.cpp lines 2435–2480).
+
+   C++ warm_start_solution stores global line IDs.  JS has no stable IDs, so
+   each seed entry is [indices[0], indices[1]] — the leftmost two point indices
+   on the line.  These are stable: prime p_i is always at position i, and a
+   line's leftmost two points never change as N grows (lines only gain more
+   points to the right).  buildCandAnchorMap() builds a Map from that key to
+   the candidate's position in cands[], enabling O(1) per-seed-line lookup.
+
+   positive_gain(task, id) in C++ returns max(0, line_cover[id] − 2), where
+   line_cover[id] is the number of UNCOVERED points on line id in the current
+   trial state.  "delta > 0" therefore means "at least 3 uncovered points",
+   i.e. getGain(mask, cov, uw) > 2 in our notation.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Build a Map from the stable line key "idx0,idx1" to the index in cands[].
+   O(|cands|).  Called once per computeCover() invocation. */
+function buildCandAnchorMap(cands) {
+  var map = new Map();
+  for (var i = 0; i < cands.length; i++) {
+    map.set(cands[i].indices[0] + ',' + cands[i].indices[1], i);
+  }
+  return map;
+}
+
+/* Mirrors C++ seed_from_line_ids(root, warm_start_line_ids) — called BEFORE
+   apply_root_forced_line_reduction().
+   Applies each warm-seed line whose marginal gain against the current trial
+   coverage is >= 1 (i.e. it covers >= 3 uncovered points, matching C++
+   positive_gain > 0).  Returns {cost, lines} as a candidate incumbent, or
+   null if no seed line yields positive gain. */
+function seedFromLineIds(cands, anchorMap, N, uw, warmIds) {
+  var cov = new Int32Array(WORDS);
+  var sol = [];
+  for (var si = 0; si < warmIds.length; si++) {
+    var id = warmIds[si];
+    var li = anchorMap.get(id[0] + ',' + id[1]);
+    if (li === undefined) continue;
+    /* positive_gain = getGain − 2; skip if <= 0, i.e. getGain <= 2. */
+    var g = getGain(cands[li].mask, cov, uw);
+    if (g <= 2) continue;
+    sol.push(cands[li]);
+    for (var w = 0; w < uw; w++) cov[w] |= cands[li].mask[w];
+  }
+  if (sol.length === 0) return null;
+  var uncovPop = countUncovered(cov, N, uw);
+  return { cost: sol.length + Math.ceil(uncovPop / 2), lines: sol };
+}
+
+/* Mirrors C++ greedy_complete_from_seed(root, root_ctx, warm_start_line_ids)
+   called AFTER apply_root_forced_line_reduction().
+   Starting from forcedCov (the post-forced coverage), applies warm-seed lines
+   with getGain > 2 in order, then runs greedySolve on remainCands from the
+   partially-seeded coverage.  Returns {cost, lines} where cost includes all
+   forcedLines, applied seed lines, and the greedy completion; lines is the
+   concatenation of all three (forcedLines + seedLines + greedyLines). */
+function greedyCompleteFromSeed(cands, anchorMap, remainCands, N, forcedCov, forcedLines, uw, warmIds) {
+  var cov      = new Int32Array(forcedCov);
+  var seedLines = [];
+  for (var si = 0; si < warmIds.length; si++) {
+    var id = warmIds[si];
+    var li = anchorMap.get(id[0] + ',' + id[1]);
+    if (li === undefined) continue;
+    /* Seed lines that are in forcedSet have gain 0 against forcedCov (their
+       points are already covered); they are silently skipped here, exactly
+       as positive_gain returns 0 for unavailable lines in C++. */
+    var g = getGain(cands[li].mask, cov, uw);
+    if (g <= 2) continue;
+    seedLines.push(cands[li]);
+    for (var w = 0; w < uw; w++) cov[w] |= cands[li].mask[w];
+  }
+  /* Complete the seeded partial solution with standard greedy on remainCands.
+     greedySolve returns {cost, lines, cov} where cost = lines.length + ceil(uncov/2)
+     — this does NOT include forcedLines or seedLines, so we add them here. */
+  var gcGreedy = greedySolve(remainCands, N, cov, uw);
+  return {
+    cost:  forcedLines.length + seedLines.length + gcGreedy.cost,
+    lines: forcedLines.concat(seedLines).concat(gcGreedy.lines)
+  };
+}
+
 /* ── Exclusive Dependency Rule — root pre-processing ───────────────────
    C++ translation: apply_root_forced_line_reduction().
 
@@ -3593,6 +3676,18 @@ var BB_warmDualSeed     = null;
    root-node dual (the first saveDual() invocation) is captured.
    Mirrors C++ root_dual_seed_captured_. */
 var BB_rootDualCaptured = false;
+/* Inter-N warm primal seed — the previous N's optimal heavy-line selection,
+   stored as [indices[0], indices[1]] pairs (leftmost two point indices on each
+   line) to stably identify each geometric line across N.  Point indices are
+   stable: prime p_i is always index i regardless of N, and lines only ever
+   gain more points as N grows.
+   Fed into seedFromLineIds() before forced reduction and into
+   greedyCompleteFromSeed() after forced reduction; together they give a tight
+   initial incumbent whose cost the DFS uses immediately for early pruning.
+   Mirrors C++ warm_start_solution threaded through solve_exact() and consumed
+   by seed_from_line_ids() + greedy_complete_from_seed() in solve_for_n().
+   Null until the first exact solve completes. */
+var BB_warmPrimalSeed = null;
 /* Branch-child upper-bound data — populated by lagrangianUpperBound() and
    consumed by computeChildUBs() before each recursive solve() call.
    Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
@@ -4282,6 +4377,21 @@ function computeCover(primes) {
   /* 1. Enumerate all heavy lines (slope-bucket O(N²)). */
   var cands = buildCandidates(primes);
 
+  /* Build an anchor-keyed map for O(1) warm-seed line lookup.
+     Must be constructed from the full cands[] (before forced filtering)
+     so that seed lines which happen to be forced-out are still findable
+     (they will have gain 0 against forcedCov and be silently skipped). */
+  var anchorMap = buildCandAnchorMap(cands);
+
+  /* seed_from_line_ids (pre-forced): try the previous N's optimal heavy-line
+     selection against empty coverage, exactly as C++ calls
+     seed_from_line_ids(root, warm_start_line_ids) before forced reduction.
+     Records a candidate incumbent independently of forced/greedy results. */
+  var preSeedResult = null;
+  if (BB_warmPrimalSeed !== null) {
+    preSeedResult = seedFromLineIds(cands, anchorMap, N, uw, BB_warmPrimalSeed);
+  }
+
   /* 2. Exclusive Dependency Rule pre-processing (root forced-line reduction).
         Forces all lines that are provably in every optimal cover.
         Matched to C++ apply_root_forced_line_reduction(). */
@@ -4299,6 +4409,31 @@ function computeCover(primes) {
   var greedy    = greedySolve(remainCands, N, forcedCov, uw);
   var ub        = forcedLines.length + greedy.cost;
   var bestSol   = forcedLines.concat(greedy.lines);
+
+  /* Update incumbent from pre-forced seed_from_line_ids result if it gives a
+     tighter bound.  This mirrors C++ calling seed_from_line_ids() before
+     greedy_completion() so the warm solution can immediately beat the greedy. */
+  if (preSeedResult !== null && preSeedResult.cost < ub) {
+    ub      = preSeedResult.cost;
+    bestSol = preSeedResult.lines;
+  }
+
+  /* greedy_complete_from_seed (post-forced): apply the warm primal seed from
+     the post-forced coverage state, then complete with greedy.  Mirrors C++
+     greedy_complete_from_seed(root, root_ctx, warm_start_line_ids) called
+     after apply_root_forced_line_reduction().
+     When the previous N's solution still covers a large fraction of the new
+     N's points, this yields a tighter initial incumbent than plain greedy
+     alone, reducing DFS node count significantly on hard instances. */
+  if (BB_warmPrimalSeed !== null) {
+    var gcResult = greedyCompleteFromSeed(cands, anchorMap, remainCands, N,
+                                          forcedCov, forcedLines, uw,
+                                          BB_warmPrimalSeed);
+    if (gcResult.cost < ub) {
+      ub      = gcResult.cost;
+      bestSol = gcResult.lines;
+    }
+  }
 
   /* Simple lower bound (valid for the whole problem). */
   var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
@@ -4342,6 +4477,17 @@ function computeCover(primes) {
     solve(forcedCov, initAvail, forcedResult.gainFromForced);
     bestSol = BB_bestSol;
   }
+
+  /* Persist optimal heavy-line selection as warm primal seed for N+1.
+     Mirrors C++ warm_start_solution = out.chosen_line_ids in solve_exact().
+     Each line is keyed by its two leftmost point indices — stable across N
+     since primes don't move and lines can only gain more points as N grows.
+     Only updated after a full exact solve (not on witness shortcut hits),
+     matching the C++ contract that warm_start_solution is only written by
+     solve_exact(), never by the witness-cover fast-path. */
+  BB_warmPrimalSeed = bestSol.map(function(l) {
+    return [l.indices[0], l.indices[1]];
+  });
 
   WORKER_WITNESS = buildWitnessCover(N, primes, bestSol);
   WORKER_LAST_N = N;
