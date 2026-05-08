@@ -3567,6 +3567,13 @@ var BB_nodes = 0;
 var BB_N  = 0;
 var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
+/* Number of lines in BB_chosen that were forced at the root level (before DFS).
+   Mirrors the fact that C++ task.current_choice starts empty at the DFS root —
+   root-level forced lines are selected via select_line_without_undo() and do NOT
+   push to current_choice.  Subtracting BB_rootForcedCount from BB_chosen.length
+   gives the exact equivalent of current_choice.size() at any DFS node.
+   Used by the kStrongBranchMaxDepth guard. */
+var BB_rootForcedCount = 0;
 /* Persistent dual solution for Lagrangian warm-starting across DFS nodes.
    BB_bestDual[p] holds the best dual weight y*[p] (0..1) from the most
    recent Lagrangian evaluation.  BB_dualReady is set to true after the
@@ -3715,9 +3722,6 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    cov         : Int32Array  — bitmask of already-covered points (NOT mutated)
    avail       : Uint8Array  — avail[i]=1 iff BB_cands[i] is still usable
    currentGain : int         — cumulative gain so far in this branch
-   depth       : int         — branching depth (0 at root); mirrors C++
-                               task.current_choice.size() for the strong-
-                               branching depth gate.
    ──────────────────────────────────────────────────────────────────────── */
 /* Mirrors C++ kStrongBranchMaxDepth = 6 (primecover1024.cpp line 896).
    Strong branching is only beneficial near the root of the search tree,
@@ -3726,8 +3730,7 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    and the expensive Lagrangian simulation (4 candidates × 24 iterations)
    buys nothing while consuming most of the per-node compute budget. */
 var kStrongBranchMaxDepth = 6;
-function solve(cov, avail, currentGain, depth) {
-  if (depth === undefined) depth = 0;
+function solve(cov, avail, currentGain) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
@@ -3898,13 +3901,13 @@ function solve(cov, avail, currentGain, depth) {
   /* Mirrors C++ use_strong_branching condition (primecover1024.cpp line 1633):
        shortlist_size > 1 && gap <= 1 && active_count >= 64
        && current_choice.size() <= kStrongBranchMaxDepth
-     The depth guard is the critical piece that was missing from the JS port.
-     Without it the solver runs 4×24 Lagrangian iterations per node at ALL
-     depths, wasting most of the per-node budget on deep subtrees where
-     branching quality barely matters.  With the guard, strong branching is
-     confined to the top kStrongBranchMaxDepth levels where the wide tree
-     means each good branching decision prunes exponentially many nodes. */
-  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64 && depth <= kStrongBranchMaxDepth;
+     C++ task.current_choice starts empty at the DFS root (root-level forced
+     lines use select_line_without_undo and do NOT push to current_choice).
+     BB_chosen starts pre-loaded with root forced lines, so subtracting
+     BB_rootForcedCount gives the exact equivalent of current_choice.size().
+     Both BB_chosen and current_choice grow by +1 for every line selected
+     during DFS (forced or branched), making this a one-to-one translation. */
+  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64 && (BB_chosen.length - BB_rootForcedCount) <= kStrongBranchMaxDepth;
 
   if (SB_useStrong) {
     /* Pre-compute exclude UBs for the whole shortlist while Lagrangian data
@@ -4032,7 +4035,7 @@ function solve(cov, avail, currentGain, depth) {
     for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
     nxtAvail[bestIdx] = 0;
     BB_chosen.push(branchC);
-    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2), depth + 1);
+    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
     BB_chosen.pop();
   }
 
@@ -4040,7 +4043,7 @@ function solve(cov, avail, currentGain, depth) {
   if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     var nxtAvail = new Uint8Array(workAvail);
     nxtAvail[bestIdx] = 0;
-    solve(workCov, nxtAvail, currentGain, depth + 1);
+    solve(workCov, nxtAvail, currentGain);
   }
 
   /* Undo forced selections on backtrack. */
@@ -4327,10 +4330,16 @@ function computeCover(primes) {
       BB_dualReady = false;
     }
     BB_lagReady  = false;
+    /* Record the number of root-forced lines already in BB_chosen.
+       Mirrors the fact that C++ task.current_choice is empty at the DFS root
+       (root-forced lines use select_line_without_undo, not current_choice).
+       BB_rootForcedCount lets (BB_chosen.length - BB_rootForcedCount) equal
+       task.current_choice.size() at every DFS node. */
+    BB_rootForcedCount = BB_chosen.length;
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
-    solve(forcedCov, initAvail, forcedResult.gainFromForced, 0);
+    solve(forcedCov, initAvail, forcedResult.gainFromForced);
     bestSol = BB_bestSol;
   }
 
