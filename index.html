@@ -3715,8 +3715,19 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    cov         : Int32Array  — bitmask of already-covered points (NOT mutated)
    avail       : Uint8Array  — avail[i]=1 iff BB_cands[i] is still usable
    currentGain : int         — cumulative gain so far in this branch
+   depth       : int         — branching depth (0 at root); mirrors C++
+                               task.current_choice.size() for the strong-
+                               branching depth gate.
    ──────────────────────────────────────────────────────────────────────── */
-function solve(cov, avail, currentGain) {
+/* Mirrors C++ kStrongBranchMaxDepth = 6 (primecover1024.cpp line 896).
+   Strong branching is only beneficial near the root of the search tree,
+   where each branch still represents many unexplored nodes.  Beyond this
+   depth the subtrees are small enough that max-gain branching dominates
+   and the expensive Lagrangian simulation (4 candidates × 24 iterations)
+   buys nothing while consuming most of the per-node compute budget. */
+var kStrongBranchMaxDepth = 6;
+function solve(cov, avail, currentGain, depth) {
+  if (depth === undefined) depth = 0;
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
@@ -3884,7 +3895,16 @@ function solve(cov, avail, currentGain) {
   var SB_totalGainFloor = Math.floor(currentGain + lagUB + 1e-9);
   var SB_nodeCostLb     = Math.ceil((N - SB_totalGainFloor) / 2);
   var SB_gapCost        = BB_bestCnt - SB_nodeCostLb;
-  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64;
+  /* Mirrors C++ use_strong_branching condition (primecover1024.cpp line 1633):
+       shortlist_size > 1 && gap <= 1 && active_count >= 64
+       && current_choice.size() <= kStrongBranchMaxDepth
+     The depth guard is the critical piece that was missing from the JS port.
+     Without it the solver runs 4×24 Lagrangian iterations per node at ALL
+     depths, wasting most of the per-node budget on deep subtrees where
+     branching quality barely matters.  With the guard, strong branching is
+     confined to the top kStrongBranchMaxDepth levels where the wide tree
+     means each good branching decision prunes exponentially many nodes. */
+  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64 && depth <= kStrongBranchMaxDepth;
 
   if (SB_useStrong) {
     /* Pre-compute exclude UBs for the whole shortlist while Lagrangian data
@@ -4012,7 +4032,7 @@ function solve(cov, avail, currentGain) {
     for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
     nxtAvail[bestIdx] = 0;
     BB_chosen.push(branchC);
-    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
+    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2), depth + 1);
     BB_chosen.pop();
   }
 
@@ -4020,7 +4040,7 @@ function solve(cov, avail, currentGain) {
   if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     var nxtAvail = new Uint8Array(workAvail);
     nxtAvail[bestIdx] = 0;
-    solve(workCov, nxtAvail, currentGain);
+    solve(workCov, nxtAvail, currentGain, depth + 1);
   }
 
   /* Undo forced selections on backtrack. */
@@ -4310,7 +4330,7 @@ function computeCover(primes) {
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
-    solve(forcedCov, initAvail, forcedResult.gainFromForced);
+    solve(forcedCov, initAvail, forcedResult.gainFromForced, 0);
     bestSol = BB_bestSol;
   }
 
