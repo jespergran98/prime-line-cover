@@ -70,7 +70,7 @@ Two versions are provided:
 - **`primecover1024.cpp`** – core solver, outputs compact statistics for each N (time, search nodes, bounds, etc.).
 - **`primecover1024_line_coordinates.cpp`** – identical solver that additionally writes out the exact coordinates of every line in the optimal cover (for full reproducibility and visualisation).
 
-Both implement the exact algorithm described in the accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf). Key features:
+Both implement the exact algorithm described in the accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf). Key features:
 
 - **Integer arithmetic throughout** – collinearity is checked via one integer multiply-compare; coverage counting is popcount over word-wise AND. No floating point anywhere on the hot path.
 - **Heavy-line enumeration** – all lines containing at least three points of the final horizon are pre-computed once.
