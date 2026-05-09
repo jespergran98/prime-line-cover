@@ -505,7 +505,7 @@ A [`CITATION.cff`](CITATION.cff) file is included in the repository — GitHub, 
   year      = {2026},
   version   = {1.0.2},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.20096557},
+  doi       = {10.5281/zenodo.20097504},
   url       = {https://github.com/jespergran98/prime-line-cover}
 }
 ```
