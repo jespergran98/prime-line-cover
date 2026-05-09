@@ -2,6 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
+[![DOI](https://zenodo.org/badge/1224698044.svg)](https://doi.org/10.5281/zenodo.20096556)
 
 **[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Citation](#citation)**
 
@@ -495,12 +496,13 @@ Built by Jesper Gran Mikkelsen, an independent researcher in Norway with no prio
 If you use this code or the computed results in your work, please cite the accompanying paper:
 
 ```bibtex
-@misc{primecover2026,
-  author       = {Jesper Gran Mikkelsen},
-  title        = {An Exact Solver for the Minimum Line Cover of Prime-Indexed Points},
-  year         = {2026},
-  howpublished = {\url{https://github.com/jespergran98/prime-line-cover}},
-  note         = {Preprint; Zenodo DOI forthcoming}
+@software{primecover2026,
+  author    = {Jesper Gran Mikkelsen},
+  title     = {An Exact Solver for the Minimum Line Cover of Prime-Indexed Points},
+  year      = {2026},
+  publisher = {Zenodo},
+  doi       = {10.5281/zenodo.20096557},
+  url       = {https://doi.org/10.5281/zenodo.20096557}
 }
 ```
 
