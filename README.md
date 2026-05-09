@@ -503,7 +503,7 @@ A [`CITATION.cff`](CITATION.cff) file is included in the repository — GitHub, 
   author    = {Jesper Gran Mikkelsen},
   title     = {prime-line-cover: Exact Minimum Line Cover Solver for Prime Points},
   year      = {2026},
-  version   = {1.0.1},
+  version   = {1.0.2},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.20096557},
   url       = {https://github.com/jespergran98/prime-line-cover}
