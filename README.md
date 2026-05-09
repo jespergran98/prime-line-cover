@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
-[![DOI](https://zenodo.org/badge/1224698044.svg)](https://doi.org/10.5281/zenodo.20096557)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20097504.svg)](https://doi.org/10.5281/zenodo.20097504)
 
 **[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Citation](#citation)**
 
