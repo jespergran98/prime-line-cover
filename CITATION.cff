@@ -1,0 +1,63 @@
+cff-version: 1.2.0
+message: "If you use this software or the certified results, please cite the accompanying paper."
+type: software
+title: "prime-line-cover: Exact Minimum Line Cover Solver for Prime Points"
+authors:
+  - family-names: Mikkelsen
+    given-names: Jesper Gran
+    affiliation: "Independent Researcher, Norway"
+    email: "jesgranbusiness@gmail.com"
+version: "1.0.1"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.20096557"
+    description: "Zenodo archive of version 1.0.1"
+date-released: 2026-05-09
+repository-code: "https://github.com/jespergran98/prime-line-cover"
+license: MIT
+abstract: >
+  An exact branch-and-bound solver for the minimum line cover of prime-indexed
+  points (OEIS A373813). Given N prime points (k, p_k) in the plane, the solver
+  certifies f(N) — the minimum number of straight lines needed to cover all N
+  points — for N = 1 through 1024. It extends the prior certified boundary from
+  N = 861 — reached in approximately 282 hours via a general-purpose MIP solver —
+  to N = 1024, with f(1024) = 143, in under 40 hours on a Google Cloud
+  c4d-highcpu-8 instance (8 vCPUs, 15 GB RAM). At startup, all 12,162 heavy
+  lines (those through at least three prime points) are enumerated and stored as
+  1024-bit bitmasks; the incremental sweep then carries forward a primal
+  warm-start solution, a Lagrangian dual seed, and a witness cover from f(N-1)
+  at each step. Optimality is certified per step via witness propagation (mode W),
+  root-level bound closure (mode R), or full parallel branch-and-bound (mode D).
+  Lower bounds combine a cover-inequality floor and a Lagrangian gain bound
+  tightened by projected subgradient descent with coordinate-descent polishing.
+  The Exclusive Dependency Rule forces productive heavy lines into the partial
+  solution without loss of optimality. Strong branching evaluates a shortlist of
+  candidate lines via Lagrangian simulation; independent subproblems are
+  dispatched to worker threads via a shared atomic task queue. The 163-term
+  extension identifies 20 new awkward primes (N = 864 through 1015, cover sizes
+  124 to 143). Every reported value is certified optimal; the solver has no
+  heuristic stopping rule.
+keywords:
+  - prime points
+  - minimum line cover
+  - parallel search
+  - branch and bound
+  - Lagrangian relaxation
+  - cover inequalities
+  - witness propagation
+  - incremental sweep
+  - awkward primes
+  - OEIS A373813
+preferred-citation:
+  type: unpublished
+  authors:
+    - family-names: Mikkelsen
+      given-names: Jesper Gran
+      affiliation: "Independent Researcher, Norway"
+      email: "jesgranbusiness@gmail.com"
+  title: "An Exact Solver for the Minimum Line Cover of Prime-Indexed Points"
+  year: 2026
+  month: 5
+  url: "https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf"
+  doi: "10.5281/zenodo.20096557"
+  notes: "MSC 2020: 05B40 (Coverings, packings, tilings), 11A41 (Primes), 68W40 (Analysis of algorithms), 90C57 (Polyhedral combinatorics, branch-and-bound, integer programming)"
