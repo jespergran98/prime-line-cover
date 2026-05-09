@@ -17,26 +17,35 @@ repository-code: "https://github.com/jespergran98/prime-line-cover"
 license: MIT
 abstract: >
   An exact branch-and-bound solver for the minimum line cover of prime-indexed
-  points (OEIS A373813). Given N prime points (k, p_k) in the plane, the solver
-  certifies f(N) — the minimum number of straight lines needed to cover all N
-  points — for N = 1 through 1024. It extends the prior certified boundary from
-  N = 861 — reached in approximately 282 hours via a general-purpose MIP solver —
-  to N = 1024, with f(1024) = 143, in under 40 hours on a Google Cloud
-  c4d-highcpu-8 instance (8 vCPUs, 15 GB RAM). At startup, all 12,162 heavy
-  lines (those through at least three prime points) are enumerated and stored as
-  1024-bit bitmasks; the incremental sweep then carries forward a primal
-  warm-start solution, a Lagrangian dual seed, and a witness cover from f(N-1)
-  at each step. Optimality is certified per step via witness propagation (mode W),
-  root-level bound closure (mode R), or full parallel branch-and-bound (mode D).
-  Lower bounds combine a cover-inequality floor and a Lagrangian gain bound
-  tightened by projected subgradient descent with coordinate-descent polishing.
-  The Exclusive Dependency Rule forces productive heavy lines into the partial
-  solution without loss of optimality. Strong branching evaluates a shortlist of
-  candidate lines via Lagrangian simulation; independent subproblems are
-  dispatched to worker threads via a shared atomic task queue. The 163-term
-  extension identifies 20 new awkward primes (N = 864 through 1015, cover sizes
-  124 to 143). Every reported value is certified optimal; the solver has no
-  heuristic stopping rule.
+  points (OEIS A373813). The minimum number of straight lines covering N prime
+  points (k, p_k) defines f(N); every line through three or more such points
+  encodes an exact arithmetic coincidence among prime values, making f(N)
+  computationally hard to certify exactly as N grows. The solver certifies
+  f(1024) = 143 as the new computational record, extending the prior certified
+  boundary from N = 861 — reached in approximately 282 hours via a
+  general-purpose MIP solver — to N = 1024 with 163 newly certified, strictly
+  optimal terms, in under 40 hours on a Google Cloud c4d-highcpu-8 instance
+  (8 vCPUs, 15 GB RAM); the N = 861 milestone is reached in approximately 22
+  minutes. At startup, all 12,162 heavy lines (those through at least three
+  prime points) are enumerated in 50 ms and stored as 1024-bit bitmasks; the
+  incremental sweep carries forward a primal warm-start solution, a Lagrangian
+  dual seed, and a witness cover from f(N-1) at each step. If the witness
+  covers the new point (N, p_N), optimality is certified instantly (mode W);
+  otherwise a cover-inequality floor is established at the root and exact
+  branch-and-bound is invoked — root bound closure (mode R) or full parallel
+  search (mode D). Per-node pruning uses a Lagrangian gain bound tightened by
+  projected subgradient descent with coordinate-descent polishing. The
+  Exclusive Dependency Rule forces into the partial solution any productive
+  heavy line for which at least three uncovered points each lie on no other
+  productive heavy line — without loss of optimality. When the lower bound is
+  within one of the incumbent and at least 64 points remain uncovered, strong
+  branching evaluates at most four candidate lines via Lagrangian simulation;
+  independent subproblems are dispatched to worker threads via a shared atomic
+  task queue. The 163-term extension identifies 20 new awkward primes (N = 864
+  through 1015, cover sizes 124 to 143). Every reported value is certified
+  optimal; the solver has no heuristic stopping rule. Because the 1024-bit mask
+  is the architectural limit, extending the record beyond N = 1024 requires a
+  wider solver variant.
 keywords:
   - prime points
   - minimum line cover
