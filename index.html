@@ -1721,6 +1721,68 @@ details.tut.tut-cta summary::after { display: none; }
 #overlay-vis-toggle.overlays-off .vis-lbl-off { display: inline; }
 
 /* ═══════════════════════════════════════════════════════
+   INTERMEDIATE / NARROW DESKTOP  951px – 1200px
+   -------------------------------------------------------
+   overlay-paper is positioned relative to the viewport
+   (its ancestor #side has no position set), so there is
+   no way to fit it next to overlay-tl at these widths:
+     overlay-tl  : left 90px + min-width 340px = 430 px
+     overlay-paper: left 510px + width  258px  = 768 px
+     …but canvas width at 1024 px is only 664 px.
+   Solution: stack overlay-paper directly on top of
+   overlay-tl and cross-fade between them every 5 s.
+   ═══════════════════════════════════════════════════════ */
+
+/* Keyframes live outside the media-query so they are
+   registered once and can be referenced by any rule.    */
+@keyframes ov-cycle-a {
+  /* overlay-tl: solid 0–10 s, fade out, hidden, fade in ≈ 10 s on */
+  0%,  71%  { opacity: 1; visibility: visible; transform: translateY(0);  }
+  75%, 96%  { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+  100%      { opacity: 1; visibility: visible; transform: translateY(0);  }
+}
+@keyframes ov-cycle-b {
+  /* overlay-paper: hidden 0–10 s, fade in, solid, fade out  ≈ 4 s on */
+  0%,  71%  { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+  75%, 96%  { opacity: 1; visibility: visible; transform: translateY(0);  }
+  100%      { opacity: 0; visibility: hidden;  transform: translateY(5px); }
+}
+
+@media (min-width: 951px) and (max-width: 1200px) {
+  /* Place overlay-paper at the same viewport-relative
+     position as overlay-tl so they share the same slot. */
+  #overlay-paper {
+    top: 48px;
+    left: 90px;
+    width: 340px;
+    max-width: 400px;
+  }
+
+  /* Suppress the base transition so it doesn't fight the
+     keyframe animation on opacity / transform.           */
+  #overlay-tl,
+  #overlay-paper {
+    transition: none;
+  }
+
+  /* Run a 10-second cycle: each overlay is visible for
+     ~5 s and fades over ~0.6 s. fill-mode: both ensures
+     overlay-paper starts hidden before its first reveal. */
+  #overlay-tl    { animation: ov-cycle-a 14s ease-in-out infinite both; }
+  #overlay-paper { animation: ov-cycle-b 14s ease-in-out infinite both; }
+
+  /* Eye-button: when JS adds .overlays-hidden, force both
+     overlays invisible with !important so the animation
+     cannot override it, and pause so position is held.   */
+  #overlay-tl.overlays-hidden,
+  #overlay-paper.overlays-hidden {
+    opacity: 0 !important;
+    visibility: hidden !important;
+    animation-play-state: paused !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════
    MOBILE / RESPONSIVE OVERHAUL
    ═══════════════════════════════════════════════════════ */
 
@@ -2986,6 +3048,89 @@ function greedySolve(cands, N, initCov, uw) {
   return { cost: sol.length + Math.ceil(uncovPop / 2), lines: sol, cov: cov };
 }
 
+/* ── Warm primal seed helpers ────────────────────────────────────────────────
+   Mirrors C++ seed_from_line_ids() and greedy_complete_from_seed() in
+   ExactGainSolver::solve_for_n() (primecover1024.cpp lines 2435–2480).
+
+   C++ warm_start_solution stores global line IDs.  JS has no stable IDs, so
+   each seed entry is [indices[0], indices[1]] — the leftmost two point indices
+   on the line.  These are stable: prime p_i is always at position i, and a
+   line's leftmost two points never change as N grows (lines only gain more
+   points to the right).  buildCandAnchorMap() builds a Map from that key to
+   the candidate's position in cands[], enabling O(1) per-seed-line lookup.
+
+   positive_gain(task, id) in C++ returns max(0, line_cover[id] − 2), where
+   line_cover[id] is the number of UNCOVERED points on line id in the current
+   trial state.  "delta > 0" therefore means "at least 3 uncovered points",
+   i.e. getGain(mask, cov, uw) > 2 in our notation.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Build a Map from the stable line key "idx0,idx1" to the index in cands[].
+   O(|cands|).  Called once per computeCover() invocation. */
+function buildCandAnchorMap(cands) {
+  var map = new Map();
+  for (var i = 0; i < cands.length; i++) {
+    map.set(cands[i].indices[0] + ',' + cands[i].indices[1], i);
+  }
+  return map;
+}
+
+/* Mirrors C++ seed_from_line_ids(root, warm_start_line_ids) — called BEFORE
+   apply_root_forced_line_reduction().
+   Applies each warm-seed line whose marginal gain against the current trial
+   coverage is >= 1 (i.e. it covers >= 3 uncovered points, matching C++
+   positive_gain > 0).  Returns {cost, lines} as a candidate incumbent, or
+   null if no seed line yields positive gain. */
+function seedFromLineIds(cands, anchorMap, N, uw, warmIds) {
+  var cov = new Int32Array(WORDS);
+  var sol = [];
+  for (var si = 0; si < warmIds.length; si++) {
+    var id = warmIds[si];
+    var li = anchorMap.get(id[0] + ',' + id[1]);
+    if (li === undefined) continue;
+    /* positive_gain = getGain − 2; skip if <= 0, i.e. getGain <= 2. */
+    var g = getGain(cands[li].mask, cov, uw);
+    if (g <= 2) continue;
+    sol.push(cands[li]);
+    for (var w = 0; w < uw; w++) cov[w] |= cands[li].mask[w];
+  }
+  if (sol.length === 0) return null;
+  var uncovPop = countUncovered(cov, N, uw);
+  return { cost: sol.length + Math.ceil(uncovPop / 2), lines: sol };
+}
+
+/* Mirrors C++ greedy_complete_from_seed(root, root_ctx, warm_start_line_ids)
+   called AFTER apply_root_forced_line_reduction().
+   Starting from forcedCov (the post-forced coverage), applies warm-seed lines
+   with getGain > 2 in order, then runs greedySolve on remainCands from the
+   partially-seeded coverage.  Returns {cost, lines} where cost includes all
+   forcedLines, applied seed lines, and the greedy completion; lines is the
+   concatenation of all three (forcedLines + seedLines + greedyLines). */
+function greedyCompleteFromSeed(cands, anchorMap, remainCands, N, forcedCov, forcedLines, uw, warmIds) {
+  var cov      = new Int32Array(forcedCov);
+  var seedLines = [];
+  for (var si = 0; si < warmIds.length; si++) {
+    var id = warmIds[si];
+    var li = anchorMap.get(id[0] + ',' + id[1]);
+    if (li === undefined) continue;
+    /* Seed lines that are in forcedSet have gain 0 against forcedCov (their
+       points are already covered); they are silently skipped here, exactly
+       as positive_gain returns 0 for unavailable lines in C++. */
+    var g = getGain(cands[li].mask, cov, uw);
+    if (g <= 2) continue;
+    seedLines.push(cands[li]);
+    for (var w = 0; w < uw; w++) cov[w] |= cands[li].mask[w];
+  }
+  /* Complete the seeded partial solution with standard greedy on remainCands.
+     greedySolve returns {cost, lines, cov} where cost = lines.length + ceil(uncov/2)
+     — this does NOT include forcedLines or seedLines, so we add them here. */
+  var gcGreedy = greedySolve(remainCands, N, cov, uw);
+  return {
+    cost:  forcedLines.length + seedLines.length + gcGreedy.cost,
+    lines: forcedLines.concat(seedLines).concat(gcGreedy.lines)
+  };
+}
+
 /* ── Exclusive Dependency Rule — root pre-processing ───────────────────
    C++ translation: apply_root_forced_line_reduction().
 
@@ -3247,20 +3392,73 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
   }
 
+  /* ── Size-specialized line arrays for evalLag ─────────────────────────────
+     Mirrors C++ build_compact_productive_lines(): split productive lines by
+     active-point count into flat typed arrays so the inner summation in
+     evalLag can be replaced by direct indexed reads with no loop.
+       pl3T  — flat triples   [a,b,c, a,b,c, …]    rem2 = 1  (size−2)
+       pl4T  — flat quads     [a,b,c,d, …]          rem2 = 2
+       pl5T  — flat quintuples[a,b,c,d,e, …]        rem2 = 3
+       plOLiT/plORem2T — li-indices and rem2 for 6+ point lines (generic loop)
+     Mirrors C++ compact_eval3 / compact_eval4 / compact_eval5 /
+     compact_eval_other_lines built in build_compact_productive_lines().     */
+  var _pl3 = [], _pl4 = [], _pl5 = [], _plOLi = [], _plORem2 = [];
+  for (var _li = 0; _li < PL; _li++) {
+    var _b = plOff[_li], _e = plOff[_li + 1], _cnt = _e - _b;
+    if      (_cnt === 3) { _pl3.push(plAps[_b], plAps[_b+1], plAps[_b+2]); }
+    else if (_cnt === 4) { _pl4.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3]); }
+    else if (_cnt === 5) { _pl5.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3], plAps[_b+4]); }
+    else                 { _plOLi.push(_li); _plORem2.push(plRem2[_li]); }
+  }
+  var pl3T     = new Int32Array(_pl3),   nL3 = pl3T.length  / 3 | 0;
+  var pl4T     = new Int32Array(_pl4),   nL4 = pl4T.length  / 4 | 0;
+  var pl5T     = new Int32Array(_pl5),   nL5 = pl5T.length  / 5 | 0;
+  var plOLiT   = new Int32Array(_plOLi);
+  var plORem2T = new Float64Array(_plORem2);
+  var nLO      = plOLiT.length;
+
   /* Evaluate L(y); optionally populate subgradient array sg[].
-     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] - sum_{p in L} y[p]). */
+     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] − sum_{p∈L} y[p]).
+     Inner loops unrolled by line size — mirrors C++ eval_dense_fast()
+     which iterates compact_eval3/4/5 with direct field reads, eliminating
+     per-entry loop overhead for the dominant size-3/4/5 classes.           */
   var sg = new Float64Array(AP);
   function evalLag(yy, computeSg) {
-    var val = 0;
+    var val = 0, rc = 0, i, ip;
     for (var ai = 0; ai < AP; ai++) { val += yy[ai]; if (computeSg) sg[ai] = 1; }
-    for (var li = 0; li < PL; li++) {
-      var sY = 0;
-      for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sY += yy[plAps[pos]];
-      var rc = plRem2[li] - sY;
+    /* size-3 (rem2 = 1): mirrors compact_eval3 loop in C++ */
+    for (i = 0, ip = 0; i < nL3; i++, ip += 3) {
+      rc = 1.0 - (yy[pl3T[ip]] + yy[pl3T[ip+1]] + yy[pl3T[ip+2]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl3T[ip]]--; sg[pl3T[ip+1]]--; sg[pl3T[ip+2]]--; }
+      }
+    }
+    /* size-4 (rem2 = 2): mirrors compact_eval4 loop */
+    for (i = 0, ip = 0; i < nL4; i++, ip += 4) {
+      rc = 2.0 - (yy[pl4T[ip]] + yy[pl4T[ip+1]] + yy[pl4T[ip+2]] + yy[pl4T[ip+3]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl4T[ip]]--; sg[pl4T[ip+1]]--; sg[pl4T[ip+2]]--; sg[pl4T[ip+3]]--; }
+      }
+    }
+    /* size-5 (rem2 = 3): mirrors compact_eval5 loop */
+    for (i = 0, ip = 0; i < nL5; i++, ip += 5) {
+      rc = 3.0 - (yy[pl5T[ip]] + yy[pl5T[ip+1]] + yy[pl5T[ip+2]] + yy[pl5T[ip+3]] + yy[pl5T[ip+4]]);
+      if (rc > 1e-18) {
+        val += rc;
+        if (computeSg) { sg[pl5T[ip]]--; sg[pl5T[ip+1]]--; sg[pl5T[ip+2]]--; sg[pl5T[ip+3]]--; sg[pl5T[ip+4]]--; }
+      }
+    }
+    /* size 6+ (generic loop): mirrors compact_eval_other_lines path */
+    for (var oi = 0; oi < nLO; oi++) {
+      var li = plOLiT[oi], sY = 0;
+      for (var pos = plOff[li]; pos < plOff[li+1]; pos++) sY += yy[plAps[pos]];
+      rc = plORem2T[oi] - sY;
       if (rc > 1e-18) {
         val += rc;
         if (computeSg)
-          for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) sg[plAps[pos]]--;
+          for (var pos = plOff[li]; pos < plOff[li+1]; pos++) sg[plAps[pos]]--;
       }
     }
     return val;
@@ -3273,6 +3471,22 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
     for (var ai = 0; ai < AP; ai++) BB_bestDual[apToPoint[ai]] = bestY[ai];
     BB_dualReady = true;
+
+    /* ── Root-dual capture: persist the first (root-node) dual for the next N.
+       Mirrors C++ store_best_dual(): the guard "if (!root_dual_seed_captured_)"
+       ensures only the first call per N writes initial_dual_seed_, then sets
+       root_dual_seed_captured_ = true.  BB_warmDualSeed is then loaded back
+       into BB_bestDual at the start of computeCover(N+1) so subgradient descent
+       at the root node of N+1 begins near-optimal instead of from the density
+       heuristic.  Indexed by global point (0..N-1), zero-filled for inactive
+       points, mirroring initial_dual_seed_.assign(n, 0) + per-active copy. */
+    if (!BB_rootDualCaptured) {
+      if (BB_warmDualSeed === null || BB_warmDualSeed.length < N)
+        BB_warmDualSeed = new Float64Array(N);
+      BB_warmDualSeed.fill(0, 0, N);
+      for (var ai = 0; ai < AP; ai++) BB_warmDualSeed[apToPoint[ai]] = bestY[ai];
+      BB_rootDualCaptured = true;
+    }
 
     /* ── Persist branch-cap data for computeChildUBs() ─────────────────────
        BB_lagBestY[p]      ← y*[p] by global point index
@@ -3489,13 +3703,49 @@ var BB_nodes = 0;
 var BB_N  = 0;
 var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
+/* Number of lines in BB_chosen that were forced at the root level (before DFS).
+   Mirrors the fact that C++ task.current_choice starts empty at the DFS root —
+   root-level forced lines are selected via select_line_without_undo() and do NOT
+   push to current_choice.  Subtracting BB_rootForcedCount from BB_chosen.length
+   gives the exact equivalent of current_choice.size() at any DFS node.
+   Used by the kStrongBranchMaxDepth guard. */
+var BB_rootForcedCount = 0;
 /* Persistent dual solution for Lagrangian warm-starting across DFS nodes.
    BB_bestDual[p] holds the best dual weight y*[p] (0..1) from the most
    recent Lagrangian evaluation.  BB_dualReady is set to true after the
-   first evaluation and cleared at the start of each new computeCover call.
+   first evaluation and reset at the start of each new computeCover call
+   only when no inter-N warm seed is available.
    Mirrors C++ LagrangianScratch::dual_ready / best_y[]. */
 var BB_bestDual  = null;
 var BB_dualReady = false;
+/* Inter-N warm dual seed — the root-level Lagrangian dual captured at the
+   first saveDual() call of each N, persisted to hot-start subgradient descent
+   at N+1.  Mirrors C++ warm_dual_seed (the vector threaded through solve_exact
+   and loaded into initial_dual_seed_ / initial_dual_seed_ready_ at the top of
+   solve_for_n()).  Null until the first N produces a root dual. */
+var BB_warmDualSeed     = null;
+/* Per-N flag: true once BB_warmDualSeed has been written for this N.
+   Reset to false at the start of every computeCover() call so that only the
+   root-node dual (the first saveDual() invocation) is captured.
+   Mirrors C++ root_dual_seed_captured_. */
+var BB_rootDualCaptured = false;
+/* Inter-N warm primal seed — the previous N's optimal heavy-line selection,
+   stored as [indices[0], indices[1]] pairs (leftmost two point indices on each
+   line) to stably identify each geometric line across N.  Point indices are
+   stable: prime p_i is always index i regardless of N, and lines only ever
+   gain more points as N grows.
+   Fed into seedFromLineIds() before forced reduction and into
+   greedyCompleteFromSeed() after forced reduction; together they give a tight
+   initial incumbent whose cost the DFS uses immediately for early pruning.
+   Mirrors C++ warm_start_solution threaded through solve_exact() and consumed
+   by seed_from_line_ids() + greedy_complete_from_seed() in solve_for_n().
+   Null until the first exact solve completes. */
+var BB_warmPrimalSeed = null;
+/* Previous N's optimal heavy-line count.  Mirrors C++ prev used to form
+   lb0_floor = warm_start_solution.empty() ? 0 : prev inside the main loop.
+   Fed together with cover_lb into effective_lb_floor for the DFS root gate.
+   Zero until the first exact solve completes (cold-start semantics). */
+var BB_prevAnswer = 0;
 /* Branch-child upper-bound data — populated by lagrangianUpperBound() and
    consumed by computeChildUBs() before each recursive solve() call.
    Mirrors C++ ctx.lagrangian.best_y / work_line_slack_compact:
@@ -3626,6 +3876,13 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    avail       : Uint8Array  — avail[i]=1 iff BB_cands[i] is still usable
    currentGain : int         — cumulative gain so far in this branch
    ──────────────────────────────────────────────────────────────────────── */
+/* Mirrors C++ kStrongBranchMaxDepth = 6 (primecover1024.cpp line 896).
+   Strong branching is only beneficial near the root of the search tree,
+   where each branch still represents many unexplored nodes.  Beyond this
+   depth the subtrees are small enough that max-gain branching dominates
+   and the expensive Lagrangian simulation (4 candidates × 24 iterations)
+   buys nothing while consuming most of the per-node compute budget. */
+var kStrongBranchMaxDepth = 6;
 function solve(cov, avail, currentGain) {
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
@@ -3794,7 +4051,16 @@ function solve(cov, avail, currentGain) {
   var SB_totalGainFloor = Math.floor(currentGain + lagUB + 1e-9);
   var SB_nodeCostLb     = Math.ceil((N - SB_totalGainFloor) / 2);
   var SB_gapCost        = BB_bestCnt - SB_nodeCostLb;
-  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64;
+  /* Mirrors C++ use_strong_branching condition (primecover1024.cpp line 1633):
+       shortlist_size > 1 && gap <= 1 && active_count >= 64
+       && current_choice.size() <= kStrongBranchMaxDepth
+     C++ task.current_choice starts empty at the DFS root (root-level forced
+     lines use select_line_without_undo and do NOT push to current_choice).
+     BB_chosen starts pre-loaded with root forced lines, so subtracting
+     BB_rootForcedCount gives the exact equivalent of current_choice.size().
+     Both BB_chosen and current_choice grow by +1 for every line selected
+     during DFS (forced or branched), making this a one-to-one translation. */
+  var SB_useStrong      = SB_shortlist.length > 1 && SB_gapCost <= 1 && uncovPop >= 64 && (BB_chosen.length - BB_rootForcedCount) <= kStrongBranchMaxDepth;
 
   if (SB_useStrong) {
     /* Pre-compute exclude UBs for the whole shortlist while Lagrangian data
@@ -4169,6 +4435,21 @@ function computeCover(primes) {
   /* 1. Enumerate all heavy lines (slope-bucket O(N²)). */
   var cands = buildCandidates(primes);
 
+  /* Build an anchor-keyed map for O(1) warm-seed line lookup.
+     Must be constructed from the full cands[] (before forced filtering)
+     so that seed lines which happen to be forced-out are still findable
+     (they will have gain 0 against forcedCov and be silently skipped). */
+  var anchorMap = buildCandAnchorMap(cands);
+
+  /* seed_from_line_ids (pre-forced): try the previous N's optimal heavy-line
+     selection against empty coverage, exactly as C++ calls
+     seed_from_line_ids(root, warm_start_line_ids) before forced reduction.
+     Records a candidate incumbent independently of forced/greedy results. */
+  var preSeedResult = null;
+  if (BB_warmPrimalSeed !== null) {
+    preSeedResult = seedFromLineIds(cands, anchorMap, N, uw, BB_warmPrimalSeed);
+  }
+
   /* 2. Exclusive Dependency Rule pre-processing (root forced-line reduction).
         Forces all lines that are provably in every optimal cover.
         Matched to C++ apply_root_forced_line_reduction(). */
@@ -4187,9 +4468,54 @@ function computeCover(primes) {
   var ub        = forcedLines.length + greedy.cost;
   var bestSol   = forcedLines.concat(greedy.lines);
 
-  /* Simple lower bound (valid for the whole problem). */
-  var maxSingle = cands.length > 0 ? cands[0].cnt : 2;
-  var lb        = Math.ceil(N / Math.max(maxSingle, 2));
+  /* Update incumbent from pre-forced seed_from_line_ids result if it gives a
+     tighter bound.  This mirrors C++ calling seed_from_line_ids() before
+     greedy_completion() so the warm solution can immediately beat the greedy. */
+  if (preSeedResult !== null && preSeedResult.cost < ub) {
+    ub      = preSeedResult.cost;
+    bestSol = preSeedResult.lines;
+  }
+
+  /* greedy_complete_from_seed (post-forced): apply the warm primal seed from
+     the post-forced coverage state, then complete with greedy.  Mirrors C++
+     greedy_complete_from_seed(root, root_ctx, warm_start_line_ids) called
+     after apply_root_forced_line_reduction().
+     When the previous N's solution still covers a large fraction of the new
+     N's points, this yields a tighter initial incumbent than plain greedy
+     alone, reducing DFS node count significantly on hard instances. */
+  if (BB_warmPrimalSeed !== null) {
+    var gcResult = greedyCompleteFromSeed(cands, anchorMap, remainCands, N,
+                                          forcedCov, forcedLines, uw,
+                                          BB_warmPrimalSeed);
+    if (gcResult.cost < ub) {
+      ub      = gcResult.cost;
+      bestSol = gcResult.lines;
+    }
+  }
+
+  /* Pre-DFS cover-inequality lower bound gate.
+     Mirrors C++ solve_exact() before it calls solver.solve_for_n():
+       cover_lb          = cover_inequality_lb(n, active_ids, lines)
+       effective_lb_floor = std::max(root_lb_floor, cover_lb)
+     where root_lb_floor  = lb0_floor = warm_start_solution.empty() ? 0 : prev.
+
+     cover_lb is computed over the FULL problem (all N points uncovered,
+     all candidates available) — exactly as C++ does before forced-line
+     reduction enters the DFS.  lb0Floor mirrors the C++ prev-based floor:
+     the optimal heavy-line count of the previous N is a valid lower bound
+     because the sequence a(N) is non-decreasing.
+
+     Together these form the effective_lb_floor that is fed into
+     root_cost_lb_floor_ in the C++ DFS.  When the greedy/warm-start
+     incumbent already equals this bound, root_interval_closed() fires
+     at the very top of dfs() and the search returns in O(1) — this is
+     the dominant saving for R-mode N values (~881 of 1024 steps). */
+  var lb0Floor = (BB_warmPrimalSeed !== null) ? BB_prevAnswer : 0;
+  var zeroCov  = new Int32Array(uw);            /* all N points uncovered  */
+  var allAvail = new Uint8Array(cands.length);  /* all candidates available */
+  for (var _i = 0; _i < allAvail.length; _i++) allAvail[_i] = 1;
+  var coverLB  = coverInequalityLB(zeroCov, cands, allAvail, N, uw);
+  var lb       = Math.max(lb0Floor, coverLB);
 
   /* 4. Branch-and-bound on remaining candidates if greedy is not provably optimal. */
   if (ub > lb) {
@@ -4199,18 +4525,58 @@ function computeCover(primes) {
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
-    /* Clear the persistent dual warm-start state so the first Lagrangian
-       evaluation at this N cold-starts from the density heuristic rather
-       than carrying over a stale dual from the previous N.
-       Mirrors C++ initial_dual_seed_ready_ = false at the top of solve_for_n(). */
-    BB_dualReady = false;
+    /* Reset root-capture flag so saveDual() records a fresh root dual for N+1.
+       Mirrors C++ root_dual_seed_captured_ = false at the top of solve_for_n().
+       Then conditionally hot-start BB_bestDual from the previous N's root dual:
+         • BB_warmDualSeed non-null  → load into BB_bestDual, set BB_dualReady = true
+           (mirrors: initial_dual_seed_ ← warm_dual_seed; initial_dual_seed_ready_ = true)
+         • BB_warmDualSeed null      → cold density-heuristic start, BB_dualReady = false
+           (mirrors: initial_dual_seed_ready_ = false)
+       Points beyond the old seed length receive 0, matching initial_dual_seed_.resize(n,0). */
+    BB_rootDualCaptured = false;
+    if (BB_warmDualSeed !== null) {
+      if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
+      for (var p = 0; p < N; p++)
+        BB_bestDual[p] = p < BB_warmDualSeed.length ? BB_warmDualSeed[p] : 0.0;
+      BB_dualReady = true;
+    } else {
+      BB_dualReady = false;
+    }
     BB_lagReady  = false;
+    /* Record the number of root-forced lines already in BB_chosen.
+       Mirrors the fact that C++ task.current_choice is empty at the DFS root
+       (root-forced lines use select_line_without_undo, not current_choice).
+       BB_rootForcedCount lets (BB_chosen.length - BB_rootForcedCount) equal
+       task.current_choice.size() at every DFS node. */
+    BB_rootForcedCount = BB_chosen.length;
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
     solve(forcedCov, initAvail, forcedResult.gainFromForced);
     bestSol = BB_bestSol;
   }
+
+  /* Persist optimal heavy-line selection as warm primal seed for N+1.
+     Mirrors C++ warm_start_solution = out.chosen_line_ids in solve_exact().
+     Each line is keyed by its two leftmost point indices — stable across N
+     since primes don't move and lines can only gain more points as N grows.
+     Only updated after a full exact solve (not on witness shortcut hits),
+     matching the C++ contract that warm_start_solution is only written by
+     solve_exact(), never by the witness-cover fast-path. */
+  BB_warmPrimalSeed = bestSol.map(function(l) {
+    return [l.indices[0], l.indices[1]];
+  });
+
+  /* Record the optimal total cost for the next N's lb0Floor.
+     Mirrors C++ prev = exact_result.answer at the end of each main-loop
+     iteration.  C++ answer = (n - best_gain + 1)/2 = heavy lines + ceil(uncov/2),
+     i.e. the TOTAL line count (heavy + 2-point fillers), NOT just the heavy count.
+     BB_bestCnt holds this correctly when DFS ran; when DFS was skipped, ub holds it.
+     We recompute from bestSol coverage to be correct in both cases. */
+  var _bsCov = new Int32Array(uw);
+  for (var _bi = 0; _bi < bestSol.length; _bi++)
+    for (var _bw = 0; _bw < uw; _bw++) _bsCov[_bw] |= bestSol[_bi].mask[_bw];
+  BB_prevAnswer = bestSol.length + Math.ceil(countUncovered(_bsCov, N, uw) / 2);
 
   WORKER_WITNESS = buildWitnessCover(N, primes, bestSol);
   WORKER_LAST_N = N;
