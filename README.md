@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
-[![DOI](https://zenodo.org/badge/1224698044.svg)](https://doi.org/10.5281/zenodo.20096556)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20096557.svg)](https://doi.org/10.5281/zenodo.20096557)
 
 **[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Citation](#citation)**
 
@@ -473,6 +473,7 @@ To give WSL higher CPU priority while the solver is running, open **PowerShell a
 | `index.html` | Self-contained interactive demo (JavaScript port of the solver). Deploy as a static site or open locally — no build step required. See [Interactive Demo](#interactive-demo). |
 | `pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
 | `tools/primecover_frontier_diagnosis.sh` | Frontier diagnosis script: compiles and runs the solver, displays a live dashboard, and produces a per-multiplier RAM safety table to help you unlock the highest safe frontier multiplier for your hardware. See [Performance Tuning](#performance-tuning). |
+| `CITATION.cff` | Citation metadata in Citation File Format (CFF). Recognised automatically by GitHub, Zenodo, and Zotero. |
 | `old_solvers/` | Earlier milestone variants of the solver, preserved for reproducibility. Provided as-is; not actively maintained. |
 
 ## Open Problems
@@ -493,16 +494,19 @@ Built by Jesper Gran Mikkelsen, an independent researcher in Norway with no prio
 
 ## Citation
 
-If you use this code or the computed results in your work, please cite the accompanying paper:
+If you use this code or the computed results in your work, please cite the accompanying paper.
+
+A [`CITATION.cff`](CITATION.cff) file is included in the repository — GitHub, Zenodo, and Zotero can read it automatically. For manual use, the BibTeX entry is:
 
 ```bibtex
 @software{primecover2026,
   author    = {Jesper Gran Mikkelsen},
-  title     = {An Exact Solver for the Minimum Line Cover of Prime-Indexed Points},
+  title     = {prime-line-cover: Exact Minimum Line Cover Solver for Prime Points},
   year      = {2026},
+  version   = {1.0.1},
   publisher = {Zenodo},
   doi       = {10.5281/zenodo.20096557},
-  url       = {https://doi.org/10.5281/zenodo.20096557}
+  url       = {https://github.com/jespergran98/prime-line-cover}
 }
 ```
 
