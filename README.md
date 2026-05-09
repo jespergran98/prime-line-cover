@@ -476,14 +476,6 @@ To give WSL higher CPU priority while the solver is running, open **PowerShell a
 | `CITATION.cff` | Citation metadata in Citation File Format (CFF). Recognised automatically by GitHub, Zenodo, and Zotero. |
 | `old_solvers/` | Earlier milestone variants of the solver, preserved for reproducibility. Provided as-is; not actively maintained. |
 
-## Open Problems
-
-Three questions the sequence raises that remain unanswered:
-
-1. **Depth ceiling.** Maximum BnB depth across N = 1–1024 was 108, over 12,162 binary variables. Is there a structural theorem about prime collinearity that explains this ceiling, or does it degrade for larger N?
-2. **Collinearity density.** What is the expected number of heavy lines through (i, pᵢ) as i → ∞? Can Bateman–Horn-style heuristics handle the index–value coupling, or does it add structure not captured by standard prime-tuple models?
-3. **Convergence of f(N)/N.** Currently f(1024)/1024 ≈ 0.14. Does this ratio converge, and if so, to what?
-
 ## Contributing
 
 Bug reports and correctness challenges are welcome via [GitHub Issues](../../issues).
