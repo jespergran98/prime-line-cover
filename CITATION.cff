@@ -10,7 +10,7 @@ authors:
 version: "1.0.2"
 identifiers:
   - type: doi
-    value: "10.5281/zenodo.20097504"
+    value: "10.5281/zenodo.20096556"
     description: "Zenodo archive of version 1.0.2"
 date-released: 2026-05-09
 repository-code: "https://github.com/jespergran98/prime-line-cover"
@@ -68,5 +68,5 @@ preferred-citation:
   year: 2026
   month: 5
   url: "https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf"
-  doi: "10.5281/zenodo.20097504"
+  doi: "10.5281/zenodo.20096556"
   notes: "MSC 2020: 05B40 (Coverings, packings, tilings), 11A41 (Primes), 68W40 (Analysis of algorithms), 90C57 (Polyhedral combinatorics, branch-and-bound, integer programming)"

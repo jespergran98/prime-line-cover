@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20097504.svg)](https://doi.org/10.5281/zenodo.20097504)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20096556.svg)](https://doi.org/10.5281/zenodo.20096556)
 
 **[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Citation](#citation)**
 
@@ -505,7 +505,7 @@ A [`CITATION.cff`](CITATION.cff) file is included in the repository — GitHub, 
   year      = {2026},
   version   = {1.0.2},
   publisher = {Zenodo},
-  doi       = {10.5281/zenodo.20097504},
+  doi       = {10.5281/zenodo.20096556},
   url       = {https://github.com/jespergran98/prime-line-cover}
 }
 ```
