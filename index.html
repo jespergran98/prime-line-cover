@@ -3014,38 +3014,15 @@ function solve(cov, avail, gains, currentGain, prodIds) {
      (Removed: Aligns with C++ design which omits caching in the deep DFS 
      to prevent severe string-allocation GC overhead and memory leaks). */
 
-  /* ── Step 3: Find best productive candidate + build top-4 shortlist ─────
-     Best = max active-coverage productive available line (mirrors C++ choose_branch
-     prior to strong branching: the max-coverage heuristic dominates static ordering).
-     We collect the top-4 candidates by gain in one pass to feed strong branching
-     (step 5c) without a second scan.  Shortlist is kept sorted gain-descending. */
-  var bestIdx = -1, bestGain = 0, maxG = 0;
-  /* SB_shortlist: [{idx, gain}], max 4 entries, gain-descending. */
-  var SB_shortlist = [];
-
+  /* ── Step 3: Find max gain for lower bounds ────────────────────────────── */
+  var maxG = 0;
   for (var idx = 0; idx < localProd.length; idx++) {
     var i = localProd[idx];
-    if (!workAvail[i] || activeGains[i] < 3) continue;
-    var ci = BB_cands[i];
-    var gi = activeGains[i];
-    if (gi > maxG) maxG = gi;
-    if (gi > bestGain) { bestGain = gi; bestIdx = i; }
-    /* Insert into shortlist if it belongs in the top 4 by gain. */
-    if (SB_shortlist.length < 4 || gi > SB_shortlist[SB_shortlist.length - 1].gain) {
-      var entry = { idx: i, gain: gi };
-      var pos = SB_shortlist.length;
-      SB_shortlist.push(entry);
-      /* Bubble up to maintain gain-descending order (shortlist ≤ 4 items). */
-      while (pos > 0 && SB_shortlist[pos].gain > SB_shortlist[pos - 1].gain) {
-        var tmp = SB_shortlist[pos]; SB_shortlist[pos] = SB_shortlist[pos - 1]; SB_shortlist[pos - 1] = tmp;
-        pos--;
-      }
-      if (SB_shortlist.length > 4) SB_shortlist.pop();
-    }
+    if (workAvail[i] && activeGains[i] > maxG) maxG = activeGains[i];
   }
 
-  if (bestIdx < 0 || maxG < 3 || uncovPop === 0) {
-    /* No productive candidate remains.  Incumbent was already updated above. */
+  if (maxG < 3 || uncovPop === 0) {
+    /* No productive candidate remains. Incumbent was already updated above. */
     for (var i = 0; i < nForced; i++) BB_chosen.pop();
     return;
   }
@@ -3099,23 +3076,66 @@ function solve(cov, avail, gains, currentGain, prodIds) {
        Mirrors C++ choose_branch() strong-branching path:
          kStrongBranchShortlist = 4, kStrongBranchMaxIters = 24.            */
 
-  /* ── Phase 1: annotate shortlist with Lagrangian slack; re-sort by
-     (gain desc, slack desc) to match C++ shortlist ordering.              */
-  for (var si = 0; si < SB_shortlist.length; si++) {
-    var sli = SB_shortlist[si].idx;
-    var slk = (BB_lagReady && BB_lagCandSlack && !isNaN(BB_lagCandSlack[sli]))
-              ? Math.max(0.0, BB_lagCandSlack[sli]) : 0.0;
-    SB_shortlist[si].slack = slk;
-  }
-  /* Stable re-sort: gain desc, then slack desc. */
-  SB_shortlist.sort(function(a, b) {
-    if (b.gain !== a.gain) return b.gain - a.gain;
-    return b.slack - a.slack;
-  });
-  /* Update bestIdx/bestGain to follow the refined ordering. */
-  if (SB_shortlist.length > 0) { bestIdx = SB_shortlist[0].idx; bestGain = SB_shortlist[0].gain; }
+  /* ── Phase 1: Build top-4 shortlist using full C++ tie-breaking ────────── */
+  var bestIdx = -1, bestGain = 0;
+  var SB_shortlist = [];
 
-  /* Default child bounds for the (possibly re-ranked) best candidate. */
+  for (var idx = 0; idx < localProd.length; idx++) {
+    var i = localProd[idx];
+    if (!workAvail[i] || activeGains[i] < 3) continue;
+
+    var gi = activeGains[i];
+    var slk = (BB_lagReady && BB_lagCandSlack && !isNaN(BB_lagCandSlack[i]))
+              ? Math.max(0.0, BB_lagCandSlack[i]) : 0.0;
+              
+    /* Calculate branch pressure: sum of incidence of uncovered points */
+    var pressure = 0;
+    var ci = BB_cands[i];
+    for (var k = 0; k < ci.indices.length; k++) {
+      var p = ci.indices[k];
+      if (p >= N) break;
+      if (!(workCov[p >> 5] & (1 << (p & 31)))) {
+        pressure += BB_incidence[p].length;
+      }
+    }
+
+    var entry = { idx: i, gain: gi, slack: slk, pressure: pressure };
+
+    /* Insert into sorted shortlist (gain desc, slack desc, pressure desc, idx asc) */
+    var pos = SB_shortlist.length;
+    SB_shortlist.push(entry);
+    while (pos > 0) {
+      var a = SB_shortlist[pos - 1];
+      var b = SB_shortlist[pos];
+      var swap = false;
+      
+      if (b.gain !== a.gain) {
+        swap = b.gain > a.gain;
+      } else if (Math.abs(b.slack - a.slack) > 1e-18) {
+        swap = b.slack > a.slack;
+      } else if (b.pressure !== a.pressure) {
+        swap = b.pressure > a.pressure;
+      } else {
+        swap = b.idx < a.idx;
+      }
+
+      if (swap) {
+        SB_shortlist[pos] = a;
+        SB_shortlist[pos - 1] = b;
+        pos--;
+      } else {
+        break;
+      }
+    }
+    if (SB_shortlist.length > 4) SB_shortlist.pop();
+  }
+
+  if (SB_shortlist.length > 0) { 
+    bestIdx = SB_shortlist[0].idx; 
+    bestGain = SB_shortlist[0].gain; 
+  }
+
+  /* Default child bounds for the best candidate. */
   var childUBs = computeChildUBs(lagUB, bestIdx, bestGain, workCov, currentGain);
 
   /* ── Phase 2: Strong branching ──────────────────────────────────────────
