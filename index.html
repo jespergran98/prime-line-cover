@@ -2944,6 +2944,17 @@ function solve(cov, avail, gains, currentGain, prodIds) {
   var forcedLines = [];   /* candidate indices disabled by forced selection */
   var forcedPts   = [];   /* point indices newly covered by forced lines    */
 
+  var undoForced = function() {
+    for (var k = 0; k < forcedPts.length; k++) {
+      var p = forcedPts[k], pw = p >> 5, pbit = 1 << (p & 31);
+      workCov[pw] &= ~pbit;
+      var inc = BB_incidence[p];
+      for (var m = 0; m < inc.length; m++) activeGains[inc[m]]++;
+    }
+    for (var i = 0; i < forcedLines.length; i++) workAvail[forcedLines[i]] = 1;
+    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+  };
+
   /* Reusable scratchpad to prevent GC churn in the hot loop */
   if (!self.BB_scratchSoleLine || self.BB_scratchSoleLine.length < N) {
     self.BB_scratchSoleLine = new Int32Array(1024);
@@ -3005,7 +3016,7 @@ function solve(cov, avail, gains, currentGain, prodIds) {
     BB_bestCnt = currentCost;
     BB_bestSol = BB_chosen.slice();
     if (BB_bestCnt <= BB_LB) {
-      for (var i = 0; i < nForced; i++) BB_chosen.pop();
+      undoForced();
       return;
     }
   }
@@ -3023,7 +3034,7 @@ function solve(cov, avail, gains, currentGain, prodIds) {
 
   if (maxG < 3 || uncovPop === 0) {
     /* No productive candidate remains. Incumbent was already updated above. */
-    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    undoForced();
     return;
   }
 
@@ -3031,7 +3042,7 @@ function solve(cov, avail, gains, currentGain, prodIds) {
   var lbBasic = Math.ceil(uncovPop / maxG);
   var lb      = BB_chosen.length + lbBasic;
   if (lb >= BB_bestCnt) {
-    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    undoForced();
     return;
   }
 
@@ -3053,14 +3064,14 @@ function solve(cov, avail, gains, currentGain, prodIds) {
     if (rootCostLB > BB_LB) BB_LB = rootCostLB;
     BB_rootLBCaptured = true;
     if (BB_bestCnt <= BB_LB) {
-      for (var i = 0; i < nForced; i++) BB_chosen.pop();
+      undoForced();
       return;
     }
   }
 
   var gainNeed = BB_N - 2 * BB_bestCnt + 2;
   if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) {
-    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    undoForced();
     return;
   }
 
@@ -3322,14 +3333,7 @@ function solve(cov, avail, gains, currentGain, prodIds) {
   }
 
   /* Undo forced mutations on backtrack */
-  for (var k = 0; k < forcedPts.length; k++) {
-    var p = forcedPts[k], pw = p >> 5, pbit = 1 << (p & 31);
-    workCov[pw] &= ~pbit;
-    var inc = BB_incidence[p];
-    for (var m = 0; m < inc.length; m++) activeGains[inc[m]]++;
-  }
-  for (var i = 0; i < forcedLines.length; i++) workAvail[forcedLines[i]] = 1;
-  for (var i = 0; i < nForced; i++) BB_chosen.pop();
+  undoForced();
 }
 
 /* ── Main entry ─────────────────────────────────────────────────────────── */
