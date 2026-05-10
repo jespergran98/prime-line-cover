@@ -4,7 +4,7 @@
 [![Live Demo](https://img.shields.io/badge/Live%20Demo-View-blue)](https://prime-line-cover.vercel.app)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20096556.svg)](https://doi.org/10.5281/zenodo.20096556)
 
-**[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Citation](#citation)**
+**[Quick Start](#quick-start) · [File Descriptions](#file-descriptions) · [Interactive Demo](#interactive-demo) · [Paper](#paper) · [Results](#results) · [Google Cloud](#google-cloud) · [Citation](#citation)**
 
 ---
 
@@ -295,6 +295,55 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 The solver starts printing results immediately — one line per N.
 
 For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
+
+---
+
+### Google Cloud <a name="google-cloud"></a>
+
+Google Cloud offers a **$300 free trial (90 days)** for new accounts — enough to run the full N = 1–1024 sweep comfortably.
+
+**Recommended instance:** `c4d-highcpu-8` — 8 vCPUs, 15 GB RAM, AMD Turin  
+When creating the VM, set *Series* to **C4D**, *Machine type* to **c4d-highcpu-8**, and *Minimum CPU platform* to **AMD Turin**.
+
+**Step 1 — Install GCC 14**
+
+Connect via SSH (Compute Engine → VM Instances → SSH). GCC 14 is not in the default Debian repos — pull it from trixie:
+
+```bash
+echo "deb https://deb.debian.org/debian trixie main" | sudo tee /etc/apt/sources.list.d/trixie.list
+printf "Package: *\nPin: release n=trixie\nPin-Priority: 100\n" | sudo tee /etc/apt/preferences.d/trixie
+sudo apt update
+sudo apt install -t trixie libc-bin -y
+sudo dpkg --configure -a
+sudo apt install -t trixie g++-14 -y
+```
+
+**Step 2 — Upload and compile**
+
+Use the cloud icon (top-right of the SSH window) → **Upload File** → select `primecover1024_line_coordinates.cpp`. Then compile:
+
+```bash
+g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti \
+  primecover1024_line_coordinates.cpp -o solver
+```
+
+**Step 3 — Launch**
+
+```bash
+nohup stdbuf -oL ./solver > output.log 2>/dev/null &
+```
+
+The solver runs fully detached. You can close the browser tab or shut down your PC at any time — it keeps running on Google's infrastructure.
+
+**Monitoring**
+
+```bash
+pgrep -a solver                                               # confirm it is running
+tail -f output.log                                            # watch live (Ctrl+C to stop watching)
+grep "Stats:" output.log | awk '{print $2, $4}'              # N and line count over time
+```
+
+To download results: cloud icon → **Download File** → `output.log`.
 
 ---
 
