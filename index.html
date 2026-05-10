@@ -2948,6 +2948,18 @@ function solve(cov, avail, currentGain, frontierOut, stateMap) {
   var availCopied = false;
   var nForced     = 0;
 
+  var activeGains = new Int32Array(BB_cands.length);
+  function updateGains() {
+    for (var li = 0; li < BB_cands.length; li++) {
+      if (workAvail[li]) {
+        var fc = BB_cands[li], g = 0;
+        for (var w = 0; w < uw; w++) { var fa = fc.mask[w] & ~workCov[w]; if (fa) g += popcount32(fa); }
+        activeGains[li] = g;
+      }
+    }
+  }
+  updateGains();
+
   /* Reusable scratchpad to prevent GC churn in the hot loop */
   if (!self.BB_scratchSoleLine || self.BB_scratchSoleLine.length < N) {
     self.BB_scratchSoleLine = new Int32Array(1024);
@@ -2960,10 +2972,8 @@ function solve(cov, avail, currentGain, frontierOut, stateMap) {
     for (var p = 0; p < N; p++) soleLine[p] = -1;
 
     for (var li = 0; li < BB_cands.length; li++) {
-      if (!workAvail[li]) continue;
-      var fc = BB_cands[li], fgi = 0;
-      for (var w = 0; w < uw; w++) { var fa = fc.mask[w] & ~workCov[w]; if (fa) fgi += popcount32(fa); }
-      if (fgi < 3) continue;                /* non-productive — skip */
+      if (!workAvail[li] || activeGains[li] < 3) continue;
+      var fc = BB_cands[li];
       for (var k = 0; k < fc.indices.length; k++) {
         var fp = fc.indices[k];
         if (workCov[fp >> 5] & (1 << (fp & 31))) continue; /* already covered */
@@ -2974,10 +2984,8 @@ function solve(cov, avail, currentGain, frontierOut, stateMap) {
 
     /* Scan for a line forced by having >= 3 uniquely-covered uncovered points. */
     for (var li = 0; li < BB_cands.length; li++) {
-      if (!workAvail[li]) continue;
-      var fc = BB_cands[li], fgi = 0;
-      for (var w = 0; w < uw; w++) { var fa = fc.mask[w] & ~workCov[w]; if (fa) fgi += popcount32(fa); }
-      if (fgi < 3) continue;
+      if (!workAvail[li] || activeGains[li] < 3) continue;
+      var fc = BB_cands[li];
       var uniq = 0;
       for (var k = 0; k < fc.indices.length; k++) { if (soleLine[fc.indices[k]] === li) uniq++; }
       if (uniq < 3) continue;
@@ -2990,9 +2998,10 @@ function solve(cov, avail, currentGain, frontierOut, stateMap) {
       }
       workAvail[li] = 0;
       for (var w = 0; w < uw; w++) workCov[w] |= fc.mask[w];
-      currentGain += fgi - 2;
+      currentGain += activeGains[li] - 2;
       BB_chosen.push(fc);
       nForced++;
+      updateGains();
       continue forced_outer;   /* restart: forcing may expose new forced lines */
     }
     break;  /* convergence: no more forced lines */
@@ -3029,10 +3038,9 @@ function solve(cov, avail, currentGain, frontierOut, stateMap) {
   var SB_shortlist = [];
 
   for (var i = 0; i < BB_cands.length; i++) {
-    if (!workAvail[i]) continue;
-    var ci = BB_cands[i], gi = 0;
-    for (var w = 0; w < uw; w++) { var a = ci.mask[w] & ~workCov[w]; if (a) gi += popcount32(a); }
-    if (gi < 3) continue;   /* non-productive */
+    if (!workAvail[i] || activeGains[i] < 3) continue;
+    var ci = BB_cands[i];
+    var gi = activeGains[i];
     if (gi > maxG) maxG = gi;
     if (gi > bestGain) { bestGain = gi; bestIdx = i; }
     /* Insert into shortlist if it belongs in the top 4 by gain. */
