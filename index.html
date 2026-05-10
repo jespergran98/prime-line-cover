@@ -2977,6 +2977,33 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
   return { excludeUB: excUB, includeUB: incUB };
 }
 
+/* ── Frontier State Memoization (Dominance Pruning) ─────────────────────── */
+function getFrontierStateKey(cov, avail, cands, uw) {
+  var blocked = [];
+  for (var i = 0; i < cands.length; i++) {
+    if (!avail[i]) {
+      /* Only track unavailable lines that remain geometrically productive (gain >= 3) */
+      var g = 0;
+      for (var w = 0; w < uw; w++) {
+        var a = cands[i].mask[w] & ~cov[w];
+        if (a) g += popcount32(a);
+      }
+      if (g >= 3) blocked.push(i);
+    }
+  }
+  var covStr = "";
+  for (var w = 0; w < uw; w++) covStr += cov[w] + ",";
+  return covStr + "|" + blocked.join(",");
+}
+
+function isDominated(stateMap, cov, avail, cands, uw, gain) {
+  var key = getFrontierStateKey(cov, avail, cands, uw);
+  var best = stateMap.get(key);
+  if (best !== undefined && best >= gain) return true;
+  stateMap.set(key, gain);
+  return false;
+}
+
 /* ── DFS-level forced line reduction + best-gain branching ────────────────
    Mirrors C++ ExactGainSolver::dfs() + apply_dfs_forced_line_reduction().
 
@@ -3007,7 +3034,7 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    and the expensive Lagrangian simulation (4 candidates × 24 iterations)
    buys nothing while consuming most of the per-node compute budget. */
 var kStrongBranchMaxDepth = 6;
-function solve(cov, avail, currentGain) {
+function solve(cov, avail, currentGain, frontierOut, stateMap) {
   if (BB_bestCnt <= BB_LB) return;
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
@@ -3080,6 +3107,14 @@ function solve(cov, avail, currentGain) {
     BB_bestCnt = currentCost;
     BB_bestSol = BB_chosen.slice();
     if (BB_bestCnt <= BB_LB) {
+      for (var i = 0; i < nForced; i++) BB_chosen.pop();
+      return;
+    }
+  }
+
+  /* ── Step 2.5: BFS State Memoization (Dominance Pruning) ───────────────── */
+  if (frontierOut) {
+    if (isDominated(stateMap, workCov, workAvail, BB_cands, uw, currentGain)) {
       for (var i = 0; i < nForced; i++) BB_chosen.pop();
       return;
     }
@@ -3334,9 +3369,16 @@ function solve(cov, avail, currentGain) {
     var nxtAvail = new Uint8Array(workAvail);
     for (var w = 0; w < uw; w++) nxtCov[w] |= branchC.mask[w];
     nxtAvail[bestIdx] = 0;
-    BB_chosen.push(branchC);
-    solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
-    BB_chosen.pop();
+
+    if (frontierOut) {
+      var childChosen = BB_chosen.slice();
+      childChosen.push(branchC);
+      frontierOut.push({ cov: nxtCov, avail: nxtAvail, gain: currentGain + (branchGain - 2), chosen: childChosen });
+    } else {
+      BB_chosen.push(branchC);
+      solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
+      BB_chosen.pop();
+    }
   }
 
   /* Restore parent's Lagrangian dual for Branch B */
@@ -3351,7 +3393,12 @@ function solve(cov, avail, currentGain) {
   if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     var nxtAvail = new Uint8Array(workAvail);
     nxtAvail[bestIdx] = 0;
-    solve(workCov, nxtAvail, currentGain);
+
+    if (frontierOut) {
+      frontierOut.push({ cov: workCov, avail: nxtAvail, gain: currentGain, chosen: BB_chosen.slice() });
+    } else {
+      solve(workCov, nxtAvail, currentGain);
+    }
   }
 
   /* Undo forced selections on backtrack. */
@@ -3709,7 +3756,46 @@ function computeCover(primes) {
     /* Initialise availability: all remaining candidates are available. */
     var initAvail = new Uint8Array(remainCands.length);
     for (var ii = 0; ii < remainCands.length; ii++) initAvail[ii] = 1;
-    solve(forcedCov, initAvail, forcedResult.gainFromForced);
+
+    /* ── BFS Frontier Generation & Dominance Pruning ────────────────────────
+       Replaces the single solve() call with a BFS expansion loop to weed out 
+       duplicate geometrical states before entering DFS. */
+    var frontier = [{ cov: forcedCov, avail: initAvail, gain: forcedResult.gainFromForced, chosen: BB_chosen.slice() }];
+    var stateMap = new Map();
+    
+    /* Scale target frontier based on complexity, mimicking C++ multiplier ladder */
+    var targetFrontier = (BB_bestCnt >= 121) ? 512 : (BB_bestCnt >= 93 ? 64 : 16);
+
+    /* Phase 1: BFS Expansion */
+    while (frontier.length > 0 && frontier.length < targetFrontier) {
+      /* Sort to pop task with highest active count (fewest covered), breaking ties by lowest gain */
+      frontier.sort(function(a, b) {
+        var aUncov = countUncovered(a.cov, N, uw);
+        var bUncov = countUncovered(b.cov, N, uw);
+        if (aUncov !== bUncov) return aUncov - bUncov; 
+        return b.gain - a.gain; 
+      });
+      var task = frontier.pop();
+      BB_chosen = task.chosen.slice();
+      solve(task.cov, task.avail, task.gain, frontier, stateMap);
+    }
+
+    /* Phase 2: DFS Dispatch */
+    /* Sort surviving frontier to dive deep quickly: lowest active count, highest gain */
+    frontier.sort(function(a, b) {
+      var aUncov = countUncovered(a.cov, N, uw);
+      var bUncov = countUncovered(b.cov, N, uw);
+      if (aUncov !== bUncov) return bUncov - aUncov; 
+      return a.gain - b.gain; 
+    });
+
+    while (frontier.length > 0) {
+      if (BB_bestCnt <= BB_LB) break;
+      var task = frontier.pop();
+      BB_chosen = task.chosen.slice();
+      solve(task.cov, task.avail, task.gain);
+    }
+
     bestSol = BB_bestSol;
   }
 
