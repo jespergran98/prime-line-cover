@@ -3974,6 +3974,7 @@ function tryApply(now) {
 
   primes.push(pendingPrime);
   coverLines = pendingResult.lines;
+  _lsVersion++; /* invalidate render caches */
 
   let multiPt = 0, maxCol = 0;
   for (const l of coverLines) {
@@ -4103,6 +4104,29 @@ function clipLine(sp1, sp2, bx, by, bw, bh) {
 function ease(t) { return t < 0.5 ? 2 * t * t : 1 - ((-2 * t + 2) ** 2) / 2; }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   RENDER CACHES
+   Computed once per coverLines update (not once per animation frame).
+   _lsVersion is bumped in tryApply whenever coverLines is replaced.
+   ───────────────────────────────────────────────────────────────────────── */
+/* Dot-grid offscreen canvas — rebuilt only on viewport resize */
+let _dotGridCanvas = null;
+let _dotGridLogW   = 0;
+let _dotGridLogH   = 0;
+
+/* Line-segment cache — rebuilt when coverLines changes or canvas resizes */
+let _lsVersion    = 0;   /* bumped by tryApply on each coverLines update */
+let _lsCachedVer  = -1;
+let _lsCachedW    = 0;
+let _lsCachedH    = 0;
+let _lineSegs     = [];  /* screen-space endpoints, parallel to coverLines */
+let _heavyIdx     = [];  /* indices into coverLines where isHeavy === true  */
+let _lightIdx     = [];  /* indices into coverLines where isHeavy === false */
+
+/* Prime-colour lookup — rebuilt alongside _lineSegs */
+let _primeColorArr = []; /* [primeIndex] → PALETTE colour string           */
+let _primeGlowArr  = []; /* [primeIndex] → rgba glow string                */
+
+/* ─────────────────────────────────────────────────────────────────────────
    MAIN CANVAS DRAW
    ───────────────────────────────────────────────────────────────────────── */
 function drawMain(t) {
@@ -4115,15 +4139,26 @@ function drawMain(t) {
   mctx.fillStyle = '#FDFCF8';
   mctx.fillRect(0, 0, W, H);
 
-  /* ── Subtle dot grid ── */
-  const gsp = 28;
-  mctx.fillStyle = 'rgba(24,38,58,0.048)';
-  for (let gx = gsp; gx < W; gx += gsp)
-    for (let gy = gsp; gy < H; gy += gsp) {
-      mctx.beginPath();
-      mctx.arc(gx, gy, 0.7, 0, Math.PI * 2);
-      mctx.fill();
-    }
+  /* ── Subtle dot grid — drawn to an offscreen canvas once per viewport size,
+     then blitted here as a single drawImage call instead of hundreds of
+     individual arc()+fill() commands every frame.                           ── */
+  if (!_dotGridCanvas || _dotGridLogW !== W || _dotGridLogH !== H) {
+    _dotGridLogW = W; _dotGridLogH = H;
+    _dotGridCanvas        = document.createElement('canvas');
+    _dotGridCanvas.width  = mcEl.width;
+    _dotGridCanvas.height = mcEl.height;
+    const gc  = _dotGridCanvas.getContext('2d');
+    const gsp = 28;
+    gc.scale(dpr, dpr);
+    gc.fillStyle = 'rgba(24,38,58,0.048)';
+    for (let gx = gsp; gx < W; gx += gsp)
+      for (let gy = gsp; gy < H; gy += gsp) {
+        gc.beginPath();
+        gc.arc(gx, gy, 0.7, 0, Math.PI * 2);
+        gc.fill();
+      }
+  }
+  mctx.drawImage(_dotGridCanvas, 0, 0, W, H);
 
   const x = MM.l, y = MM.t, w = W - MM.l - MM.r, h = H - MM.t - MM.b;
 
@@ -4133,24 +4168,23 @@ function drawMain(t) {
   /* Scaling factor: 1.0 at N=1, smoothly tapers to 0.25 at N=1024.
      Applied to all line widths and point radii so dense plots stay legible. */
   const nScale = Math.max(0.25, 1.0 - 0.75 * (N - 1) / 1023);
-  const xStep = Math.max(1, Math.ceil(N / 10));
+  const xStep  = Math.max(1, Math.ceil(N / 10));
 
-  /* ── Vertical guide lines ── */
+  /* ── Vertical + horizontal guide lines — one batched path, one stroke() ── */
   mctx.save();
   mctx.setLineDash([1, 5]);
-  mctx.lineWidth = 0.8;
+  mctx.lineWidth   = 0.8;
   mctx.strokeStyle = 'rgba(24,38,58,0.06)';
+  mctx.beginPath();
   for (let i = 0; i < N; i += xStep) {
     const sx = N > 1 ? x + (i / (N - 1)) * w : x + w / 2;
-    mctx.beginPath(); mctx.moveTo(sx, y); mctx.lineTo(sx, y + h); mctx.stroke();
+    mctx.moveTo(sx, y); mctx.lineTo(sx, y + h);
   }
-  /* Horizontal guide lines */
   for (let i = 1; i <= 4; i++) {
-    mctx.beginPath();
     mctx.moveTo(x, y + i / 4 * h);
     mctx.lineTo(x + w, y + i / 4 * h);
-    mctx.stroke();
   }
+  mctx.stroke();
   mctx.setLineDash([]);
   mctx.restore();
 
@@ -4176,33 +4210,36 @@ function drawMain(t) {
   mctx.fill();
   mctx.restore();
 
-  /* ── Tick marks & axis labels ── */
+  /* ── Tick marks & axis labels — y-ticks batched; x-ticks batched ── */
   mctx.save();
-  mctx.font = '11px "JetBrains Mono", monospace';
-  mctx.fillStyle = 'rgba(24,38,58,0.62)';
+  mctx.font        = '11px "JetBrains Mono", monospace';
+  mctx.fillStyle   = 'rgba(24,38,58,0.62)';
   mctx.strokeStyle = 'rgba(24,38,58,0.5)';
-  mctx.lineWidth = 1;
-  mctx.textAlign = 'right';
+  mctx.lineWidth   = 1;
 
+  mctx.textAlign = 'right';
+  mctx.beginPath();
   for (let i = 0; i <= 4; i++) {
     const val = Math.round(i / 4 * maxV);
     const sy  = y + h - i / 4 * h;
     mctx.fillText(val, x - 8, sy + 3.5);
-    mctx.beginPath(); mctx.moveTo(x - 4, sy); mctx.lineTo(x, sy); mctx.stroke();
+    mctx.moveTo(x - 4, sy); mctx.lineTo(x, sy);
   }
+  mctx.stroke();
 
   mctx.textAlign = 'center';
+  mctx.beginPath();
   for (let i = 0; i < N; i += xStep) {
     const sx = N > 1 ? x + (i / (N - 1)) * w : x + w / 2;
     mctx.fillText(i + 1, sx, y + h + 17);
-    mctx.beginPath(); mctx.moveTo(sx, y + h); mctx.lineTo(sx, y + h + 4); mctx.stroke();
+    mctx.moveTo(sx, y + h); mctx.lineTo(sx, y + h + 4);
   }
+  mctx.stroke();
 
   /* Axis name labels — italic serif math style */
-  mctx.font = 'italic 14px "EB Garamond", serif';
+  mctx.font      = 'italic 14px "EB Garamond", serif';
   mctx.fillStyle = 'rgba(24,38,58,0.55)';
   mctx.fillText('i', x + w / 2, y + h + 42);
-
   mctx.save();
   mctx.translate(x - 50, y + h / 2);
   mctx.rotate(-Math.PI / 2);
@@ -4210,159 +4247,257 @@ function drawMain(t) {
   mctx.restore();
   mctx.restore();
 
-  /* ─────────────────────────────────────────────────
+  /* -----------------------------------------------------------------
      COVERING LINES — three-pass rendering
-     
+
      KEY DESIGN: No canvas shadowBlur is used anywhere.
      At high N (30+ lines), shadow blur creates a solid
      glowing "blob". Instead we use direct alpha-scaled
      thin strokes for halos — crisp at any line count.
-     ───────────────────────────────────────────────── */
+     ----------------------------------------------------------------- */
   const nL = coverLines.length;
 
-  /* Pre-compute screen positions */
-  const lineSegs = coverLines.map((line) => {
-    if (line.singlePoint) {
-      const sp = toScreen(line.indices[0], line.p1.y, w, h, x, y, N, maxV);
-      return { from: { x: x, y: sp.y }, to: { x: x + w, y: sp.y } };
+  /* ── Per-coverLines cache ──────────────────────────────────────────────
+     Screen-space segments, heavy/light index lists, and per-prime colour
+     lookups are expensive to recompute and change only when coverLines is
+     updated (once per prime step, not once per rAF tick).  We reuse the
+     cache every animation frame until _lsVersion is bumped by tryApply,
+     or until the canvas logical size changes.
+     ─────────────────────────────────────────────────────────────────────  */
+  if (_lsCachedVer !== _lsVersion || _lsCachedW !== W || _lsCachedH !== H) {
+    _lsCachedVer = _lsVersion;
+    _lsCachedW   = W;
+    _lsCachedH   = H;
+
+    _lineSegs = new Array(nL);
+    _heavyIdx = [];
+    _lightIdx = [];
+
+    for (let li = 0; li < nL; li++) {
+      const line = coverLines[li];
+      if (line.singlePoint) {
+        const sp = toScreen(line.indices[0], line.p1.y, w, h, x, y, N, maxV);
+        _lineSegs[li] = { from: { x, y: sp.y }, to: { x: x + w, y: sp.y } };
+      } else {
+        const sp1 = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
+        const sp2 = toScreen(line.p2.x, line.p2.y, w, h, x, y, N, maxV);
+        const cl  = clipLine(sp1, sp2, x, y, w, h);
+        if (!cl) { _lineSegs[li] = null; }
+        else {
+          /* Always draw left->right so animation sweeps from the correct end. */
+          let [a, b] = cl;
+          if (a.x > b.x || (Math.abs(a.x - b.x) < 1 && a.y > b.y)) { const tmp = a; a = b; b = tmp; }
+          _lineSegs[li] = { from: a, to: b };
+        }
+      }
+      if (line.isHeavy) _heavyIdx.push(li);
+      else              _lightIdx.push(li);
     }
-    const sp1 = toScreen(line.p1.x, line.p1.y, w, h, x, y, N, maxV);
-    const sp2 = toScreen(line.p2.x, line.p2.y, w, h, x, y, N, maxV);
-    const cl  = clipLine(sp1, sp2, x, y, w, h);
-    if (!cl) return null;
-    // Always draw left→right (top→bottom for near-verticals) so the
-    // animation never starts from the top-right corner.
-    let [a, b] = cl;
-    if (a.x > b.x || (Math.abs(a.x - b.x) < 1 && a.y > b.y)) { const tmp = a; a = b; b = tmp; }
-    return { from: a, to: b };
-  });
+
+    /* Build prime->colour lookup (replaces the per-prime, per-coverLine
+       O(primes * lines * indices) scan that ran on every frame).          */
+    _primeColorArr = new Array(N).fill(COLOR_INK);
+    _primeGlowArr  = new Array(N).fill('rgba(24,38,58,0.15)');
+    for (const l of coverLines) {
+      if (!l.isHeavy) continue;
+      const col  = PALETTE[l.heavyIndex % PALETTE.length];
+      const glow = PALETTE_GLOW[l.heavyIndex % PALETTE_GLOW.length];
+      for (const idx of l.indices) {
+        if (idx < N) { _primeColorArr[idx] = col; _primeGlowArr[idx] = glow; }
+      }
+    }
+  }
 
   mctx.save();
   mctx.lineCap  = 'round';
   mctx.lineJoin = 'round';
 
-  /* Helper: get animation progress for line i (0..1).
-     At INTERVAL ≤ 100 ms the step rate is too fast for a draw-on sweep to
-     be meaningful — skip it and show every line fully-formed immediately.  */
-  function lineProgress(i) {
-    if (INTERVAL <= 100) return 1;
-    if (!linesBirth[i] && linesBirth[i] !== 0) return 1;
-    const age = t - linesBirth[i];
-    if (age <= 0) return 0;
-    return ease(Math.min(1, age / currentAnimDur));
+  /* ── Animation progress ─────────────────────────────────────────────────
+     At INTERVAL <= 100 ms the solver runs at full speed — draw-on sweeps
+     are meaningless and all progress values equal 1.  Detect this once per
+     frame and take the fast path through every pass, which enables stroke
+     batching that cuts GPU flushes from O(n) per pass to O(palette_size).
+     In animation mode (INTERVAL > 100) we compute each line's progress
+     once into _lineP and share it across all three passes, eliminating the
+     triple re-evaluation of ease() that existed in the original code.
+     ─────────────────────────────────────────────────────────────────────── */
+  const fastMode = INTERVAL <= 100;
+  let _lineP = null;
+  if (!fastMode) {
+    _lineP = new Array(nL);
+    for (let li = 0; li < nL; li++) {
+      if (!linesBirth[li] && linesBirth[li] !== 0) { _lineP[li] = 1; continue; }
+      const age = t - linesBirth[li];
+      _lineP[li] = age <= 0 ? 0 : ease(Math.min(1, age / currentAnimDur));
+    }
   }
 
-  /* ─────────────────────────────────────────────────────────────────────
-     Pass 1: Color halos — thin, NO shadow blur.
-     
-     Alpha and width scale down as line count grows so individual lines
-     remain visually distinct even at N ≈ 180 with 30+ covering lines.
-     Formula: at nL=4 → haloAlpha≈0.13, haloWidth≈5.0
-              at nL=20 → haloAlpha≈0.09, haloWidth≈3.6
-              at nL=40 → haloAlpha≈0.06, haloWidth≈2.4 (min)
-              at nL=80 → haloAlpha≈0.04 (min), haloWidth=2.4 (min)
-     ───────────────────────────────────────────────────────────────────── */
   const haloAlpha = Math.max(0.035, 0.155 - nL * 0.0032);
   const haloWidth = Math.max(2.4,   5.8   - nL * 0.085) * nScale;
 
-  coverLines.forEach((line, li) => {
-    if (!line.isHeavy) return;
-    const seg = lineSegs[li];
-    if (!seg) return;
-    const p = lineProgress(li);
-    if (p <= 0) return;
+  /* -----------------------------------------------------------------
+     Pass 1: Color halos — thin, NO shadow blur.
 
-    const col = PALETTE[line.heavyIndex % PALETTE.length];
-    const ex  = seg.from.x + (seg.to.x - seg.from.x) * p;
-    const ey  = seg.from.y + (seg.to.y - seg.from.y) * p;
+     Fast path: all p=1 -> constant alpha/width for the whole pass.
+     Group by colour (at most PALETTE.length = 6 groups) and issue one
+     beginPath+stroke per group instead of one per line.
 
-    mctx.globalAlpha = haloAlpha * Math.min(p * 2.5, 1);
-    mctx.strokeStyle = col;
-    mctx.lineWidth   = haloWidth;
-    mctx.setLineDash([]);
-    mctx.beginPath();
-    mctx.moveTo(seg.from.x, seg.from.y);
-    mctx.lineTo(ex, ey);
-    mctx.stroke();
-  });
-
-  mctx.globalAlpha = 1;
-
-  /* Pass 2: Light lines (dashed) */
-  coverLines.forEach((line, li) => {
-    if (line.isHeavy) return;
-    const seg = lineSegs[li];
-    if (!seg) return;
-    const p = lineProgress(li);
-    if (p <= 0) return;
-
-    const ex = seg.from.x + (seg.to.x - seg.from.x) * p;
-    const ey = seg.from.y + (seg.to.y - seg.from.y) * p;
-
-    mctx.globalAlpha = 0.28 + p * 0.28;
-    mctx.strokeStyle = COLOR_INK;
-    mctx.lineWidth   = 1.1 * nScale;
-    mctx.setLineDash([3, 6]);
-    mctx.beginPath();
-    mctx.moveTo(seg.from.x, seg.from.y);
-    mctx.lineTo(ex, ey);
-    mctx.stroke();
-  });
-
-  mctx.globalAlpha = 1;
+     Alpha and width scale down as line count grows so individual lines
+     remain visually distinct even at N ~ 180 with 30+ covering lines.
+     Formula: at nL=4  -> haloAlpha~0.13, haloWidth~5.0
+              at nL=20 -> haloAlpha~0.09, haloWidth~3.6
+              at nL=40 -> haloAlpha~0.06, haloWidth~2.4
+              at nL=80 -> haloAlpha~0.04 (min), haloWidth=2.4 (min)
+     ----------------------------------------------------------------- */
+  mctx.lineWidth   = haloWidth;
   mctx.setLineDash([]);
 
-  /* Pass 3: Core heavy lines — crisp, full-opacity colored strokes */
-  coverLines.forEach((line, li) => {
-    if (!line.isHeavy) return;
-    const seg = lineSegs[li];
-    if (!seg) return;
-    const p = lineProgress(li);
-    if (p <= 0) return;
-
-    const col = PALETTE[line.heavyIndex % PALETTE.length];
-    const ex  = seg.from.x + (seg.to.x - seg.from.x) * p;
-    const ey  = seg.from.y + (seg.to.y - seg.from.y) * p;
-
-    mctx.globalAlpha = 0.80 + p * 0.18;
-    mctx.strokeStyle = col;
-    mctx.lineWidth   = 1.75 * nScale;
-
-    mctx.beginPath();
-    mctx.moveTo(seg.from.x, seg.from.y);
-    mctx.lineTo(ex, ey);
-    mctx.stroke();
-
-    /* Leading-edge dot during draw-on animation */
-    if (p < 0.98) {
-      mctx.globalAlpha = 1;
-      /* Outer halo */
-      mctx.beginPath();
-      mctx.arc(ex, ey, 5.5 * nScale, 0, Math.PI * 2);
-      mctx.fillStyle = col;
-      mctx.globalAlpha = 0.2;
-      mctx.fill();
-      /* Core dot */
-      mctx.beginPath();
-      mctx.arc(ex, ey, 2.8 * nScale, 0, Math.PI * 2);
-      mctx.fillStyle = col;
-      mctx.globalAlpha = 1;
-      mctx.fill();
-      /* Tiny bright center */
-      mctx.beginPath();
-      mctx.arc(ex, ey, 1.2 * nScale, 0, Math.PI * 2);
-      mctx.fillStyle = '#FDFCF8';
-      mctx.fill();
+  if (fastMode) {
+    mctx.globalAlpha = haloAlpha;
+    const colorBuckets1 = new Map();
+    for (const li of _heavyIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
+      if (!colorBuckets1.has(col)) colorBuckets1.set(col, []);
+      colorBuckets1.get(col).push(seg);
     }
-  });
+    for (const [col, segs] of colorBuckets1) {
+      mctx.strokeStyle = col;
+      mctx.beginPath();
+      for (const seg of segs) { mctx.moveTo(seg.from.x, seg.from.y); mctx.lineTo(seg.to.x, seg.to.y); }
+      mctx.stroke();
+    }
+  } else {
+    /* Animation mode: p varies per line -> per-line strokes are required.
+       This is acceptable because INTERVAL > 100 means the solver is slow,
+       so line counts are still small.                                     */
+    for (const li of _heavyIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const p = _lineP[li];
+      if (p <= 0) continue;
+      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
+      mctx.globalAlpha = haloAlpha * Math.min(p * 2.5, 1);
+      mctx.strokeStyle = col;
+      mctx.beginPath();
+      mctx.moveTo(seg.from.x, seg.from.y);
+      mctx.lineTo(seg.from.x + (seg.to.x - seg.from.x) * p,
+                  seg.from.y + (seg.to.y - seg.from.y) * p);
+      mctx.stroke();
+    }
+  }
+  mctx.globalAlpha = 1;
 
+  /* -----------------------------------------------------------------
+     Pass 2: Light lines (dashed)
+
+     All light lines share the same style (COLOR_INK, dashed, same
+     lineWidth).  In fast mode all p=1 so globalAlpha is also constant,
+     which means the entire pass collapses to a single beginPath + one
+     stroke() call.  setLineDash is set once before the loop, not once
+     per line.
+     ----------------------------------------------------------------- */
+  mctx.strokeStyle = COLOR_INK;
+  mctx.lineWidth   = 1.1 * nScale;
+  mctx.setLineDash([3, 6]);   /* hoisted — set once for the entire pass */
+
+  if (fastMode) {
+    mctx.globalAlpha = 0.56;  /* 0.28 + 1*0.28 with p=1 */
+    mctx.beginPath();
+    for (const li of _lightIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      mctx.moveTo(seg.from.x, seg.from.y);
+      mctx.lineTo(seg.to.x, seg.to.y);
+    }
+    mctx.stroke();
+  } else {
+    for (const li of _lightIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const p = _lineP[li];
+      if (p <= 0) continue;
+      mctx.globalAlpha = 0.28 + p * 0.28;
+      mctx.beginPath();
+      mctx.moveTo(seg.from.x, seg.from.y);
+      mctx.lineTo(seg.from.x + (seg.to.x - seg.from.x) * p,
+                  seg.from.y + (seg.to.y - seg.from.y) * p);
+      mctx.stroke();
+    }
+  }
   mctx.globalAlpha = 1;
   mctx.setLineDash([]);
+
+  /* -----------------------------------------------------------------
+     Pass 3: Core heavy lines — crisp, full-opacity colored strokes.
+
+     Fast path: all p=1 -> globalAlpha = 0.98 (constant) -> same
+     colour-bucketing strategy as Pass 1.
+     ----------------------------------------------------------------- */
+  mctx.lineWidth = 1.75 * nScale;
+
+  if (fastMode) {
+    mctx.globalAlpha = 0.98;  /* 0.80 + 1*0.18 */
+    const colorBuckets3 = new Map();
+    for (const li of _heavyIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
+      if (!colorBuckets3.has(col)) colorBuckets3.set(col, []);
+      colorBuckets3.get(col).push(seg);
+    }
+    for (const [col, segs] of colorBuckets3) {
+      mctx.strokeStyle = col;
+      mctx.beginPath();
+      for (const seg of segs) { mctx.moveTo(seg.from.x, seg.from.y); mctx.lineTo(seg.to.x, seg.to.y); }
+      mctx.stroke();
+    }
+  } else {
+    for (const li of _heavyIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const p = _lineP[li];
+      if (p <= 0) continue;
+      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
+      const ex  = seg.from.x + (seg.to.x - seg.from.x) * p;
+      const ey  = seg.from.y + (seg.to.y - seg.from.y) * p;
+
+      mctx.globalAlpha = 0.80 + p * 0.18;
+      mctx.strokeStyle = col;
+      mctx.beginPath();
+      mctx.moveTo(seg.from.x, seg.from.y);
+      mctx.lineTo(ex, ey);
+      mctx.stroke();
+
+      /* Leading-edge dot during draw-on animation */
+      if (p < 0.98) {
+        mctx.globalAlpha = 0.2;
+        mctx.beginPath();
+        mctx.arc(ex, ey, 5.5 * nScale, 0, Math.PI * 2);
+        mctx.fillStyle = col;
+        mctx.fill();
+        /* Core dot */
+        mctx.globalAlpha = 1;
+        mctx.beginPath();
+        mctx.arc(ex, ey, 2.8 * nScale, 0, Math.PI * 2);
+        mctx.fillStyle = col;
+        mctx.fill();
+        /* Tiny bright center */
+        mctx.beginPath();
+        mctx.arc(ex, ey, 1.2 * nScale, 0, Math.PI * 2);
+        mctx.fillStyle = '#FDFCF8';
+        mctx.fill();
+      }
+    }
+  }
+
+  mctx.globalAlpha = 1;
   mctx.restore();
 
-  /* ─────────────────────────────────────────────────
+  /* -----------------------------------------------------------------
      PRIME DOTS
-     ───────────────────────────────────────────────── */
+     ----------------------------------------------------------------- */
   const rAge = t - rippleT;
 
   primes.forEach((pt, i) => {
@@ -4385,20 +4520,15 @@ function drawMain(t) {
       }
     }
 
-    /* Determine point color from its covering line */
-    let ptColor = COLOR_INK;
-    for (const l of coverLines) {
-      if (l.isHeavy && l.indices.includes(i)) {
-        ptColor = PALETTE[l.heavyIndex % PALETTE.length];
-        break;
-      }
-    }
+    /* Point colour from pre-built lookup table — eliminates the per-prime
+       O(lines * indices) scan that ran every frame in the original code.  */
+    const ptColor = _primeColorArr[i] || COLOR_INK;
 
-    /* Draw point shadow/glow */
+    /* Draw point shadow/glow — glow string is pre-built, no string ops    */
     if (isNew) {
       mctx.beginPath();
       mctx.arc(sx, sy, r + 4, 0, Math.PI * 2);
-      mctx.fillStyle = ptColor.replace(')', ',0.15)').replace('rgb(', 'rgba(');
+      mctx.fillStyle   = _primeGlowArr[i] || 'rgba(24,38,58,0.15)';
       mctx.globalAlpha = 0.4;
       mctx.fill();
       mctx.globalAlpha = 1;
@@ -4435,6 +4565,7 @@ function drawMain(t) {
 
   mctx.restore();
 }
+
 
 /* ── Rounded rect helper ─────────────────────────────────────────────────── */
 function roundRect(ctx, x, y, w, h, r) {
