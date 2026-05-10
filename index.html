@@ -3294,6 +3294,10 @@ function solve(cov, avail, currentGain) {
   var branchC    = BB_cands[bestIdx];
   var branchGain = bestGain;
 
+  /* Save parent's Lagrangian dual to restore before Branch B */
+  var step6DualReady = BB_dualReady;
+  var step6BestDual  = BB_bestDual ? new Float64Array(BB_bestDual) : null;
+
   /* Branch A — Include (also pruned by the tighter include-child bound) */
   if (branchGain >= 3 && Math.floor(childUBs.includeUB + 1e-9) >= gainNeed) {
     var nxtCov   = new Int32Array(workCov);
@@ -3303,6 +3307,14 @@ function solve(cov, avail, currentGain) {
     BB_chosen.push(branchC);
     solve(nxtCov, nxtAvail, currentGain + (branchGain - 2));
     BB_chosen.pop();
+  }
+
+  /* Restore parent's Lagrangian dual for Branch B */
+  BB_dualReady = step6DualReady;
+  if (step6BestDual && BB_bestDual) {
+    for (var di = 0; di < step6BestDual.length; di++) {
+      BB_bestDual[di] = step6BestDual[di];
+    }
   }
 
   /* Branch B — Exclude (also pruned by the tighter exclude-child bound) */
