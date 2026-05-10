@@ -3010,11 +3010,15 @@ function solve(cov, avail, currentGain) {
   var availCopied = false;
   var nForced     = 0;
 
+  /* Reusable scratchpad to prevent GC churn in the hot loop */
+  if (!self.BB_scratchSoleLine || self.BB_scratchSoleLine.length < N) {
+    self.BB_scratchSoleLine = new Int32Array(1024);
+  }
+  var soleLine = self.BB_scratchSoleLine;
+
   forced_outer: for (;;) {
     /* Build soleLine[p]: index of the single productive available line that
-       covers uncovered point p, or -2 if multiple such lines exist.
-       Mirrors C++ sole_productive_line[] rebuild inside apply_dfs_forced_line_reduction(). */
-    var soleLine = new Int32Array(N);
+       covers uncovered point p, or -2 if multiple such lines exist. */
     for (var p = 0; p < N; p++) soleLine[p] = -1;
 
     for (var li = 0; li < BB_cands.length; li++) {
@@ -3102,9 +3106,8 @@ function solve(cov, avail, currentGain) {
   }
 
   /* ── Step 4: Lower bounds ────────────────────────────────────────────────*/
-  var lbCov   = coverInequalityLB(workCov, BB_cands, workAvail, N, uw);
   var lbBasic = Math.ceil(uncovPop / maxG);
-  var lb      = BB_chosen.length + Math.max(lbCov, lbBasic);
+  var lb      = BB_chosen.length + lbBasic;
   if (lb >= BB_bestCnt) {
     for (var i = 0; i < nForced; i++) BB_chosen.pop();
     return;
