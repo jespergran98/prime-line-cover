@@ -2128,8 +2128,17 @@ function buildCandidates(primes) {
     }
   }
 
-  /* Sort by point count descending — largest lines first for greedy. */
-  lines.sort(function(a, b) { return b.cnt - a.cnt; });
+  /* Sort identically to C++: Leftmost anchor first, then count descending, then lexicographical.
+     This preserves left-to-right geometric tie-breaking, preventing severe fragmentation
+     during DFS and drastically reducing the search tree size. */
+  lines.sort(function(a, b) {
+    if (a.indices[0] !== b.indices[0]) return a.indices[0] - b.indices[0];
+    if (a.cnt !== b.cnt) return b.cnt - a.cnt;
+    for (var i = 0; i < Math.min(a.cnt, b.cnt); i++) {
+      if (a.indices[i] !== b.indices[i]) return a.indices[i] - b.indices[i];
+    }
+    return 0;
+  });
   return lines;
 }
 
