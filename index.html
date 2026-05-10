@@ -2723,6 +2723,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters, p
 
 /* ── Branch-and-bound ──────────────────────────────────────────────────── */
 var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
+var BB_stateCache = new Map();
 var GLOBAL_CANDS = null;
 var BB_incidence = null;
 var BB_nodes = 0;
@@ -2919,9 +2920,10 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    and the expensive Lagrangian simulation (4 candidates × 24 iterations)
    buys nothing while consuming most of the per-node compute budget. */
 var kStrongBranchMaxDepth = 6;
-function solve(cov, avail, gains, currentGain, prodIds) {
+function solve(cov, avail, gains, currentGain, prodIds, blockedList) {
   if (BB_bestCnt <= BB_LB) return;
   if (++BB_nodes >= BB_NODE_LIMIT) return;
+  blockedList = blockedList || [];
 
   var uw = BB_UW;
   var N  = BB_N;
@@ -3009,6 +3011,29 @@ function solve(cov, avail, gains, currentGain, prodIds) {
       return;
     }
   }
+
+  /* ── Step 2.5: Dominance Pruning (Transposition Table) ─────────────────── */
+  var stateKey = "";
+  for (var w = 0; w < uw; w++) if (workCov[w]) stateKey += w + ":" + workCov[w] + ",";
+  var activeBlocked = [];
+  for (var i = 0; i < blockedList.length; i++) {
+    if (activeGains[blockedList[i]] >= 3) activeBlocked.push(blockedList[i]);
+  }
+  stateKey += "|" + activeBlocked.join(',');
+
+  if (BB_stateCache.has(stateKey) && BB_stateCache.get(stateKey) >= currentGain) {
+    /* Cache hit: an equal or better path already reached this residual state. Rollback and prune. */
+    for (var k = 0; k < forcedPts.length; k++) {
+      var p = forcedPts[k], pw = p >> 5, pbit = 1 << (p & 31);
+      workCov[pw] &= ~pbit;
+      var inc = BB_incidence[p];
+      for (var m = 0; m < inc.length; m++) activeGains[inc[m]]++;
+    }
+    for (var i = 0; i < forcedLines.length; i++) workAvail[forcedLines[i]] = 1;
+    for (var i = 0; i < nForced; i++) BB_chosen.pop();
+    return;
+  }
+  BB_stateCache.set(stateKey, currentGain);
 
   /* ── Step 3: Find best productive candidate + build top-4 shortlist ─────
      Best = max active-coverage productive available line (mirrors C++ choose_branch
@@ -3269,7 +3294,7 @@ function solve(cov, avail, gains, currentGain, prodIds) {
     }
 
     BB_chosen.push(branchC);
-    solve(workCov, workAvail, activeGains, currentGain + (branchGain - 2), localProd);
+    solve(workCov, workAvail, activeGains, currentGain + (branchGain - 2), localProd, activeBlocked);
     BB_chosen.pop();
 
     /* Undo Branch A mutations */
@@ -3293,7 +3318,9 @@ function solve(cov, avail, gains, currentGain, prodIds) {
   /* Branch B — Exclude (also pruned by the tighter exclude-child bound) */
   if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
     workAvail[bestIdx] = 0;
-    solve(workCov, workAvail, activeGains, currentGain, localProd);
+    var newBlocked = activeBlocked.slice();
+    newBlocked.push(bestIdx);
+    solve(workCov, workAvail, activeGains, currentGain, localProd, newBlocked);
     workAvail[bestIdx] = 1;   /* Undo Branch B */
   }
 
@@ -3654,6 +3681,7 @@ function computeCover(primes) {
     BB_cands   = remainCands;
     BB_bestCnt = ub;
     BB_bestSol = bestSol;
+    BB_stateCache.clear();
     /* Seed BB_chosen with forced lines so cost accounting is correct. */
     BB_chosen  = forcedLines.slice();
     BB_nodes   = 0;
