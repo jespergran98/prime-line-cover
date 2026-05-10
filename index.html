@@ -2813,6 +2813,8 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
 /* ── Branch-and-bound ──────────────────────────────────────────────────── */
 var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
 var BB_nodes = 0;
+var BB_LB = 0;
+var BB_rootLBCaptured = false;
 var BB_N  = 0;
 var BB_UW = 0;
 var BB_NODE_LIMIT = 5000000;
@@ -2997,6 +2999,7 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    buys nothing while consuming most of the per-node compute budget. */
 var kStrongBranchMaxDepth = 6;
 function solve(cov, avail, currentGain) {
+  if (BB_bestCnt <= BB_LB) return;
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
@@ -3067,6 +3070,10 @@ function solve(cov, avail, currentGain) {
   if (currentCost < BB_bestCnt) {
     BB_bestCnt = currentCost;
     BB_bestSol = BB_chosen.slice();
+    if (BB_bestCnt <= BB_LB) {
+      for (var i = 0; i < nForced; i++) BB_chosen.pop();
+      return;
+    }
   }
 
   /* ── Step 3: Find best productive candidate + build top-4 shortlist ─────
@@ -3125,6 +3132,17 @@ function solve(cov, avail, currentGain) {
      while giving the full budget where it counts.                          */
   var lagMaxIters = Math.min(64, 8 + (uncovPop >> 3));
   var lagUB       = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain, lagMaxIters);
+
+  if (!BB_rootLBCaptured) {
+    var rootCostLB = Math.ceil((N - Math.floor(currentGain + lagUB + 1e-9)) / 2);
+    if (rootCostLB > BB_LB) BB_LB = rootCostLB;
+    BB_rootLBCaptured = true;
+    if (BB_bestCnt <= BB_LB) {
+      for (var i = 0; i < nForced; i++) BB_chosen.pop();
+      return;
+    }
+  }
+
   var gainNeed = BB_N - 2 * BB_bestCnt + 2;
   if (Math.floor(currentGain + lagUB + 1e-9) < gainNeed) {
     for (var i = 0; i < nForced; i++) BB_chosen.pop();
@@ -3647,6 +3665,8 @@ function computeCover(primes) {
 
   /* 4. Branch-and-bound on remaining candidates if greedy is not provably optimal. */
   if (ub > lb) {
+    BB_LB = lb;
+    BB_rootLBCaptured = false;
     BB_cands   = remainCands;
     BB_bestCnt = ub;
     BB_bestSol = bestSol;
