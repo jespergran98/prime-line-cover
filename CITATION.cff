@@ -42,13 +42,15 @@ abstract: >
   branching evaluates at most four candidate lines via Lagrangian simulation;
   independent subproblems are dispatched to worker threads via a shared atomic
   task queue. The 163-term extension identifies 20 new awkward primes (N = 864
-  through 1015, cover sizes 124 to 143). Every reported value is certified
+  through 1015, cover sizes 124 to 143; OEIS A393445). Every reported value is certified
   optimal; the solver has no heuristic stopping rule. Because the 1024-bit mask
   is the architectural limit, extending the record beyond N = 1024 requires a
   wider solver variant.
 keywords:
   - prime points
   - minimum line cover
+  - set cover
+  - exact search
   - parallel search
   - branch and bound
   - Lagrangian relaxation
@@ -57,6 +59,7 @@ keywords:
   - incremental sweep
   - awkward primes
   - OEIS A373813
+  - OEIS A393445
 preferred-citation:
   type: unpublished
   authors:
