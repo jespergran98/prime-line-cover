@@ -2452,7 +2452,7 @@ var BB_Lag = {
    Mirrors C++ ExactGainSolver::lagrangian_upper_bound().
    Uses BB_Lag scratchpad to avoid per-call allocations (zero-allocation).
    ────────────────────────────────────────────────────────────────────────── */
-function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
+function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters, prodIds) {
   if (maxIters === undefined) maxIters = 48;
   
   var ptToAp = BB_Lag.ptToAp;
@@ -2471,7 +2471,9 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
   var PL = 0, apsLen = 0;
   plOff[0] = 0;
   
-  for (var i = 0; i < cands.length; i++) {
+  var scanLen = prodIds ? prodIds.length : cands.length;
+  for (var _si = 0; _si < scanLen; _si++) {
+    var i = prodIds ? prodIds[_si] : _si;
     if (!avail[i]) continue;
     var c = cands[i], st = apsLen, cnt = 0;
     for (var k = 0; k < c.indices.length; k++) {
@@ -2917,25 +2919,30 @@ function computeChildUBs(lagUB, branchIdx, branchGain, workCov, currentGain) {
    and the expensive Lagrangian simulation (4 candidates × 24 iterations)
    buys nothing while consuming most of the per-node compute budget. */
 var kStrongBranchMaxDepth = 6;
-function solve(cov, avail, gains, currentGain) {
+function solve(cov, avail, gains, currentGain, prodIds) {
   if (BB_bestCnt <= BB_LB) return;
   if (++BB_nodes >= BB_NODE_LIMIT) return;
 
   var uw = BB_UW;
   var N  = BB_N;
 
+  /* Filter productive candidates for this node — O(|prodIds|) not O(|BB_cands|). */
+  var localProd = [];
+  for (var i = 0; i < prodIds.length; i++) {
+    var pid = prodIds[i];
+    if (avail[pid] && gains[pid] >= 3) localProd.push(pid);
+  }
+
   /* ── Step 1: DFS-level forced line reduction ─────────────────────────────
-     Work on local copies of cov/avail so the caller's state is not mutated.
-     Copy lazily: only duplicate when the first forced line is found.        */
+     In-place mutation: workCov/workAvail/activeGains alias the caller's
+     arrays; every change is recorded on an undo stack and rolled back before
+     returning, so the caller's state is perfectly restored.                 */
   var workCov     = cov;
   var workAvail   = avail;
-  var availCopied = false;
-  var nForced     = 0;
-
-  /* activeGains[i] = number of uncovered points candidate i still covers.
-     Passed in from caller; copied lazily on first forced-line mutation
-     (mirroring the copy-on-write pattern already used for cov/avail). */
   var activeGains = gains;
+  var nForced     = 0;
+  var forcedLines = [];   /* candidate indices disabled by forced selection */
+  var forcedPts   = [];   /* point indices newly covered by forced lines    */
 
   /* Reusable scratchpad to prevent GC churn in the hot loop */
   if (!self.BB_scratchSoleLine || self.BB_scratchSoleLine.length < N) {
@@ -2948,7 +2955,8 @@ function solve(cov, avail, gains, currentGain) {
        covers uncovered point p, or -2 if multiple such lines exist. */
     for (var p = 0; p < N; p++) soleLine[p] = -1;
 
-    for (var li = 0; li < BB_cands.length; li++) {
+    for (var idx = 0; idx < localProd.length; idx++) {
+      var li = localProd[idx];
       if (!workAvail[li] || activeGains[li] < 3) continue;
       var fc = BB_cands[li];
       for (var k = 0; k < fc.indices.length; k++) {
@@ -2960,26 +2968,23 @@ function solve(cov, avail, gains, currentGain) {
     }
 
     /* Scan for a line forced by having >= 3 uniquely-covered uncovered points. */
-    for (var li = 0; li < BB_cands.length; li++) {
+    for (var idx2 = 0; idx2 < localProd.length; idx2++) {
+      var li = localProd[idx2];
       if (!workAvail[li] || activeGains[li] < 3) continue;
       var fc = BB_cands[li];
       var uniq = 0;
       for (var k = 0; k < fc.indices.length; k++) { if (soleLine[fc.indices[k]] === li) uniq++; }
       if (uniq < 3) continue;
 
-      /* Forced: select this line.  Copy cov/avail/gains on first mutation. */
-      if (!availCopied) {
-        workCov     = new Int32Array(cov);
-        workAvail   = new Uint8Array(avail);
-        activeGains = new Int32Array(gains);
-        availCopied = true;
-      }
+      /* Forced: apply in-place and record on undo stack. */
       var fcGain = activeGains[li];
       workAvail[li] = 0;
+      forcedLines.push(li);
       for (var k = 0; k < fc.indices.length; k++) {
         var p = fc.indices[k], pw = p >> 5, pbit = 1 << (p & 31);
         if (!(workCov[pw] & pbit)) {
           workCov[pw] |= pbit;
+          forcedPts.push(p);
           var inc = BB_incidence[p];
           for (var m = 0; m < inc.length; m++) activeGains[inc[m]]--;
         }
@@ -3014,7 +3019,8 @@ function solve(cov, avail, gains, currentGain) {
   /* SB_shortlist: [{idx, gain}], max 4 entries, gain-descending. */
   var SB_shortlist = [];
 
-  for (var i = 0; i < BB_cands.length; i++) {
+  for (var idx = 0; idx < localProd.length; idx++) {
+    var i = localProd[idx];
     if (!workAvail[i] || activeGains[i] < 3) continue;
     var ci = BB_cands[i];
     var gi = activeGains[i];
@@ -3059,7 +3065,7 @@ function solve(cov, avail, gains, currentGain) {
      get up to 64.  This halves per-node cost on small-residual branches
      while giving the full budget where it counts.                          */
   var lagMaxIters = Math.min(64, 8 + (uncovPop >> 3));
-  var lagUB       = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain, lagMaxIters);
+  var lagUB       = lagrangianUpperBound(workCov, BB_cands, workAvail, N, uw, currentGain, lagMaxIters, localProd);
 
   if (!BB_rootLBCaptured) {
     var rootCostLB = Math.ceil((N - Math.floor(currentGain + lagUB + 1e-9)) / 2);
@@ -3173,7 +3179,7 @@ function solve(cov, avail, gains, currentGain) {
          lagrangianUpperBound returns the *additional* gain bound;
          includeUB is the absolute total-gain upper bound for the include
          child, directly comparable with SB_gainNeed.                    */
-      var simLagAdd  = lagrangianUpperBound(sbCov, BB_cands, sbAvail, N, uw, simGain, 24);
+      var simLagAdd  = lagrangianUpperBound(sbCov, BB_cands, sbAvail, N, uw, simGain, 24, localProd);
       var includeUB  = simGain + simLagAdd;
       var excludeUB  = s.excludeUB;
 
@@ -3247,24 +3253,33 @@ function solve(cov, avail, gains, currentGain) {
   var step6DualReady = BB_dualReady;
   var step6BestDual  = BB_bestDual ? new Float64Array(BB_bestDual) : null;
 
+  var branchPts = [];   /* points newly covered by Branch A — rolled back before Branch B */
+
   /* Branch A — Include (also pruned by the tighter include-child bound) */
   if (branchGain >= 3 && Math.floor(childUBs.includeUB + 1e-9) >= gainNeed) {
-    var nxtCov   = new Int32Array(workCov);
-    var nxtAvail = new Uint8Array(workAvail);
-    var nxtGains = new Int32Array(activeGains);
-    nxtAvail[bestIdx] = 0;
+    workAvail[bestIdx] = 0;
     for (var k = 0; k < branchC.indices.length; k++) {
       var p = branchC.indices[k], pw = p >> 5, pbit = 1 << (p & 31);
-      if (!(nxtCov[pw] & pbit)) {
-        nxtCov[pw] |= pbit;
+      if (!(workCov[pw] & pbit)) {
+        workCov[pw] |= pbit;
+        branchPts.push(p);
         var inc = BB_incidence[p];
-        for (var m = 0; m < inc.length; m++) nxtGains[inc[m]]--;
+        for (var m = 0; m < inc.length; m++) activeGains[inc[m]]--;
       }
     }
 
     BB_chosen.push(branchC);
-      solve(nxtCov, nxtAvail, nxtGains, currentGain + (branchGain - 2));
-      BB_chosen.pop();
+    solve(workCov, workAvail, activeGains, currentGain + (branchGain - 2), localProd);
+    BB_chosen.pop();
+
+    /* Undo Branch A mutations */
+    workAvail[bestIdx] = 1;
+    for (var k = 0; k < branchPts.length; k++) {
+      var p = branchPts[k], pw = p >> 5, pbit = 1 << (p & 31);
+      workCov[pw] &= ~pbit;
+      var inc = BB_incidence[p];
+      for (var m = 0; m < inc.length; m++) activeGains[inc[m]]++;
+    }
   }
 
   /* Restore parent's Lagrangian dual for Branch B */
@@ -3277,13 +3292,19 @@ function solve(cov, avail, gains, currentGain) {
 
   /* Branch B — Exclude (also pruned by the tighter exclude-child bound) */
   if (Math.floor(childUBs.excludeUB + 1e-9) >= gainNeed) {
-    var nxtAvail = new Uint8Array(workAvail);
-    nxtAvail[bestIdx] = 0;
-
-    solve(workCov, nxtAvail, activeGains, currentGain);
+    workAvail[bestIdx] = 0;
+    solve(workCov, workAvail, activeGains, currentGain, localProd);
+    workAvail[bestIdx] = 1;   /* Undo Branch B */
   }
 
-  /* Undo forced selections on backtrack. */
+  /* Undo forced mutations on backtrack */
+  for (var k = 0; k < forcedPts.length; k++) {
+    var p = forcedPts[k], pw = p >> 5, pbit = 1 << (p & 31);
+    workCov[pw] &= ~pbit;
+    var inc = BB_incidence[p];
+    for (var m = 0; m < inc.length; m++) activeGains[inc[m]]++;
+  }
+  for (var i = 0; i < forcedLines.length; i++) workAvail[forcedLines[i]] = 1;
   for (var i = 0; i < nForced; i++) BB_chosen.pop();
 }
 
@@ -3687,7 +3708,11 @@ function computeCover(primes) {
        In single-threaded JS, bypass BFS frontier generation entirely (matching
        C++ worker_count_ <= 1 behavior) to dive deep immediately and find
        tight incumbents for optimal branch-and-bound pruning. */
-    solve(forcedCov, initAvail, initialGains, forcedResult.gainFromForced);
+    var initProd = [];
+    for (var i = 0; i < remainCands.length; i++) {
+      if (initialGains[i] >= 3) initProd.push(i);
+    }
+    solve(forcedCov, initAvail, initialGains, forcedResult.gainFromForced, initProd);
 
     bestSol = BB_bestSol;
   }
