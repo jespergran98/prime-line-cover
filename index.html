@@ -3749,13 +3749,14 @@ function computeCover(primes) {
 }
 
 /* ── Finalise: add 2-point/1-point residual lines ──────────────────────── */
+/* ── Finalise: add 2-point/1-point residual lines ──────────────────────── */
 function finalise(N, primes, sol) {
   var lines   = [];
-  var covered = new Array(N).fill(false);
+  var covered = new Uint8Array(N);
 
   for (var i = 0; i < sol.length; i++) {
     var li = sol[i].indices;
-    for (var k = 0; k < li.length; k++) covered[li[k]] = true;
+    for (var k = 0; k < li.length; k++) covered[li[k]] = 1;
     lines.push({ indices: li, p1: sol[i].p1, p2: sol[i].p2, isHeavy: true, heavyIndex: i });
   }
 
@@ -3764,21 +3765,49 @@ function finalise(N, primes, sol) {
     if (!covered[p]) residuals.push(p);
   }
 
-  for (var r = 0; r < residuals.length; r += 2) {
-    if (r + 1 < residuals.length) {
-      var p1 = residuals[r], p2 = residuals[r + 1];
+  for (var r = 0; r < residuals.length; r++) {
+    var p1 = residuals[r];
+    if (covered[p1]) continue;
+
+    var p2 = -1;
+    for (var j = r + 1; j < residuals.length; j++) {
+      if (!covered[residuals[j]]) { p2 = residuals[j]; break; }
+    }
+
+    if (p2 !== -1) {
+      var dx = p2 - p1;
+      var dy = primes[p2] - primes[p1];
+      var g = gcd(Math.abs(dx), Math.abs(dy));
+      var sdx = dx / g, sdy = dy / g;
+      var idxs = [p1, p2];
+
+      covered[p1] = 1;
+      covered[p2] = 1;
+
+      // Scoop up any other residuals that lie on this new line
+      for (var k = j + 1; k < residuals.length; k++) {
+        var p3 = residuals[k];
+        if (!covered[p3]) {
+          var dx3 = p3 - p1;
+          var dy3 = primes[p3] - primes[p1];
+          if (dx3 * sdy === dy3 * sdx) {
+            covered[p3] = 1;
+            idxs.push(p3);
+          }
+        }
+      }
       lines.push({
-        indices: [p1, p2],
-        p1:      { x: p1, y: primes[p1] },
-        p2:      { x: p2, y: primes[p2] },
+        indices: idxs,
+        p1: { x: p1, y: primes[p1] },
+        p2: { x: p2, y: primes[p2] },
         isHeavy: false
       });
     } else {
-      var pSolo = residuals[r];
+      covered[p1] = 1;
       lines.push({
-        indices:     [pSolo],
-        p1:          { x: pSolo - 0.5, y: primes[pSolo] },
-        p2:          { x: pSolo + 0.5, y: primes[pSolo] },
+        indices:     [p1],
+        p1:          { x: p1 - 0.5, y: primes[p1] },
+        p2:          { x: p1 + 0.5, y: primes[p1] },
         isHeavy:     false,
         singlePoint: true
       });
@@ -4076,28 +4105,63 @@ function toScreen(ix, val, w, h, x, y, N, maxV) {
   return { x: sx, y: sy };
 }
 
+/* ── Cohen-Sutherland Line Clipping ──────────────────────────────────────── */
+const INSIDE = 0, LEFT = 1, RIGHT = 2, BOTTOM = 4, TOP = 8;
+
+function computeOutCode(x, y, bx, by, rx, ry) {
+  let code = INSIDE;
+  if (x < bx) code |= LEFT;
+  else if (x > rx) code |= RIGHT;
+  if (y < by) code |= TOP;
+  else if (y > ry) code |= BOTTOM;
+  return code;
+}
+
 function clipLine(sp1, sp2, bx, by, bw, bh) {
+  /* Extend the two defining points far beyond the canvas so that
+     Cohen-Sutherland behaves like infinite-line clipping.  Without
+     this, lines whose defining points (p1, p2) both lie inside a
+     narrow portion of the data range are clipped to that sub-segment
+     instead of being drawn across the full canvas. */
   const dx = sp2.x - sp1.x, dy = sp2.y - sp1.y;
-  const EPS = 1e-9, rx = bx + bw, ry = by + bh;
-  const pts = [];
+  const len = Math.sqrt(dx * dx + dy * dy);
+  if (len < 1e-9) return null;
+  const FAR = (bw + bh) * 10;
+  const ux = dx / len, uy = dy / len;
+  let x0 = sp1.x - ux * FAR, y0 = sp1.y - uy * FAR;
+  let x1 = sp2.x + ux * FAR, y1 = sp2.y + uy * FAR;
+  let rx = bx + bw, ry = by + bh;
+  let outcode0 = computeOutCode(x0, y0, bx, by, rx, ry);
+  let outcode1 = computeOutCode(x1, y1, bx, by, rx, ry);
+  let accept = false;
 
-  const addT = t => {
-    const x = sp1.x + t * dx, y = sp1.y + t * dy;
-    if (x >= bx - EPS && x <= rx + EPS && y >= by - EPS && y <= ry + EPS)
-      pts.push({ x: Math.max(bx, Math.min(rx, x)), y: Math.max(by, Math.min(ry, y)) });
-  };
+  while (true) {
+    if (!(outcode0 | outcode1)) {
+      accept = true; break;
+    } else if (outcode0 & outcode1) {
+      break;
+    } else {
+      let x, y;
+      let outcodeOut = outcode0 ? outcode0 : outcode1;
+      if (outcodeOut & TOP) {
+        x = x0 + (x1 - x0) * (by - y0) / (y1 - y0); y = by;
+      } else if (outcodeOut & BOTTOM) {
+        x = x0 + (x1 - x0) * (ry - y0) / (y1 - y0); y = ry;
+      } else if (outcodeOut & RIGHT) {
+        y = y0 + (y1 - y0) * (rx - x0) / (x1 - x0); x = rx;
+      } else if (outcodeOut & LEFT) {
+        y = y0 + (y1 - y0) * (bx - x0) / (x1 - x0); x = bx;
+      }
 
-  if (Math.abs(dx) > EPS) { addT((bx - sp1.x) / dx); addT((rx - sp1.x) / dx); }
-  if (Math.abs(dy) > EPS) { addT((by - sp1.y) / dy); addT((ry - sp1.y) / dy); }
-  if (pts.length < 2) return null;
-
-  let md = 0, pa = pts[0], pb = pts[1];
-  for (let i = 0; i < pts.length; i++)
-    for (let j = i + 1; j < pts.length; j++) {
-      const d = (pts[i].x - pts[j].x) ** 2 + (pts[i].y - pts[j].y) ** 2;
-      if (d > md) { md = d; pa = pts[i]; pb = pts[j]; }
+      if (outcodeOut === outcode0) {
+        x0 = x; y0 = y; outcode0 = computeOutCode(x0, y0, bx, by, rx, ry);
+      } else {
+        x1 = x; y1 = y; outcode1 = computeOutCode(x1, y1, bx, by, rx, ry);
+      }
     }
-  return md > 0.25 ? [pa, pb] : null;
+  }
+  if (accept) return [{ x: x0, y: y0 }, { x: x1, y: y1 }];
+  return null;
 }
 
 /* Smooth ease-in-out */
@@ -4121,6 +4185,7 @@ let _lsCachedH    = 0;
 let _lineSegs     = [];  /* screen-space endpoints, parallel to coverLines */
 let _heavyIdx     = [];  /* indices into coverLines where isHeavy === true  */
 let _lightIdx     = [];  /* indices into coverLines where isHeavy === false */
+let _colorBucketsCached = new Map(); /* colour→segs, rebuilt per cache invalidation */
 
 /* Prime-colour lookup — rebuilt alongside _lineSegs */
 let _primeColorArr = []; /* [primeIndex] → PALETTE colour string           */
@@ -4306,6 +4371,16 @@ function drawMain(t) {
         if (idx < N) { _primeColorArr[idx] = col; _primeGlowArr[idx] = glow; }
       }
     }
+
+    /* Build color buckets ONCE per cache invalidation */
+    _colorBucketsCached.clear();
+    for (const li of _heavyIdx) {
+      const seg = _lineSegs[li];
+      if (!seg) continue;
+      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
+      if (!_colorBucketsCached.has(col)) _colorBucketsCached.set(col, []);
+      _colorBucketsCached.get(col).push(seg);
+    }
   }
 
   mctx.save();
@@ -4354,15 +4429,7 @@ function drawMain(t) {
 
   if (fastMode) {
     mctx.globalAlpha = haloAlpha;
-    const colorBuckets1 = new Map();
-    for (const li of _heavyIdx) {
-      const seg = _lineSegs[li];
-      if (!seg) continue;
-      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
-      if (!colorBuckets1.has(col)) colorBuckets1.set(col, []);
-      colorBuckets1.get(col).push(seg);
-    }
-    for (const [col, segs] of colorBuckets1) {
+    for (const [col, segs] of _colorBucketsCached) {
       mctx.strokeStyle = col;
       mctx.beginPath();
       for (const seg of segs) { mctx.moveTo(seg.from.x, seg.from.y); mctx.lineTo(seg.to.x, seg.to.y); }
@@ -4439,15 +4506,7 @@ function drawMain(t) {
 
   if (fastMode) {
     mctx.globalAlpha = 0.98;  /* 0.80 + 1*0.18 */
-    const colorBuckets3 = new Map();
-    for (const li of _heavyIdx) {
-      const seg = _lineSegs[li];
-      if (!seg) continue;
-      const col = PALETTE[coverLines[li].heavyIndex % PALETTE.length];
-      if (!colorBuckets3.has(col)) colorBuckets3.set(col, []);
-      colorBuckets3.get(col).push(seg);
-    }
-    for (const [col, segs] of colorBuckets3) {
+    for (const [col, segs] of _colorBucketsCached) {
       mctx.strokeStyle = col;
       mctx.beginPath();
       for (const seg of segs) { mctx.moveTo(seg.from.x, seg.from.y); mctx.lineTo(seg.to.x, seg.to.y); }
