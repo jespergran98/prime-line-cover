@@ -2425,87 +2425,79 @@ function coverInequalityLB(cov, cands, avail, N, uw) {
   return Math.ceil(sPop / 2);
 }
 
+/* ── Lagrangian Scratchpad (Zero-Allocation) ─────────────────────────────
+   Pre-allocated static arrays to prevent GC thrashing during DFS bounds. */
+var BB_Lag = {
+  ptToAp: new Int32Array(1024),
+  apToPoint: new Int32Array(1024),
+  plRem2: new Int32Array(12288),
+  plAps: new Int32Array(65536),
+  plOff: new Int32Array(12288),
+  plCandIdx: new Int32Array(12288),
+  y: new Float64Array(1024),
+  bestY: new Float64Array(1024),
+  sg: new Float64Array(1024),
+  pl3T: new Int32Array(16384),
+  pl4T: new Int32Array(16384),
+  pl5T: new Int32Array(16384),
+  plOLiT: new Int32Array(12288),
+  plORem2T: new Float64Array(12288),
+  apOff: new Int32Array(1025),
+  apFlat: new Int32Array(65536),
+  wlc: new Float64Array(12288)
+};
+
 /* ── Lagrangian relaxation upper bound on remaining achievable gain ─────────
    Mirrors C++ ExactGainSolver::lagrangian_upper_bound().
-
-   The maximum additional gain reachable by selecting any subset of the
-   remaining productive lines (those with >= 3 active/uncovered points) is
-   upper-bounded by the optimal value of the Lagrangian relaxation:
-
-     L*(y) = min_{y ∈ [0,1]^{AP}}
-                sum_{p active} y[p]
-              + sum_{L productive} max(0, rem2[L] − sum_{p∈L active} y[p])
-
-   where rem2[L] = active_pts_on_L − 2  (the marginal gain of selecting L).
-
-   This is the LP dual of the set-cover gain problem: its optimum equals the
-   LP-relaxation gain bound, which dominates all combinatorial bounds.
-
-   Algorithm:
-     1. Map uncovered points to compact indices 0..AP-1.
-     2. Collect productive lines (active coverage >= 3) into a flat structure.
-     3. Initialise y[p] with the density heuristic: for each point p set
-        y[p] = max_{L covers p} rem2[L] / (rem2[L]+2), matching C++.
-     4. Evaluate L(y) and fast-exit if already below the pruning threshold.
-     5. Minimise L(y) via Polyak-step subgradient descent (≤ 48 iterations).
-        g[p] = 1 − #{L : covers p and slack > 0},
-        step = (L(y) − target) / ||g||²,  target = gainNeeded − currentGain.
+   Uses BB_Lag scratchpad to avoid per-call allocations (zero-allocation).
    ────────────────────────────────────────────────────────────────────────── */
 function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
   if (maxIters === undefined) maxIters = 48;
-  /* 1. Build compact active-point index (uncovered → 0..AP-1) and its
-        inverse apToPoint (ap → global point index).
-        The inverse is needed to persist the best dual vector in BB_bestDual,
-        which is indexed by global point index — mirrors C++ best_y[p]. */
+  
+  var ptToAp = BB_Lag.ptToAp;
   var AP = 0;
-  var ptToAp = new Int32Array(N);
   for (var p = 0; p < N; p++) {
     if (cov[p >> 5] & (1 << (p & 31))) ptToAp[p] = -1;
     else ptToAp[p] = AP++;
   }
   if (AP === 0) return 0;
 
-  var apToPoint = new Int32Array(AP);
+  var apToPoint = BB_Lag.apToPoint;
   for (var p = 0; p < N; p++) { if (ptToAp[p] >= 0) apToPoint[ptToAp[p]] = p; }
 
-  /* 2. Collect productive lines (active coverage >= 3) in compact form.
-        plRem2[li] = active_count - 2.
-        plAps      = flat list of compact ap-indices for all productive lines.
-        plOff      = start/end offsets into plAps per line. */
-  var plRem2 = [], plAps = [], plOff = [0], plCandIdx = [];
+  var plRem2 = BB_Lag.plRem2, plAps = BB_Lag.plAps;
+  var plOff = BB_Lag.plOff, plCandIdx = BB_Lag.plCandIdx;
+  var PL = 0, apsLen = 0;
+  plOff[0] = 0;
+  
   for (var i = 0; i < cands.length; i++) {
     if (!avail[i]) continue;
-    var c = cands[i], st = plAps.length, cnt = 0;
+    var c = cands[i], st = apsLen, cnt = 0;
     for (var k = 0; k < c.indices.length; k++) {
       var ap = ptToAp[c.indices[k]];
-      if (ap >= 0) { plAps.push(ap); cnt++; }
+      if (ap >= 0) { plAps[apsLen++] = ap; cnt++; }
     }
-    if (cnt >= 3) { plRem2.push(cnt - 2); plOff.push(plAps.length); plCandIdx.push(i); }
-    else          { plAps.length = st; }  /* roll back: not productive */
+    if (cnt >= 3) {
+      plRem2[PL] = cnt - 2;
+      plCandIdx[PL] = i;
+      PL++;
+      plOff[PL] = apsLen;
+    } else {
+      apsLen = st; 
+    }
   }
-  var PL = plRem2.length;
   if (PL === 0) return 0;
 
-  /* 3. Dual initialisation.
-     ── Warm-start (BB_dualReady = true) ────────────────────────────────────
-        Seed y[ap] from BB_bestDual[point] — the best dual vector saved by the
-        most recent prior Lagrangian evaluation (typically the parent DFS node).
-        Mirrors C++ scratch.dual_ready branch:
-          active_y[ai] = clamp(best_y[active_points[ai]], 0, 1)
-        The parent's solution is near-optimal for the child (the child subproblem
-        is the parent with some points covered and some lines removed), so the
-        subgradient loop needs far fewer iterations to converge.
-     ── Cold-start (BB_dualReady = false) ────────────────────────────────────
-        Density heuristic: y[p] = max rem2/(rem2+2) over productive lines
-        covering p.  Mirrors C++ cold-start path. */
   var warmStart = BB_dualReady && BB_bestDual !== null;
-  var y = new Float64Array(AP), bestY = null;
+  var y = BB_Lag.y, bestY = BB_Lag.bestY;
+  
   if (warmStart) {
     for (var ai = 0; ai < AP; ai++) {
       var v = BB_bestDual[apToPoint[ai]];
       y[ai] = v < 0 ? 0 : (v > 1 ? 1 : v);
     }
   } else {
+    y.fill(0, 0, AP);
     for (var li = 0; li < PL; li++) {
       var density = plRem2[li] / (plRem2[li] + 2);
       for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
@@ -2514,65 +2506,49 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
   }
 
-  /* ── Size-specialized line arrays for evalLag ─────────────────────────────
-     Mirrors C++ build_compact_productive_lines(): split productive lines by
-     active-point count into flat typed arrays so the inner summation in
-     evalLag can be replaced by direct indexed reads with no loop.
-       pl3T  — flat triples   [a,b,c, a,b,c, …]    rem2 = 1  (size−2)
-       pl4T  — flat quads     [a,b,c,d, …]          rem2 = 2
-       pl5T  — flat quintuples[a,b,c,d,e, …]        rem2 = 3
-       plOLiT/plORem2T — li-indices and rem2 for 6+ point lines (generic loop)
-     Mirrors C++ compact_eval3 / compact_eval4 / compact_eval5 /
-     compact_eval_other_lines built in build_compact_productive_lines().     */
-  var _pl3 = [], _pl4 = [], _pl5 = [], _plOLi = [], _plORem2 = [];
+  var pl3T = BB_Lag.pl3T, pl4T = BB_Lag.pl4T, pl5T = BB_Lag.pl5T;
+  var plOLiT = BB_Lag.plOLiT, plORem2T = BB_Lag.plORem2T;
+  var nL3 = 0, nL4 = 0, nL5 = 0, nLO = 0;
+
   for (var _li = 0; _li < PL; _li++) {
     var _b = plOff[_li], _e = plOff[_li + 1], _cnt = _e - _b;
-    if      (_cnt === 3) { _pl3.push(plAps[_b], plAps[_b+1], plAps[_b+2]); }
-    else if (_cnt === 4) { _pl4.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3]); }
-    else if (_cnt === 5) { _pl5.push(plAps[_b], plAps[_b+1], plAps[_b+2], plAps[_b+3], plAps[_b+4]); }
-    else                 { _plOLi.push(_li); _plORem2.push(plRem2[_li]); }
+    if (_cnt === 3) {
+      pl3T[nL3++] = plAps[_b]; pl3T[nL3++] = plAps[_b+1]; pl3T[nL3++] = plAps[_b+2];
+    } else if (_cnt === 4) {
+      pl4T[nL4++] = plAps[_b]; pl4T[nL4++] = plAps[_b+1]; pl4T[nL4++] = plAps[_b+2]; pl4T[nL4++] = plAps[_b+3];
+    } else if (_cnt === 5) {
+      pl5T[nL5++] = plAps[_b]; pl5T[nL5++] = plAps[_b+1]; pl5T[nL5++] = plAps[_b+2]; pl5T[nL5++] = plAps[_b+3]; pl5T[nL5++] = plAps[_b+4];
+    } else {
+      plOLiT[nLO] = _li; plORem2T[nLO++] = plRem2[_li];
+    }
   }
-  var pl3T     = new Int32Array(_pl3),   nL3 = pl3T.length  / 3 | 0;
-  var pl4T     = new Int32Array(_pl4),   nL4 = pl4T.length  / 4 | 0;
-  var pl5T     = new Int32Array(_pl5),   nL5 = pl5T.length  / 5 | 0;
-  var plOLiT   = new Int32Array(_plOLi);
-  var plORem2T = new Float64Array(_plORem2);
-  var nLO      = plOLiT.length;
 
-  /* Evaluate L(y); optionally populate subgradient array sg[].
-     L(y) = sum_p y[p]  +  sum_L max(0, rem2[L] − sum_{p∈L} y[p]).
-     Inner loops unrolled by line size — mirrors C++ eval_dense_fast()
-     which iterates compact_eval3/4/5 with direct field reads, eliminating
-     per-entry loop overhead for the dominant size-3/4/5 classes.           */
-  var sg = new Float64Array(AP);
+  var sg = BB_Lag.sg;
   function evalLag(yy, computeSg) {
     var val = 0, rc = 0, i, ip;
     for (var ai = 0; ai < AP; ai++) { val += yy[ai]; if (computeSg) sg[ai] = 1; }
-    /* size-3 (rem2 = 1): mirrors compact_eval3 loop in C++ */
-    for (i = 0, ip = 0; i < nL3; i++, ip += 3) {
+    
+    for (i = 0, ip = 0; i < nL3; i += 3, ip += 3) {
       rc = 1.0 - (yy[pl3T[ip]] + yy[pl3T[ip+1]] + yy[pl3T[ip+2]]);
       if (rc > 1e-18) {
         val += rc;
         if (computeSg) { sg[pl3T[ip]]--; sg[pl3T[ip+1]]--; sg[pl3T[ip+2]]--; }
       }
     }
-    /* size-4 (rem2 = 2): mirrors compact_eval4 loop */
-    for (i = 0, ip = 0; i < nL4; i++, ip += 4) {
+    for (i = 0, ip = 0; i < nL4; i += 4, ip += 4) {
       rc = 2.0 - (yy[pl4T[ip]] + yy[pl4T[ip+1]] + yy[pl4T[ip+2]] + yy[pl4T[ip+3]]);
       if (rc > 1e-18) {
         val += rc;
         if (computeSg) { sg[pl4T[ip]]--; sg[pl4T[ip+1]]--; sg[pl4T[ip+2]]--; sg[pl4T[ip+3]]--; }
       }
     }
-    /* size-5 (rem2 = 3): mirrors compact_eval5 loop */
-    for (i = 0, ip = 0; i < nL5; i++, ip += 5) {
+    for (i = 0, ip = 0; i < nL5; i += 5, ip += 5) {
       rc = 3.0 - (yy[pl5T[ip]] + yy[pl5T[ip+1]] + yy[pl5T[ip+2]] + yy[pl5T[ip+3]] + yy[pl5T[ip+4]]);
       if (rc > 1e-18) {
         val += rc;
         if (computeSg) { sg[pl5T[ip]]--; sg[pl5T[ip+1]]--; sg[pl5T[ip+2]]--; sg[pl5T[ip+3]]--; sg[pl5T[ip+4]]--; }
       }
     }
-    /* size 6+ (generic loop): mirrors compact_eval_other_lines path */
     for (var oi = 0; oi < nLO; oi++) {
       var li = plOLiT[oi], sY = 0;
       for (var pos = plOff[li]; pos < plOff[li+1]; pos++) sY += yy[plAps[pos]];
@@ -2586,22 +2562,11 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     return val;
   }
 
-  /* Persist bestY into BB_bestDual[global point index].
-     Called at every return path so sibling and child DFS nodes can
-     warm-start from this node's dual solution — mirrors C++ store_best_dual(). */
   function saveDual() {
     if (BB_bestDual === null || BB_bestDual.length < N) BB_bestDual = new Float64Array(N);
     for (var ai = 0; ai < AP; ai++) BB_bestDual[apToPoint[ai]] = bestY[ai];
     BB_dualReady = true;
 
-    /* ── Root-dual capture: persist the first (root-node) dual for the next N.
-       Mirrors C++ store_best_dual(): the guard "if (!root_dual_seed_captured_)"
-       ensures only the first call per N writes initial_dual_seed_, then sets
-       root_dual_seed_captured_ = true.  BB_warmDualSeed is then loaded back
-       into BB_bestDual at the start of computeCover(N+1) so subgradient descent
-       at the root node of N+1 begins near-optimal instead of from the density
-       heuristic.  Indexed by global point (0..N-1), zero-filled for inactive
-       points, mirroring initial_dual_seed_.assign(n, 0) + per-active copy. */
     if (!BB_rootDualCaptured) {
       if (BB_warmDualSeed === null || BB_warmDualSeed.length < N)
         BB_warmDualSeed = new Float64Array(N);
@@ -2610,32 +2575,22 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
       BB_rootDualCaptured = true;
     }
 
-    /* ── Persist branch-cap data for computeChildUBs() ─────────────────────
-       BB_lagBestY[p]      ← y*[p] by global point index
-       BB_lagCandSlack[i]  ← slack for cands[i]; NaN for non-productive lines
-       BB_ptToProdCands[p] ← productive cand indices covering point p
-       Mirrors C++ ctx.lagrangian.best_y + work_line_slack_compact.          */
     var numCands = cands.length;
     if (BB_lagBestY === null || BB_lagBestY.length < N)
       BB_lagBestY = new Float64Array(N);
     if (BB_lagCandSlack === null || BB_lagCandSlack.length < numCands) {
       BB_lagCandSlack = new Float64Array(numCands);
     }
-    /* Mark all candidates as non-productive; productive ones are overwritten below. */
-    for (var i = 0; i < numCands; i++) BB_lagCandSlack[i] = NaN;
-
+    
+    BB_lagCandSlack.fill(NaN, 0, numCands);
     for (var ai = 0; ai < AP; ai++) BB_lagBestY[apToPoint[ai]] = bestY[ai];
 
-    /* Compute slack wlc[li] = plRem2[li] − Σ bestY[p] for each productive line
-       and write into BB_lagCandSlack[original cands index].                   */
     for (var li = 0; li < PL; li++) {
       var slack = plRem2[li];
       for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) slack -= bestY[plAps[pos]];
       BB_lagCandSlack[plCandIdx[li]] = slack;
     }
 
-    /* Build inverse index: BB_ptToProdCands[p] = [productive cand indices covering p].
-       Reuse existing arrays to avoid allocation churn across DFS nodes.       */
     if (BB_ptToProdCands === null || BB_ptToProdCands.length < N) {
       BB_ptToProdCands = [];
       for (var p = 0; p < N; p++) BB_ptToProdCands.push([]);
@@ -2651,58 +2606,31 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     BB_lagReady = true;
   }
 
-  /* 4. Evaluate initial bound and fast-exit if already tight enough to prune. */
   var best = evalLag(y, false);
-  bestY = new Float64Array(y);
-  var gainNeeded = BB_N - 2 * BB_bestCnt + 2;   /* minimum total gain to beat incumbent */
-  if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }  /* fast exit */
+  for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
+  
+  var gainNeeded = BB_N - 2 * BB_bestCnt + 2;
+  if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }
 
-  /* 5. Subgradient descent — two-stage iteration, adaptive step scale.
-     ─────────────────────────────────────────────────────────────────────
-     Three step-scale regimes mirror C++ run_subgradient_iters():
-
-       aggressiveTailWarm (1.75): warm + BB_bestCnt ≥ 113 + deep in DFS.
-         More overrelaxed step for fast convergence on the gap-1 tail of
-         large-N instances.  C++ condition: aggressive_tail_warm, line 1879.
-
-       warmStart (1.5): parent dual already near-optimal.
-
-       cold (1.35): density-heuristic initialisation.
-
-     Two-stage iteration mirrors C++ use_short_warm_stage (line 1941):
-       When warm + BB_bestCnt ≥ 112 + chosenDepth ≥ 4, run only the first
-       min(maxIters, 16) iterations (kWarmStartFirstStageIters = 16).
-       Continue to maxIters only when the bound after stage 1 is within
-       1.0 of the pruning threshold (kWarmStartRefineWindow = 1.0).
-       Nodes comfortably above or below the threshold skip stage 2 entirely,
-       saving ~66 % of the Lagrangian budget for clear nodes.
-
-     The adaptive lag_max_iters at the DFS call site
-       (Math.min(64, 8 + uncovPop >> 3))
-     mirrors C++ ExactGainSolver::dfs() line 1276:
-       const int lag_max_iters = std::min(64, 8 + task.active_count / 8);
-     ───────────────────────────────────────────────────────────────────── */
   var chosenDepth        = BB_chosen ? BB_chosen.length : 0;
   var aggressiveTailWarm = warmStart && BB_bestCnt >= 113 && chosenDepth >= 4;
   var useShortWarmStage  = warmStart && BB_bestCnt >= 112 && chosenDepth >= 4;
   var step_scale         = aggressiveTailWarm ? 1.75 : (warmStart ? 1.5 : 1.35);
   var firstStageEnd      = (useShortWarmStage && maxIters > 16) ? 16 : maxIters;
 
-  /* ── Stage 1: run up to firstStageEnd iterations ── */
   var s1AtOptimum = false;
   for (var iter = 0; iter < firstStageEnd; iter++) {
-    var val = evalLag(y, true);   /* computes val and fills sg[] */
+    var val = evalLag(y, true);
     if (val < best - 1e-18) {
       best = val;
       for (var ai = 0; ai < AP; ai++) bestY[ai] = y[ai];
-      if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }   /* tight: exit early */
+      if (currentGain + best + 1e-9 < gainNeeded) { saveDual(); return best; }
     }
-    /* Polyak step size: (L(y) − target) / ‖g‖², target = gainNeeded − currentGain. */
     var norm2 = 0;
     for (var ai = 0; ai < AP; ai++) { var gv = sg[ai]; norm2 += gv * gv; }
-    if (norm2 < 1e-20) { s1AtOptimum = true; break; }   /* subgradient zero → at optimum */
+    if (norm2 < 1e-20) { s1AtOptimum = true; break; }
     var gap = Math.max(0.0, val - Math.max(0, gainNeeded - currentGain));
-    if (gap <= 1e-9) { s1AtOptimum = true; break; }      /* gap closed → converged */
+    if (gap <= 1e-9) { s1AtOptimum = true; break; }
     var step = step_scale * gap / norm2;
     for (var ai = 0; ai < AP; ai++) {
       var ny = y[ai] - step * sg[ai];
@@ -2710,10 +2638,6 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
   }
 
-  /* ── Stage 2: run remaining iterations only when close to the pruning
-     threshold.  Mirrors C++ use_short_warm_stage second-stage gate:
-       staged_total < gain_needed + kWarmStartRefineWindow → run remaining.
-     Skipped entirely when s1AtOptimum (dual already converged).         ── */
   if (!s1AtOptimum && useShortWarmStage && firstStageEnd < maxIters &&
       currentGain + best < gainNeeded + 1.0) {
     for (var iter = firstStageEnd; iter < maxIters; iter++) {
@@ -2736,31 +2660,11 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
   }
 
-  /* ── Coordinate-descent polish ─────────────────────────────────────────
-     Mirrors C++ kCoordinatePolishMaxSweeps = 1 (lines 1825-1922 of solver).
-
-     Only activates when the Lagrangian bound is within 0.5 of the pruning
-     threshold — cheap on easy nodes, decisive near tight bounds.
-
-     Rationale: the Lagrangian L(y) is piecewise-linear in each y[p] alone.
-     Fixing all other coordinates, the contribution from line L to the
-     objective (when its slack is positive) decreases linearly in y[p].
-     The coordinate-wise minimum is therefore analytic:
-
-       adjusted_L = wlc[L] + old_y[p]          (slack of L if y[p] were 0)
-       y*[p]      = min(1, second-largest positive adjusted_L over L covering p)
-
-     This is the threshold where the number of tight lines drops from 2 to 1,
-     exactly cancelling the +1 derivative from the sum_p y[p] term.
-     Propagating the delta into wlc[] keeps slacks consistent for subsequent
-     coordinates.  One sweep tightens the bound significantly near the
-     pruning boundary where subgradient steps become small.
-     ──────────────────────────────────────────────────────────────────────── */
   var bestTotal = currentGain + best;
   if (bestTotal < gainNeeded + 0.5) {
-    /* Build inverse map: ap → compact line indices (apOff / apFlat).
-       Mirrors C++ ap_offsets / ap_flat construction. */
-    var apOff = new Int32Array(AP + 1);
+    var apOff = BB_Lag.apOff;
+    apOff.fill(0, 0, AP + 2);
+    
     for (var li = 0; li < PL; li++) {
       for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
         apOff[plAps[pos] + 1]++;
@@ -2768,9 +2672,10 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
     }
     for (var ai = 0; ai < AP; ai++) apOff[ai + 1] += apOff[ai];
 
-    var apFlat  = new Int32Array(apOff[AP]);
-    var fillPos = new Int32Array(AP);
+    var apFlat = BB_Lag.apFlat;
+    var fillPos = BB_Lag.ptToAp; /* Reuse as scratchpad for fillPos */
     for (var ai = 0; ai < AP; ai++) fillPos[ai] = apOff[ai];
+    
     for (var li = 0; li < PL; li++) {
       for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) {
         var ap = plAps[pos];
@@ -2778,20 +2683,15 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
       }
     }
 
-    /* Initialise line slacks from bestY: wlc[L] = rem2[L] - sum_{p in L} bestY[p].
-       Mirrors C++ wls_c initialisation before the polish sweep. */
-    var wlc = new Float64Array(PL);
+    var wlc = BB_Lag.wlc;
     for (var li = 0; li < PL; li++) {
       var slack = plRem2[li];
       for (var pos = plOff[li]; pos < plOff[li + 1]; pos++) slack -= bestY[plAps[pos]];
       wlc[li] = slack;
     }
 
-    /* Single coordinate-descent sweep (kCoordinatePolishMaxSweeps = 1).
-       For each active point, find the two largest positive adjusted slacks
-       and set y*[p] = min(1, second-largest).  Update wlc[] incrementally. */
     for (var ai = 0; ai < AP; ai++) {
-      var old     = bestY[ai];
+      var old = bestY[ai];
       var largest = 0.0, second = 0.0;
       var beg = apOff[ai], end_ = apOff[ai + 1];
       for (var k = beg; k < end_; k++) {
@@ -2802,13 +2702,12 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
       }
       var next = second < 1.0 ? second : 1.0;
       if (Math.abs(next - old) <= 1e-15) continue;
+      
       bestY[ai] = next;
       var delta = next - old;
       for (var k = beg; k < end_; k++) wlc[apFlat[k]] -= delta;
     }
 
-    /* Recompute the polished bound and take the min with subgradient best.
-       Mirrors C++ polished_best = min(polished_best, slack_objective()). */
     var polished = 0.0;
     for (var ai = 0; ai < AP; ai++) polished += bestY[ai];
     for (var li = 0; li < PL; li++) { if (wlc[li] > 1e-18) polished += wlc[li]; }
