@@ -2123,7 +2123,8 @@ function buildCandidates(primes) {
         cnt:     idxs.length,
         p1:      { x: i,         y: primes[i]         },
         p2:      { x: bucket[0], y: primes[bucket[0]] },
-        indices: idxs
+        indices: idxs,
+        activate_at: idxs[2] + 1
       });
     }
   }
@@ -2720,6 +2721,7 @@ function lagrangianUpperBound(cov, cands, avail, N, uw, currentGain, maxIters) {
 
 /* ── Branch-and-bound ──────────────────────────────────────────────────── */
 var BB_cands, BB_bestCnt, BB_bestSol, BB_chosen;
+var GLOBAL_CANDS = null;
 var BB_nodes = 0;
 var BB_LB = 0;
 var BB_rootLBCaptured = false;
@@ -3551,7 +3553,32 @@ function computeCover(primes) {
   BB_UW = uw;
 
   /* 1. Enumerate all heavy lines (slope-bucket O(N²)). */
-  var cands = buildCandidates(primes);
+  if (!GLOBAL_CANDS) {
+    GLOBAL_CANDS = buildCandidates(getWitnessPrimes(1024));
+  }
+
+  var cands = [];
+  for (var i = 0; i < GLOBAL_CANDS.length; i++) {
+    var gc = GLOBAL_CANDS[i];
+    if (gc.activate_at <= N) {
+      var c = {
+        mask: new Int32Array(gc.mask),
+        cnt: 0,
+        p1: gc.p1, p2: gc.p2,
+        indices: []
+      };
+      for (var k = 0; k < gc.indices.length; k++) {
+        if (gc.indices[k] < N) {
+          c.indices.push(gc.indices[k]);
+          c.cnt++;
+        } else {
+          // Clear bits for points beyond the current N to prevent false gain tracking
+          c.mask[gc.indices[k] >> 5] &= ~(1 << (gc.indices[k] & 31));
+        }
+      }
+      cands.push(c);
+    }
+  }
 
   /* Build an anchor-keyed map for O(1) warm-seed line lookup.
      Must be constructed from the full cands[] (before forced filtering)
