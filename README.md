@@ -47,7 +47,7 @@ If you're new to the problem, this Numberphile video by Brady Haran — featurin
   <img src="https://img.youtube.com/vi/VFoIPlUalRY/maxresdefault.jpg" alt="Awkward Primes – Numberphile" width="400">
 </a>
 
-In the video, Brady Haran and Neil Sloane (founder of the OEIS) call the primes that force a new line **awkward primes** — with a particularly stubborn one earning the nickname the **"party-pooper prime"**.
+In the video, Brady Haran and Neil Sloane (founder of the OEIS) call the primes that force a new line **awkward primes** ([OEIS A393445](https://oeis.org/A393445)) — with a particularly stubborn one earning the nickname the **"party-pooper prime"**.
 
 ---
 
@@ -61,7 +61,7 @@ For larger N up to 1024, the hardest instances take about an hour on the same ha
 
 A concrete illustration of that efficiency: the 111-step plateau at f = 69 (N = 465–575) — 111 consecutive primes each silently falling onto an existing optimal line — was certified entirely in **111 milliseconds**. The full breakdown across N = 1–1024: **615 witness hits** (constant-time certification), **236 root-only closures** (no branching), **173 full branch-and-bound searches**. On all 74 non-witness steps in the new N = 862–1024 block, the root gap ub − lb was exactly 1 before the first branch.
 
-**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 1024 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS).
+**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 1024 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS); the indices at which f(N) increases — the awkward primes — are catalogued as [A393445](https://oeis.org/A393445).
 
 ## Solver Features
 
@@ -114,7 +114,7 @@ The paper describes every component of the solver from mathematical foundations 
 
 **§6 Correctness and Optimality** — Proves four results: the Monotonicity Lemma (f(N+1) ≥ f(N)), the Exclusive Dependency Rule (if a productive heavy line has ≥ 3 points covered by no other productive line, forcing it never worsens the optimum), the Frontier Dominance Lemma (discarding nodes dominated in both uncovered-point set and blocked productive set preserves an optimal solution), and the Exact Solve Theorem, with mode-by-mode propositions (W, R, D each certify the correct f(N)) and a final certification corollary (every printed answer is proven optimal).
 
-**§7 OEIS Sequence and Data** — Records the 163 newly certified terms of A373813 (N = 862–1024), the 20 new awkward primes, a staircase plot of f(N) for N = 1–1024, a plateau summary table (cover size, N-range, D/R/W row counts, wall-clock time per plateau), and a per-awkward-prime DFS diagnostics table (wall-clock time, active heavy lines, node count, Lagrangian iterations, nodes pruned by Lagrangian bound, strong-branching invocations, and maximum search depth).
+**§7 OEIS Sequence and Data** — Records the 163 newly certified terms of A373813 (N = 862–1024), the 20 new awkward primes ([A393445](https://oeis.org/A393445)), a staircase plot of f(N) for N = 1–1024, a plateau summary table (cover size, N-range, D/R/W row counts, wall-clock time per plateau), and a per-awkward-prime DFS diagnostics table (wall-clock time, active heavy lines, node count, Lagrangian iterations, nodes pruned by Lagrangian bound, strong-branching invocations, and maximum search depth).
 
 **§8 Code Availability** — Documents the repository contents, the sweep log format and the meaning of every logged field, the frontier multiplier calibration ladder (including how the frontier diagnosis tool fits a RAM model to select the safe maximum multiplier per machine), and the precise architectural meaning of "1024" in the filename — and why extending the record requires widening the coverage masks to 2048 bits.
 
