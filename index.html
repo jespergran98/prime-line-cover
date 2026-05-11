@@ -822,6 +822,7 @@ details.tut.tut-cta[open] .tut-cta-icon { transform: rotate(90deg); }
 .os-tab.active.os-win  { background: #0078D4; color: var(--white); border-color: #0078D4; }
 .os-tab.active.os-lin  { background: #E8A003; color: var(--white); border-color: #E8A003; }
 .os-tab.active.os-mac  { background: #1D1D1F; color: var(--white); border-color: #1D1D1F; }
+.os-tab.active.os-gcp  { background: #4285F4; color: var(--white); border-color: #4285F4; }
 
 .distro-tabs {
   display: flex; gap: 0; margin-bottom: 10px; border: 1px solid var(--ink-18);
@@ -856,6 +857,7 @@ details.tut.tut-cta[open] .tut-cta-icon { transform: rotate(90deg); }
 #os-panel-windows .step-num { background: rgba(0,120,212,0.10); border-color: rgba(0,120,212,0.35); color: #0078D4; }
 #os-panel-linux   .step-num { background: rgba(232,160,3,0.12); border-color: rgba(232,160,3,0.40); color: #B87800; }
 #os-panel-mac     .step-num { background: rgba(29,29,31,0.08);  border-color: rgba(29,29,31,0.30);  color: #1D1D1F; }
+#os-panel-gcp     .step-num { background: rgba(66,133,244,0.10); border-color: rgba(66,133,244,0.35); color: #4285F4; }
 
 .step-body { display: block; padding-bottom: 12px; }
 .step-title {
@@ -1649,6 +1651,13 @@ details.tut.tut-cta[open] .tut-cta-icon { transform: rotate(90deg); }
               </svg>
               Mac
             </button>
+            <button class="os-tab os-gcp" id="tab-gcp" onclick="switchOS('gcp')">
+              <!-- Cloud icon -->
+              <svg width="14" height="11" viewBox="0 0 22 17" fill="currentColor" aria-hidden="true">
+                <path d="M17 6.5A5.5 5.5 0 0 0 6.2 5.1 4 4 0 1 0 4 13h13a4 4 0 0 0 0-8z"/>
+              </svg>
+              GCP
+            </button>
           </div>
 
           <!-- ══ WINDOWS / WSL PANEL ══════════════════════════════════════ -->
@@ -2038,6 +2047,113 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
             <p class="guide-wait-notice">Output begins printing after ~15 seconds of compilation.</p>
 
           </div><!-- /#os-panel-mac -->
+
+          <!-- ══ GOOGLE CLOUD PANEL ════════════════════════════════════════ -->
+          <div id="os-panel-gcp" style="display:none;">
+            <p>This is the setup used to set the <strong style="font-style:normal;">N = 1024 world record</strong> — a <code>c4d-highcpu-8</code> instance (8 vCPUs, 15 GB RAM, AMD Turin) on Google Cloud's free trial. It reached the previous record boundary at N = 861 in just 22 minutes, against the prior certified record of 282 hours via MIP.</p>
+            <div class="guide-steps">
+
+              <!-- Step 1 -->
+              <div class="guide-step">
+                <div class="step-num">1</div>
+                <div class="step-body">
+                  <div class="step-title">Install GCC 14</div>
+                  <p>GCC 14 isn't in the default Debian repos — this pulls it from <em>trixie</em>. Connect via SSH first: <strong style="font-style:normal;">Compute Engine → VM Instances → SSH</strong>. Paste all five commands at once:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'echo &quot;deb https://deb.debian.org/debian trixie main&quot; | sudo tee /etc/apt/sources.list.d/trixie.list\nprintf &quot;Package: *\nPin: release n=trixie\nPin-Priority: 100\n&quot; | sudo tee /etc/apt/preferences.d/trixie\nsudo apt update\nsudo apt install -t trixie libc-bin -y\nsudo dpkg --configure -a\nsudo apt install -t trixie g++-14 -y')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>echo "deb https://deb.debian.org/debian trixie main" | sudo tee /etc/apt/sources.list.d/trixie.list
+printf "Package: *\nPin: release n=trixie\nPin-Priority: 100\n" | sudo tee /etc/apt/preferences.d/trixie
+sudo apt update
+sudo apt install -t trixie libc-bin -y
+sudo dpkg --configure -a
+sudo apt install -t trixie g++-14 -y</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 2 -->
+              <div class="guide-step">
+                <div class="step-num">2</div>
+                <div class="step-body">
+                  <div class="step-title">Upload and compile</div>
+                  <p>Upload via the <strong style="font-style:normal;">cloud icon</strong> (top-right of the SSH window) → <em>Upload File</em> → select <code>primecover1024_line_coordinates.cpp</code>. Then compile:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o solver')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o solver</pre>
+                  </div>
+                  <p>Uses <code>znver5</code> (AMD Turin), not <code>native</code>.</p>
+                </div>
+              </div>
+
+              <!-- Step 3 -->
+              <div class="guide-step">
+                <div class="step-num">3</div>
+                <div class="step-body">
+                  <div class="step-title">Launch</div>
+                  <p>Run the solver fully detached — closing the browser tab or shutting down your PC won't interrupt it:</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'nohup stdbuf -oL ./solver > output.log 2>/dev/null &amp;')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>nohup stdbuf -oL ./solver > output.log 2>/dev/null &amp;</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 4 -->
+              <div class="guide-step">
+                <div class="step-num">4</div>
+                <div class="step-body">
+                  <div class="step-title">Monitor</div>
+                  <p>Four commands for checking progress. To download results use the <strong style="font-style:normal;">cloud icon → Download File → <code>output.log</code></strong>.</p>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'pgrep -a solver')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>pgrep -a solver                                    # confirm it is running</pre>
+                  </div>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'tail -n 20 output.log')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>tail -n 20 output.log                              # check recent output</pre>
+                  </div>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'tail -f output.log')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>tail -f output.log                                 # watch live (Ctrl+C to stop watching)</pre>
+                  </div>
+                  <div class="code-block" style="position:relative;">
+                    <span class="code-label">SSH</span>
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'grep \x27Stats:\x27 output.log | awk \x27{print $2, $4}\x27')">
+                      <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+                      <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </button>
+                    <pre>grep "Stats:" output.log | awk '{print $2, $4}'    # N and line count over time</pre>
+                  </div>
+                </div>
+              </div>
+
+            </div><!-- /.guide-steps -->
+
+          </div><!-- /#os-panel-gcp -->
 
         </div>
       </details>
@@ -5113,7 +5229,7 @@ function tutCopy(btn, text) {
 <script>
 /* ── OS tab switcher ────────────────────────────────────────────────────── */
 function switchOS(os) {
-  var panels = ['windows', 'linux', 'mac'];
+  var panels = ['windows', 'linux', 'mac', 'gcp'];
   panels.forEach(function (p) {
     var panel = document.getElementById('os-panel-' + p);
     var tab   = document.getElementById('tab-' + p);
