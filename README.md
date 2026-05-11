@@ -300,7 +300,7 @@ For the line-coordinates version, replace `primecover1024.cpp` with `primecover1
 
 ### Google Cloud <a name="google-cloud"></a>
 
-Google Cloud offers a **$300 free trial (90 days)** for new accounts — enough to run the full N = 1–1024 sweep comfortably.
+Google Cloud offers a **$300 free trial (90 days)** for new accounts — enough to run the full N = 1–1024 sweep comfortably. This guide uses `primecover1024_line_coordinates.cpp`, which outputs the exact line coordinates of each optimal cover alongside the standard statistics — recommended for longer runs.
 
 **Recommended instance:** `c4d-highcpu-8` — 8 vCPUs, 15 GB RAM, AMD Turin  
 When creating the VM, set *Series* to **C4D**, *Machine type* to **c4d-highcpu-8**, and *Minimum CPU platform* to **AMD Turin**.
