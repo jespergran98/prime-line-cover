@@ -339,6 +339,7 @@ The solver runs fully detached. You can close the browser tab or shut down your 
 
 ```bash
 pgrep -a solver                                               # confirm it is running
+tail -n 100 output.log                                        # check recent output
 tail -f output.log                                            # watch live (Ctrl+C to stop watching)
 grep "Stats:" output.log | awk '{print $2, $4}'              # N and line count over time
 ```
