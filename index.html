@@ -1309,21 +1309,35 @@ body.article-active #article { display: block; }
   justify-content: space-between;
   padding: 0 52px;
   height: 52px;
-  background: rgba(245,242,233,0.95);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: rgba(245,242,233,0.90);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
   border-bottom: 1px solid var(--ink-08);
+  /* Reading-progress hairline grows via JS that sets --scroll-pct */
+  position: sticky;
+}
+/* Teal→gold reading-progress bar at bottom of nav */
+.article-nav::after {
+  content: '';
+  position: absolute;
+  bottom: -1px; left: 0;
+  height: 2px;
+  width: var(--scroll-pct, 0%);
+  background: linear-gradient(to right, var(--teal), var(--gold));
+  transition: width 0.1s linear;
+  pointer-events: none;
 }
 .article-nav-brand {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 500;
   color: var(--ink);
-  letter-spacing: 0.16em;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   text-decoration: none;
-  opacity: 0.42;
-  transition: opacity 0.18s;
+  /* Raised from 0.42 — too dim against the warm paper background */
+  opacity: 0.58;
+  transition: opacity 0.2s;
 }
 .article-nav-brand:hover { opacity: 1; }
 .article-nav-links {
@@ -1334,12 +1348,13 @@ body.article-active #article { display: block; }
 
 /* ── Hero Section ── */
 .article-hero {
-  max-width: 1120px;
+  max-width: 1140px;
   margin: 0 auto;
-  padding: 96px 52px 88px;
+  padding: 100px 52px 112px;
   display: grid;
   grid-template-columns: 1fr 400px;
-  gap: 80px;
+  /* Slightly wider gap — gives each column more room to breathe */
+  gap: 96px;
   align-items: center;
   min-height: calc(100vh - 52px);
 }
@@ -1368,12 +1383,16 @@ body.article-active #article { display: block; }
 }
 
 .article-hero-title {
-  font-size: clamp(32px, 4.8vw, 54px);
+  /* Wider clamp range — more dramatic at large viewports */
+  font-size: clamp(34px, 5.2vw, 62px);
   font-weight: 500;
-  line-height: 1.11;
-  letter-spacing: -0.02em;
+  /* Tighter leading suits large display type; Garamond's ascenders give natural air */
+  line-height: 1.07;
+  letter-spacing: -0.025em;
   color: var(--ink);
-  margin-bottom: 28px;
+  margin-bottom: 32px;
+  /* text-wrap: balance prevents awkward widows in multi-line heads */
+  text-wrap: balance;
 }
 .article-hero-title em {
   font-style: italic;
@@ -1381,11 +1400,13 @@ body.article-active #article { display: block; }
 }
 
 .article-hero-subtitle {
-  font-size: 17.5px;
-  line-height: 1.76;
+  /* 18px is the sweet-spot for EB Garamond lead text — open and legible */
+  font-size: 18px;
+  line-height: 1.82;
   color: var(--ink-70);
-  margin-bottom: 42px;
-  max-width: 500px;
+  margin-bottom: 48px;
+  /* ch units pin the measure to ~52 characters — optimal for a lead paragraph */
+  max-width: 52ch;
 }
 .article-hero-subtitle code {
   font-family: var(--mono);
@@ -1461,13 +1482,14 @@ body.article-active #article { display: block; }
 .article-hero-svg-wrap {
   background: #0d1520;
   border: 1px solid rgba(255,255,255,0.07);
-  border-radius: 14px;
+  /* Increased from 14px — softer card silhouette suits editorial tone */
+  border-radius: 18px;
   padding: 0;
   box-shadow:
-    0 40px 80px rgba(0,0,0,0.40),
-    0 12px 32px rgba(0,0,0,0.28),
-    0 2px 8px rgba(0,0,0,0.20),
-    inset 0 1px 0 rgba(255,255,255,0.06);
+    0 56px 100px rgba(0,0,0,0.46),
+    0 16px 40px rgba(0,0,0,0.30),
+    0 2px 10px rgba(0,0,0,0.22),
+    inset 0 1px 0 rgba(255,255,255,0.07);
   position: relative;
   overflow: hidden;
 }
@@ -1560,12 +1582,13 @@ body.article-active #article { display: block; }
 .article-hero-deco {
   font-family: var(--serif);
   font-style: italic;
-  font-size: clamp(90px, 14vw, 140px);
+  /* Wider clamp — it reads as pure texture at opacity 0.048, so go big */
+  font-size: clamp(120px, 18vw, 180px);
   font-weight: 500;
-  color: rgba(20,115,106,0.048);
+  color: rgba(20,115,106,0.052);
   position: absolute;
-  top: -28px;
-  left: -18px;
+  top: -36px;
+  left: -22px;
   line-height: 1;
   pointer-events: none;
   user-select: none;
@@ -1601,7 +1624,16 @@ body.article-active #article { display: block; }
 }
 .article-divider hr {
   border: none;
-  border-top: 1px solid var(--ink-18);
+  /* Fade to transparent on both ends — more editorial than a hard line */
+  border-top: none;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent,
+    var(--ink-18) 12%,
+    var(--ink-18) 88%,
+    transparent
+  );
 }
 
 /* ── Article Content Column ── */
@@ -1613,7 +1645,8 @@ body.article-active #article { display: block; }
 
 /* ── Article Masthead (the formal article header) ── */
 .article-masthead {
-  padding: 72px 0 64px;
+  /* Extra top air separates it clearly from the divider above */
+  padding: 80px 0 72px;
   border-bottom: 1px solid var(--ink-18);
 }
 .article-masthead-rubric {
@@ -1623,7 +1656,7 @@ body.article-active #article { display: block; }
   letter-spacing: 0.22em;
   text-transform: uppercase;
   color: var(--teal);
-  margin-bottom: 28px;
+  margin-bottom: 24px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1631,27 +1664,29 @@ body.article-active #article { display: block; }
 .article-masthead-rubric::before {
   content: '';
   width: 22px;
-  height: 2px;
+  height: 1.5px;
   background: var(--teal);
   border-radius: 2px;
   flex-shrink: 0;
 }
 .article-masthead-title {
   font-family: var(--serif);
-  font-size: clamp(26px, 3vw, 36px);
+  /* Wider range — this is the formal title of the article, needs presence */
+  font-size: clamp(28px, 3.2vw, 42px);
   font-weight: 500;
-  line-height: 1.2;
-  letter-spacing: -0.012em;
+  line-height: 1.18;
+  letter-spacing: -0.014em;
   color: var(--ink);
-  max-width: 640px;
-  margin-bottom: 26px;
+  max-width: 600px;
+  margin-bottom: 32px;
+  text-wrap: balance;
 }
 .article-masthead-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   row-gap: 8px;
-  padding-top: 18px;
+  padding-top: 20px;
   border-top: 1px solid var(--ink-08);
   font-family: var(--mono);
   font-size: 10px;
@@ -1686,14 +1721,16 @@ body.article-active #article { display: block; }
 
 /* ── Content Sections ── */
 .article-section {
-  padding: 72px 0;
+  /* Stepped up from 72px — each section reads as a distinct chapter */
+  padding: 84px 0 80px;
   border-bottom: 1px solid var(--ink-08);
 }
 .article-section:last-child { border-bottom: none; }
 
 /* ── Section Labels — §N + tag ── */
 .article-section-label {
-  margin-bottom: 28px;
+  /* Increased from 28px — section labels should breathe before the heading */
+  margin-bottom: 36px;
   display: flex;
   align-items: center;
   gap: 14px;
@@ -1701,21 +1738,21 @@ body.article-active #article { display: block; }
 .article-slabel-num {
   font-family: var(--serif);
   font-style: italic;
-  font-size: 24px;
+  /* Larger than body — the §N acts as a chapter drop-cap in miniature */
+  font-size: 26px;
   font-weight: 500;
   color: var(--gold);
   line-height: 1;
   letter-spacing: -0.02em;
   flex-shrink: 0;
-  /* Subtle text shadow for depth */
-  text-shadow: 0 1px 3px rgba(154,107,10,0.15);
+  text-shadow: 0 1px 4px rgba(154,107,10,0.12);
 }
 .article-slabel-tag {
   font-family: var(--mono);
   font-size: 9px;
   font-weight: 500;
   text-transform: uppercase;
-  letter-spacing: 0.24em;
+  letter-spacing: 0.26em;
   color: var(--ink-45);
   flex-shrink: 0;
 }
@@ -1743,13 +1780,16 @@ body.article-active #article { display: block; }
 /* ── Section Titles ── */
 .article-section-title {
   font-family: var(--serif);
-  font-size: clamp(22px, 2.8vw, 30px);
+  /* Widened range — at 1280px viewport, 32px gives the heading proper authority */
+  font-size: clamp(24px, 2.8vw, 34px);
   font-weight: 500;
-  line-height: 1.22;
-  letter-spacing: -0.008em;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
   color: var(--ink);
-  max-width: 660px;
-  margin-bottom: 28px;
+  max-width: 640px;
+  margin-bottom: 36px;
+  /* Prevents orphan single-word last lines in multi-line headings */
+  text-wrap: balance;
 }
 
 /* ── Section body (used in demo CTA) ── */
@@ -1775,18 +1815,29 @@ body.article-active #article { display: block; }
 
 /* ── Main article body typography ── */
 .article-article-body {
-  font-size: 17.5px;
-  line-height: 1.88;
+  /* 18px with EB Garamond is the Goldilocks size — not dense, not loose */
+  font-size: 18px;
+  line-height: 1.9;
   color: var(--ink-70);
-  max-width: 700px;
+  /* 68ch ≈ 65–70 characters at this size — the classic Bringhurst sweet-spot */
+  max-width: 68ch;
 }
-.article-article-body p + p { margin-top: 22px; }
+.article-article-body p + p {
+  /* Bumped from 22px — gives each paragraph room to breathe as a thought-unit */
+  margin-top: 26px;
+}
 .article-article-body strong { color: var(--ink); font-weight: 500; font-style: normal; }
 .article-article-body em { font-style: italic; }
-.article-article-body a { color: var(--teal); text-decoration: underline; text-underline-offset: 3px; }
+.article-article-body a {
+  color: var(--teal);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+.article-article-body a:hover { color: var(--ink); }
 .article-article-body code {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: 13.5px;
   background: var(--paper-alt);
   padding: 2px 7px;
   border-radius: 3px;
@@ -1800,25 +1851,41 @@ body.article-active #article { display: block; }
   font-size: 15px;
   color: var(--ink);
   letter-spacing: -0.01em;
-  line-height: 1.6;
-  padding: 18px 24px;
-  margin: 28px 0;
+  line-height: 1.7;
+  /* More generous padding — display math needs air on all sides */
+  padding: 22px 28px 22px 24px;
+  margin: 36px 0;
   background: var(--paper-alt);
   border: 1px solid var(--ink-18);
   border-left: 3px solid var(--gold);
-  border-radius: 0 var(--r2) var(--r2) 0;
-  max-width: 620px;
+  border-radius: 0 var(--r3) var(--r3) 0;
+  max-width: 600px;
+  position: relative;
+}
+/* FORMULA eyebrow label above the math block */
+.article-formula::before {
+  content: 'FORMULA';
+  display: block;
+  font-family: var(--mono);
+  font-size: 7.5px;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+  opacity: 0.8;
+  margin-bottom: 10px;
 }
 
 /* ── Proof / reasoning callout ── */
 .article-article-body .article-proof {
-  margin: 28px 0;
-  padding: 20px 24px;
+  /* More vertical padding — proofs are dense and need breathing room */
+  margin: 36px 0;
+  padding: 24px 28px 24px 26px;
   border-left: 3px solid var(--teal);
-  background: rgba(20,115,106,0.05);
-  border-radius: 0 var(--r2) var(--r2) 0;
-  font-size: 16.5px;
-  line-height: 1.82;
+  background: rgba(20,115,106,0.055);
+  border-radius: 0 var(--r3) var(--r3) 0;
+  font-size: 17px;
+  line-height: 1.86;
   color: var(--ink-70);
 }
 .article-article-body .article-proof em { font-style: italic; }
@@ -1827,39 +1894,49 @@ body.article-active #article { display: block; }
 /* ── Awkward primes inline display ── */
 .article-awkward-inline {
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: 13px;
   color: var(--gold);
-  line-height: 2;
-  margin: 10px 0 0;
+  line-height: 2.1;
+  margin: 12px 0 0;
   word-break: break-all;
-  padding: 14px 18px;
+  /* More generous padding — the list of numbers needs room to scan */
+  padding: 18px 22px;
   background: var(--gold-light);
-  border: 1px solid rgba(154,107,10,0.18);
-  border-radius: var(--r2);
-  max-width: 640px;
+  border: 1px solid rgba(154,107,10,0.20);
+  border-radius: var(--r3);
+  max-width: 62ch;
+  letter-spacing: 0.02em;
 }
 
 /* ── Key facts callout grid ── */
 .article-facts {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 2px;
-  margin: 40px 0;
+  /* Zero gap — cells share borders, reading as one panel not three tiles */
+  gap: 0;
+  margin: 44px 0;
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
   overflow: hidden;
 }
 .article-fact {
   background: var(--paper-alt);
-  padding: 26px 22px;
+  /* More generous padding — stat cards need vertical breathing room */
+  padding: 30px 24px;
+  /* Internal vertical separator between cells */
+  border-right: 1px solid var(--ink-08);
+  transition: background 0.18s;
 }
+.article-fact:last-child { border-right: none; }
+.article-fact:hover { background: var(--paper-deep); }
 .article-fact-val {
   font-family: var(--mono);
-  font-size: 34px;
+  /* Slightly larger — these are the key numbers, give them authority */
+  font-size: 36px;
   font-weight: 300;
-  letter-spacing: -0.045em;
+  letter-spacing: -0.05em;
   line-height: 1;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 .article-fact-val.c-teal { color: var(--teal); }
 .article-fact-val.c-gold { color: var(--gold); }
@@ -1869,49 +1946,61 @@ body.article-active #article { display: block; }
   font-size: 8.5px;
   color: var(--ink-45);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  line-height: 1.5;
+  letter-spacing: 0.16em;
+  line-height: 1.6;
 }
 
 /* ── Speedup comparison ── */
 .article-compare {
   display: flex;
-  gap: 2px;
-  margin: 36px 0;
+  /* Zero gap matches facts grid — unified component appearance */
+  gap: 0;
+  margin: 40px 0;
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
   overflow: hidden;
 }
 .article-compare-cell {
   flex: 1;
-  padding: 24px 22px;
+  /* More generous padding than before */
+  padding: 28px 26px;
   background: var(--paper-alt);
+  border-right: 1px solid var(--ink-08);
+  transition: background 0.18s;
 }
-.article-compare-cell.accent { background: rgba(20,115,106,0.07); }
+.article-compare-cell:last-child { border-right: none; }
+.article-compare-cell:hover { background: var(--paper-deep); }
+/* Accent cell gets a teal left-bar — the winning column reads at a glance */
+.article-compare-cell.accent {
+  background: rgba(20,115,106,0.07);
+  border-left: 3px solid var(--teal);
+  border-right: 1px solid var(--ink-08);
+}
+.article-compare-cell.accent:hover { background: rgba(20,115,106,0.10); }
 .article-compare-label {
   font-family: var(--mono);
   font-size: 8.5px;
   color: var(--ink-45);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 8px;
+  letter-spacing: 0.16em;
+  margin-bottom: 10px;
 }
 .article-compare-val {
   font-family: var(--mono);
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 300;
   letter-spacing: -0.04em;
   color: var(--ink);
   line-height: 1;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 .article-compare-val.strikethrough { text-decoration: line-through; opacity: 0.5; color: var(--coral); }
 .article-compare-val.c-teal { color: var(--teal); }
 .article-compare-sub {
-  font-size: 13px;
+  font-size: 13.5px;
   font-style: italic;
   color: var(--ink-45);
-  line-height: 1.5;
+  line-height: 1.55;
 }
 
 /* ── Technical pillars ── */
@@ -1919,33 +2008,44 @@ body.article-active #article { display: block; }
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
-  margin: 36px 0;
+  margin: 40px 0;
 }
 .article-pillar {
-  padding: 24px;
+  /* Bump padding for more luxurious card feel */
+  padding: 28px 26px 26px;
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
   background: var(--paper-alt);
+  /* Teal top accent — colour-codes each pillar as a technical item */
+  border-top: 3px solid rgba(20,115,106,0.35);
+  transition: background 0.18s, border-top-color 0.18s, box-shadow 0.2s;
+}
+.article-pillar:hover {
+  background: var(--paper-deep);
+  border-top-color: var(--teal);
+  box-shadow: 0 4px 20px rgba(20,115,106,0.08);
 }
 .article-pillar-num {
   font-family: var(--mono);
   font-size: 8.5px;
-  color: var(--ink-45);
-  letter-spacing: 0.16em;
+  color: var(--teal);
+  opacity: 0.65;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 .article-pillar-title {
   font-family: var(--serif);
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   line-height: 1.3;
   color: var(--ink);
+  letter-spacing: 0.002em;
 }
 .article-pillar-body {
-  font-size: 14px;
-  line-height: 1.72;
+  font-size: 14.5px;
+  line-height: 1.76;
   color: var(--ink-70);
 }
 .article-pillar-body code {
@@ -1960,11 +2060,12 @@ body.article-active #article { display: block; }
 
 /* ── Staircase Chart ── */
 .article-chart-wrap {
-  margin: 36px 0;
+  /* More generous padding — the chart is data-rich and needs breathing room */
+  margin: 44px 0;
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
   background: var(--canvas-bg);
-  padding: 28px 28px 24px;
+  padding: 32px 32px 28px;
   position: relative;
   overflow: hidden;
 }
@@ -1988,40 +2089,55 @@ body.article-active #article { display: block; }
   font-family: var(--mono);
   font-size: 9px;
   color: var(--ink-45);
-  letter-spacing: 0.14em;
+  letter-spacing: 0.16em;
   text-transform: uppercase;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 /* ── Article Figures ── */
 .article-figure {
-  margin: 44px 0;
+  /* More breathing room above and below figures */
+  margin: 52px 0;
   max-width: 700px;
 }
 .article-figure img {
   width: 100%;
   display: block;
   border: 1px solid var(--ink-08);
-  border-radius: var(--r2);
+  border-radius: var(--r3);
   background: var(--canvas-bg);
 }
 .article-figure figcaption {
-  font-family: var(--mono);
-  font-size: 10px;
+  /*
+   * Switch from mono 10px → serif italic 13.5px.
+   * Editorial tradition since Gutenberg: captions use the body typeface in a
+   * smaller size, not a technical face. This creates visual kinship with the
+   * prose and softens the abrupt mono-to-serif contrast at the column bottom.
+   */
+  font-family: var(--serif);
+  font-style: italic;
+  font-size: 13.5px;
   color: var(--ink-45);
-  letter-spacing: 0.05em;
-  line-height: 1.75;
-  margin-top: 12px;
-  padding-left: 3px;
+  line-height: 1.68;
+  margin-top: 14px;
+  /* Indented to align with the inner edge, signalling it belongs to the image */
+  padding-left: 1px;
 }
 .article-figure figcaption code {
   font-family: var(--mono);
-  font-size: 10px;
+  font-style: normal;
+  font-size: 11.5px;
   background: var(--paper-alt);
   padding: 0 4px;
   border-radius: 2px;
   border: 1px solid var(--ink-08);
+}
+/* Bold figure label — "Figure N." — stands out in the serif italic stream */
+.article-figure figcaption strong,
+.article-figure figcaption b {
+  font-weight: 500;
   font-style: normal;
+  color: var(--ink-70);
 }
 
 /* ── HN-style post block ── */
@@ -2029,30 +2145,32 @@ body.article-active #article { display: block; }
   background: var(--paper-alt);
   border: 1px solid var(--ink-18);
   border-radius: var(--r3);
-  padding: 28px 30px;
-  margin: 32px 0;
+  /* More generous padding — these are pull-quotes / excerpts, need room */
+  padding: 32px 34px;
+  margin: 36px 0;
 }
 .article-hn-title {
   font-family: var(--serif);
-  font-size: 15.5px;
+  font-size: 16px;
   font-weight: 500;
   margin-bottom: 10px;
   color: var(--ink);
   line-height: 1.35;
+  letter-spacing: 0.002em;
 }
 .article-hn-meta {
   font-family: var(--mono);
   font-size: 10px;
   color: var(--ink-45);
   letter-spacing: 0.08em;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .article-hn-body {
-  font-size: 14.5px;
-  line-height: 1.78;
+  font-size: 15px;
+  line-height: 1.8;
   color: var(--ink-70);
 }
-.article-hn-body p + p { margin-top: 12px; }
+.article-hn-body p + p { margin-top: 14px; }
 
 /* ── Awkward primes styled list ── */
 .article-awkward-list {
@@ -2078,39 +2196,41 @@ body.article-active #article { display: block; }
 
 /* ── Demo CTA Section ── */
 .article-demo-cta {
-  padding: 96px 0 88px;
+  padding: 104px 0 96px;
   text-align: center;
   border-bottom: none;
 }
 .article-demo-cta .article-section-title {
-  max-width: 560px;
+  max-width: 540px;
   margin-left: auto;
   margin-right: auto;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
 }
 .article-demo-cta .article-section-body {
-  max-width: 500px;
-  margin: 0 auto 44px;
+  max-width: 480px;
+  margin: 0 auto 48px;
   text-align: center;
-  font-size: 16.5px;
-  line-height: 1.78;
+  font-size: 17px;
+  line-height: 1.8;
 }
 .article-demo-cta .article-cta-group { justify-content: center; }
-/* Upsize CTA buttons slightly in the closing section */
+/* Upsize CTA buttons in the closing section */
 .article-demo-cta .article-btn-primary {
-  padding: 15px 30px;
+  padding: 15px 32px;
   font-size: 11.5px;
-  box-shadow: 0 3px 14px rgba(24,38,58,0.20);
+  box-shadow: 0 3px 16px rgba(24,38,58,0.20);
 }
 .article-demo-cta .article-btn-ghost {
-  padding: 14px 20px;
+  padding: 14px 22px;
 }
 
 /* ── Footer ── */
 .article-footer {
-  background: var(--paper);
-  border-top: 1px solid var(--ink-08);
-  padding: 30px 52px;
+  /* Step up from --paper to --paper-alt for a distinct zone */
+  background: var(--paper-alt);
+  border-top: 1px solid var(--ink-18);
+  /* More generous padding — the footer is a destination, not an afterthought */
+  padding: 48px 52px 40px;
 }
 .article-footer-inner {
   max-width: 860px;
@@ -2118,14 +2238,34 @@ body.article-active #article { display: block; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 24px;
   flex-wrap: wrap;
+}
+/* Top decorative rule with teal dot */
+.article-footer-inner::before {
+  content: '';
+  display: block;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(to right, var(--teal), rgba(20,115,106,0.10) 40%, transparent);
+  margin-bottom: 8px;
 }
 .article-footer-copy {
   font-family: var(--mono);
   font-size: 9.5px;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
   color: var(--ink-45);
+  line-height: 1.7;
+}
+/* Project name on first line, slightly bolder */
+.article-footer-copy strong {
+  display: block;
+  color: var(--ink-70);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 .article-footer-links {
   display: flex;
@@ -2150,31 +2290,63 @@ body.article-active #article { display: block; }
 
 /* ── Responsive ── */
 @media (max-width: 860px) and (min-width: 721px) {
-  .article-hero { grid-template-columns: 1fr 340px; gap: 56px; }
+  .article-hero {
+    grid-template-columns: 1fr 320px;
+    gap: 56px;
+    padding: 80px 40px 88px;
+  }
+  .article-content { padding: 0 40px; }
+  .article-divider { padding: 0 40px; }
 }
+
 @media (max-width: 720px) {
   .article-hero {
     grid-template-columns: 1fr;
-    padding: 52px 24px 48px;
+    padding: 48px 24px 52px;
     min-height: auto;
-    gap: 40px;
+    /* Less gap on mobile — the two columns stack vertically */
+    gap: 36px;
   }
+  /* Bring the visual above the text on mobile for immediate hook */
   .article-hero-visual { order: -1; }
-  .article-nav { padding: 0 24px; }
-  .article-content { padding: 0 24px; }
-  .article-divider { padding: 0 24px; }
+  .article-nav { padding: 0 20px; }
+  .article-content { padding: 0 20px; }
+  .article-divider { padding: 0 20px; }
+  /* Tighter section rhythm on mobile — less vertical travel between sections */
+  .article-section { padding: 56px 0 52px; }
+  .article-masthead { padding: 52px 0 48px; }
+  /* Facts: 2 columns on tablet, prevents 3 cards being too narrow */
   .article-facts { grid-template-columns: 1fr 1fr; }
-  .article-pillars { grid-template-columns: 1fr; }
+  /* Pillars and compare stack vertically */
+  .article-pillars { grid-template-columns: 1fr; gap: 12px; }
   .article-compare { flex-direction: column; }
-  .article-footer { padding: 24px 24px; }
-  .article-footer-inner { flex-direction: column; align-items: flex-start; gap: 14px; }
-  .article-demo-cta { padding: 60px 0 56px; }
+  /* Remove left border on stacked compare cells to avoid double-border */
+  .article-compare-cell.accent { border-left: none; border-top: 3px solid var(--teal); }
+  .article-demo-cta { padding: 64px 0 60px; }
+  /* Footer stacks */
+  .article-footer { padding: 36px 20px 32px; }
+  .article-footer-inner { flex-direction: column; align-items: flex-start; gap: 20px; }
+  /* Figures: full-bleed on mobile, slightly less vertical margin */
+  .article-figure { margin: 36px 0; }
+  /* Formula: reduce padding */
+  .article-formula { padding: 18px 20px 18px 20px; }
 }
+
 @media (max-width: 460px) {
+  /* Single column for all data panels */
   .article-facts { grid-template-columns: 1fr; }
-  .article-hero-title { font-size: 28px; }
+  /* Slightly smaller hero title on very small screens */
+  .article-hero-title { font-size: 30px; line-height: 1.1; }
+  /* Hide meta separators — they crowd on narrow phones */
   .article-masthead-sep { display: none; }
+  .article-masthead-meta { column-gap: 10px; }
+  /* Tighter section spacing */
+  .article-section { padding: 44px 0 40px; }
+  /* Reduce formula block font on tiny screens */
+  .article-formula { font-size: 13.5px; }
 }
+
+/* Reading progress updates via JS — see inline script below */
 
 </style>
 </head>
@@ -2316,7 +2488,7 @@ body.article-active #article { display: block; }
         <figure class="article-figure">
           <img src="/assets/2lines.PNG" alt="Plot of the first five prime-indexed points covered by two lines: L_pair through (1,2) and (5,11), L_tri through (2,3), (3,5), (4,7).">
           <figcaption>
-            Figure 1. N&thinsp;=&thinsp;5 is the last case coverable by two lines. One line joins (1,&thinsp;2) and (5,&thinsp;11); the other passes through the three collinear points (2,&thinsp;3), (3,&thinsp;5), (4,&thinsp;7). When the next prime, 13, arrives it fits on neither — forcing f(6)&thinsp;=&thinsp;3.
+            <strong>Figure 1.</strong> N&thinsp;=&thinsp;5 is the last case coverable by two lines. One line joins (1,&thinsp;2) and (5,&thinsp;11); the other passes through the three collinear points (2,&thinsp;3), (3,&thinsp;5), (4,&thinsp;7). When the next prime, 13, arrives it fits on neither — forcing f(6)&thinsp;=&thinsp;3.
           </figcaption>
         </figure>
 
@@ -2357,7 +2529,7 @@ body.article-active #article { display: block; }
       <figure class="article-figure">
         <img src="/assets/staircase.PNG" alt="Staircase plot of f(N) from N=1 to N=1024, with prior certified terms in blue and new solver terms in red.">
         <figcaption>
-          Figure 2. f(N) across all certified values N = 1–1024. Each vertical step marks an awkward prime. Prior certified terms (N&thinsp;≤&thinsp;861) are shown in blue; the new solver reaches this boundary in 22 min 36 s, versus 282 h 26 min 31.5 s for the prior MIP solver — a 749.9× speedup. The 163 new terms (N = 862–1024, in red) extend the record from f(861)&thinsp;=&thinsp;123 to f(1024)&thinsp;=&thinsp;143.
+          <strong>Figure 2.</strong> f(N) across all certified values N = 1–1024. Each vertical step marks an awkward prime. Prior certified terms (N&thinsp;≤&thinsp;861) are shown in blue; the new solver reaches this boundary in 22 min 36 s, versus 282 h 26 min 31.5 s for the prior MIP solver — a 749.9× speedup. The 163 new terms (N = 862–1024, in red) extend the record from f(861)&thinsp;=&thinsp;123 to f(1024)&thinsp;=&thinsp;143.
         </figcaption>
       </figure>
 
@@ -2389,7 +2561,7 @@ body.article-active #article { display: block; }
         <figure class="article-figure" style="max-width:720px;">
           <img src="/assets/bit.PNG" alt="Diagram showing the 1024-bit bitmask layout across sixteen uint64_t words spanning two cache lines.">
           <figcaption>
-            Figure 3. Memory layout of a single heavy line's coverage bitmask. Sixteen contiguous <code>uint64_t</code> words (128 bytes, two cache lines) encode which prime indices the line covers: bit <em>k</em> lives in <code>words[k&thinsp;≫&thinsp;6]</code> at position <em>k</em>&thinsp;mod&thinsp;64. Coverage counting at every branch-and-bound node is a popcount over a word-wise AND, keeping the full 1.5 MB working set in L2 throughout the run. The filled bits here show an example line covering prime indices 3, 4, 16, 18, 19, 21, 22 — all within a single word.
+            <strong>Figure 3.</strong> Memory layout of a single heavy line's coverage bitmask. Sixteen contiguous <code>uint64_t</code> words (128 bytes, two cache lines) encode which prime indices the line covers: bit <em>k</em> lives in <code>words[k&thinsp;≫&thinsp;6]</code> at position <em>k</em>&thinsp;mod&thinsp;64. Coverage counting at every branch-and-bound node is a popcount over a word-wise AND, keeping the full 1.5 MB working set in L2 throughout the run. The filled bits here show an example line covering prime indices 3, 4, 16, 18, 19, 21, 22 — all within a single word.
           </figcaption>
         </figure>
 
@@ -2414,7 +2586,7 @@ body.article-active #article { display: block; }
         <figure class="article-figure" style="max-width:640px;">
           <img src="/assets/algoflow.PNG" alt="Flowchart of the algorithm: advance sweep to N, check witness cover, then root initialisation, root bounds, gap check, and parallel DFS if needed.">
           <figcaption>
-            Figure 4. How the solver processes each new prime index N. A witness hit (Mode W) skips the exact solver entirely and returns the previous answer in O(1). On a miss, the exact solve phase initialises from carried warm seeds, computes root bounds, and either closes the gap immediately (Mode R, no DFS nodes) or runs the parallel depth-first search (Mode D). All three paths end by updating <code>witness_cover</code>, <code>warm_start_solution</code>, and <code>warm_dual_seed</code> for the next step.
+            <strong>Figure 4.</strong> How the solver processes each new prime index N. A witness hit (Mode W) skips the exact solver entirely and returns the previous answer in O(1). On a miss, the exact solve phase initialises from carried warm seeds, computes root bounds, and either closes the gap immediately (Mode R, no DFS nodes) or runs the parallel depth-first search (Mode D). All three paths end by updating <code>witness_cover</code>, <code>warm_start_solution</code>, and <code>warm_dual_seed</code> for the next step.
           </figcaption>
         </figure>
 
@@ -2495,7 +2667,7 @@ body.article-active #article { display: block; }
         <figure class="article-figure" style="max-width:720px;">
           <img src="/assets/time.PNG" alt="Log-scale scatter plot of per-instance solve times for all 1024 indices, coloured by mode: W witness hits, R root closures, D full DFS runs.">
           <figcaption>
-            Figure 5. Per-instance solve time (log scale) across all 1024 indices, by mode. Circles (W) are witness hits; squares (R) are root closures with no DFS; diamonds (D) are full depth-first searches. The seven-order-of-magnitude spread — from sub-microsecond witness hits to multi-hour DFS runs — shows just how much work the witness mechanism saves. Mode split: 615 W (1.1 s total), 236 R (1.9 s total), 173 D (142,962 s total). The 173 DFS runs account for 99.998% of total compute time while covering only 16.9% of indices.
+            <strong>Figure 5.</strong> Per-instance solve time (log scale) across all 1024 indices, by mode. Circles (W) are witness hits; squares (R) are root closures with no DFS; diamonds (D) are full depth-first searches. The seven-order-of-magnitude spread — from sub-microsecond witness hits to multi-hour DFS runs — shows just how much work the witness mechanism saves. Mode split: 615 W (1.1 s total), 236 R (1.9 s total), 173 D (142,962 s total). The 173 DFS runs account for 99.998% of total compute time while covering only 16.9% of indices.
           </figcaption>
         </figure>
 
@@ -2592,7 +2764,8 @@ body.article-active #article { display: block; }
   <footer class="article-footer">
     <div class="article-footer-inner">
       <div class="article-footer-copy">
-        Prime Line Cover · OEIS A373813 · MIT License · © 2026 Jesper Gran Mikkelsen
+        <strong>Prime Line Cover</strong>
+        OEIS A373813 &middot; MIT License &middot; © 2026 Jesper Gran Mikkelsen
       </div>
       <div class="article-footer-links">
         <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover" target="_blank" rel="noopener">↗ GitHub</a>
@@ -7593,6 +7766,24 @@ function switchDistro(distro) {
     });
   }
 
+})();
+</script>
+<script>
+/* Reading progress bar — updates CSS custom property --scroll-pct on the nav */
+(function() {
+  var nav = document.querySelector('.article-nav');
+  if (!nav) return;
+  function updateProgress() {
+    var doc = document.documentElement;
+    var scrollable = doc.scrollHeight - doc.clientHeight;
+    if (scrollable <= 0) return;
+    var pct = Math.min(100, (window.scrollY / scrollable) * 100).toFixed(1) + '%';
+    nav.style.setProperty('--scroll-pct', pct);
+  }
+  if (document.body.classList.contains('article-active')) {
+    window.addEventListener('scroll', updateProgress, { passive: true });
+    updateProgress();
+  }
 })();
 </script>
 </body>
