@@ -46,6 +46,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- Apply article-active to <html> before the first paint so #app is never
+     visible for even a single frame when the page is opened via ?article.    -->
+<script>(function(){var s=location.search,p=location.pathname.replace(/\/+$/,'');if(/[?&]article([&=]|$)/.test(s)||p==='/article')document.documentElement.classList.add('article-active');})();</script>
 <style>
 /* ═══════════════════════════════════════════════════════
    1. DESIGN TOKENS & VARIABLES
@@ -187,13 +190,6 @@ html, body {
 #canvas-bg {
   position: absolute;
   inset: 0;
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent,
-    transparent 27px,
-    var(--rule) 27px,
-    var(--rule) 28px
-  );
   pointer-events: none;
   z-index: 0;
 }
@@ -1288,7 +1284,8 @@ body.article-active {
   height: auto;
   width: 100%;
 }
-body.article-active #app { display: none !important; }
+body.article-active #app,
+html.article-active  #app { display: none !important; }
 
 #article {
   display: none;
@@ -1297,7 +1294,8 @@ body.article-active #app { display: none !important; }
   color: var(--ink);
   min-height: 100vh;
 }
-body.article-active #article { display: block; }
+body.article-active #article,
+html.article-active  #article { display: block; }
 
 /* ── Article Nav ── */
 .article-nav {
@@ -2828,7 +2826,7 @@ body.article-active #article { display: block; }
         <a class="co-primary-btn" href="./solver1024.cpp" download>
           <span class="co-dl-icon">↓</span>primecover1024.cpp
         </a>
-        <a href="?article" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--gold);background:transparent;border:1px solid rgba(154,107,10,0.38);padding:6px 13px;border-radius:var(--r2);letter-spacing:0.04em;text-decoration:none;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.12s;box-shadow:0 2px 6px rgba(154,107,10,0.10);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--white)';this.style.borderColor='var(--gold)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(154,107,10,0.25)';" onmouseout="this.style.background='transparent';this.style.color='var(--gold)';this.style.borderColor='rgba(154,107,10,0.38)';this.style.transform='none';this.style.boxShadow='0 2px 6px rgba(154,107,10,0.10)';">↗ Article</a>
+        <a id="btn-open-article" href="?article" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--gold);background:transparent;border:1px solid rgba(154,107,10,0.38);padding:6px 13px;border-radius:var(--r2);letter-spacing:0.04em;text-decoration:none;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.12s;box-shadow:0 2px 6px rgba(154,107,10,0.10);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--white)';this.style.borderColor='var(--gold)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(154,107,10,0.25)';" onmouseout="this.style.background='transparent';this.style.color='var(--gold)';this.style.borderColor='rgba(154,107,10,0.38)';this.style.transform='none';this.style.boxShadow='0 2px 6px rgba(154,107,10,0.10)';">↗ Article</a>
       </div>
       <span class="co-file-tag" style="display:block;margin-bottom:9px;">C++23 · parallel branch‑and‑bound · bitmask for N ≤ 1024</span>
       <button class="co-quickstart-hint" id="btn-quick-start-overlay">
@@ -5927,10 +5925,6 @@ function drawMain(t) {
     const sx = N > 1 ? x + (i / (N - 1)) * w : x + w / 2;
     mctx.moveTo(sx, y); mctx.lineTo(sx, y + h);
   }
-  for (let i = 1; i <= 4; i++) {
-    mctx.moveTo(x, y + i / 4 * h);
-    mctx.lineTo(x + w, y + i / 4 * h);
-  }
   mctx.stroke();
   mctx.setLineDash([]);
   mctx.restore();
@@ -6476,10 +6470,65 @@ function loop(ts) {
   drawMiniGraph(tctx, tcEl, d => d.computeMs,
     v => v >= 1000 ? (v / 1000).toFixed(1) + 's' : v.toFixed(0) + 'ms', false);
 
-  requestAnimationFrame(loop);
+  if (_demoActive) requestAnimationFrame(loop);
 }
 
-requestAnimationFrame(loop);
+/* ── Demo playback controller ────────────────────────────────────────────── */
+/* Exposed on window so the article-routing script can pause/resume the demo  */
+/* without a page reload when the user switches between the two views.         */
+let _demoActive  = false;   /* true while the rAF loop is running             */
+let _pauseAnchor = null;    /* performance.now() timestamp captured on pause  */
+
+window.__demoCtrl = {
+
+  resume: function () {
+    if (_demoActive) return;                          /* already running */
+
+    /* Shift t0 forward by however long we were paused so currentT picks
+       up exactly where it froze instead of jumping to the present.       */
+    if (t0 !== null && _pauseAnchor !== null) {
+      t0 += performance.now() - _pauseAnchor;
+      /* Prevent tryApply from firing a step immediately on the first frame
+         after resuming (mirrors the behaviour of the user-facing Pause btn).
+         On a cold start (_pauseAnchor is null) lastDisplayTime stays at
+         -Infinity so the first ready result displays without delay.          */
+      lastDisplayTime = performance.now();
+    }
+    _pauseAnchor = null;
+
+    /* Re-measure the canvas — it was 0×0 while #app was hidden (display:none).
+       enterDemo() removes article-active before calling resume(), so #app is
+       already visible and offsetWidth/Height return real dimensions here.    */
+    resize();
+
+    _demoActive = true;
+    requestAnimationFrame(loop);
+  },
+
+  pause: function () {
+    if (!_demoActive) return;                         /* already paused  */
+    _pauseAnchor = performance.now();
+    _demoActive  = false;
+    /* loop() will see _demoActive === false on its next tick and will NOT
+       call requestAnimationFrame again — the loop halts cleanly.          */
+  }
+};
+
+/* ── Auto-start decision ─────────────────────────────────────────────────── */
+/* If the page was opened via ?article the demo should run silently in the
+   background until the user enters it.  We still pre-warm the worker and
+   kick off the first prime computation so the canvas is populated the
+   instant the user enters the demo — no blank-white-canvas delay.            */
+var _articleOnLoad = /[?&]article([&=]|$)/.test(window.location.search)
+                  || window.location.pathname.replace(/\/+$/, '') === '/article';
+if (_articleOnLoad) {
+  /* Start computation now, skip the drawing loop until the user enters. */
+  initialized = true;
+  startCompute();
+} else {
+  _demoActive = true;
+  requestAnimationFrame(loop);
+}
 })();
 </script>
 
@@ -7418,28 +7467,61 @@ function switchDistro(distro) {
   }
 
   /* ── 2. Smooth scroll for CTA buttons ───────────────────── */
+  function enterDemo() {
+    document.documentElement.classList.remove('article-active');
+    document.body.classList.remove('article-active');
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    /* Strip ?article from the URL so a refresh lands on the demo */
+    if (window.location.search) {
+      history.replaceState(null, '', window.location.pathname);
+    }
+    /* Resume (or cold-start) the demo loop */
+    if (window.__demoCtrl) window.__demoCtrl.resume();
+  }
+
   function setupCTA(id) {
     var btn = document.getElementById(id);
     if (!btn) return;
     btn.addEventListener('click', function (e) {
       e.preventDefault();
-      var target = document.getElementById('demo');
-      if (!target) {
-        /* Fallback: if demo section not found, jump to app */
-        target = document.getElementById('app');
-      }
-      if (target) {
-        /* Switch to app view first, then scroll */
-        document.documentElement.classList.remove('article-active');
-        document.body.classList.remove('article-active');
-        window.scrollTo({ top: 0, behavior: 'instant' });
-      } else {
-        window.location.hash = 'demo';
-      }
+      enterDemo();
     });
   }
   setupCTA('article-enter-btn');
   setupCTA('article-enter-btn-2');
+
+  /* ── "↗ Article" link in the demo panel ────────────────────────────────── */
+  /* Intercept the link so clicking it switches to the article view in-place
+     (no page reload) and pauses the demo loop. The demo resumes from the same
+     frame when the user returns via either "Enter Demo" button.              */
+  var btnOpenArticle = document.getElementById('btn-open-article');
+  if (btnOpenArticle) {
+    btnOpenArticle.addEventListener('click', function (e) {
+      e.preventDefault();
+      /* Pause the demo before showing the article */
+      if (window.__demoCtrl) window.__demoCtrl.pause();
+      /* Switch to article view */
+      document.documentElement.classList.add('article-active');
+      document.body.classList.add('article-active');
+      window.scrollTo({ top: 0, behavior: 'instant' });
+      /* Reflect the ?article state in the URL (enables back-button and refresh) */
+      history.pushState(null, '', '?article');
+      /* Unhide the article element */
+      var articleEl = document.getElementById('article');
+      if (articleEl) articleEl.removeAttribute('aria-hidden');
+    });
+  }
+
+  /* ── article-nav-brand ("Prime Line Cover" back-link) ───────────────────── */
+  /* When the user is reading the article and clicks the site title, take them
+     back to the demo and resume it instead of triggering a full page reload.  */
+  var navBrand = document.querySelector('.article-nav-brand');
+  if (navBrand) {
+    navBrand.addEventListener('click', function (e) {
+      e.preventDefault();
+      enterDemo();
+    });
+  }
 
   if (!isArticle) return; /* rest only needed on article */
 
