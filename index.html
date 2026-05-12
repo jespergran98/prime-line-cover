@@ -2826,7 +2826,7 @@ html.article-active  #article { display: block; }
         <a class="co-primary-btn" href="./solver1024.cpp" download>
           <span class="co-dl-icon">↓</span>primecover1024.cpp
         </a>
-        <a id="btn-open-article" href="?article" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--gold);background:transparent;border:1px solid rgba(154,107,10,0.38);padding:6px 13px;border-radius:var(--r2);letter-spacing:0.04em;text-decoration:none;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.12s;box-shadow:0 2px 6px rgba(154,107,10,0.10);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--white)';this.style.borderColor='var(--gold)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(154,107,10,0.25)';" onmouseout="this.style.background='transparent';this.style.color='var(--gold)';this.style.borderColor='rgba(154,107,10,0.38)';this.style.transform='none';this.style.boxShadow='0 2px 6px rgba(154,107,10,0.10)';">↗ Article</a>
+        <a id="btn-open-article" href="?article" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--gold);background:rgba(154,107,10,0.09);border:1px solid rgba(154,107,10,0.55);padding:6px 13px;border-radius:var(--r2);letter-spacing:0.04em;text-decoration:none;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.12s,box-shadow 0.15s;box-shadow:0 2px 8px rgba(154,107,10,0.18),inset 0 1px 0 rgba(154,107,10,0.12);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--white)';this.style.borderColor='var(--gold)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(154,107,10,0.32),inset 0 1px 0 rgba(255,255,255,0.15)';" onmouseout="this.style.background='rgba(154,107,10,0.09)';this.style.color='var(--gold)';this.style.borderColor='rgba(154,107,10,0.55)';this.style.transform='none';this.style.boxShadow='0 2px 8px rgba(154,107,10,0.18),inset 0 1px 0 rgba(154,107,10,0.12)';">↗ Article</a>
       </div>
       <span class="co-file-tag" style="display:block;margin-bottom:9px;">C++23 · parallel branch‑and‑bound · bitmask for N ≤ 1024</span>
       <button class="co-quickstart-hint" id="btn-quick-start-overlay">
@@ -7509,6 +7509,8 @@ function switchDistro(distro) {
       /* Unhide the article element */
       var articleEl = document.getElementById('article');
       if (articleEl) articleEl.removeAttribute('aria-hidden');
+      /* Boot the hero animation (skipped at page-load when isArticle was false) */
+      if (window.__launchArticleAnim) window.__launchArticleAnim();
     });
   }
 
@@ -7523,7 +7525,14 @@ function switchDistro(distro) {
     });
   }
 
-  if (!isArticle) return; /* rest only needed on article */
+  /* ── Article animation boot ──────────────────────────────────────────────────────
+     Wrapped in a callable so the “↗ Article” button can trigger it without
+     a page reload. When isArticle was false at load time this block was
+     skipped by an early return; the guard below prevents double-init.  */
+  var _articleAnimDone = false;
+  function _launchArticleAnim() {
+    if (_articleAnimDone) return;
+    _articleAnimDone = true;
 
   /* ── 3. Sieve of Eratosthenes ───────────────────────────── */
   function sieve(limit) {
@@ -7848,6 +7857,11 @@ function switchDistro(distro) {
       observer.observe(el);
     });
   }
+  } /* end _launchArticleAnim */
+
+  /* Expose for the in-page “↗ Article” button click handler */
+  window.__launchArticleAnim = _launchArticleAnim;
+  if (isArticle) _launchArticleAnim();
 
 })();
 </script>
