@@ -2595,8 +2595,9 @@ body.article-active #article { display: block; }
           If a productive heavy line has three or more uncovered points that each lie on no
           other productive heavy line, that line belongs to some optimal cover and may be
           included without any branching at all. The proof is by exchange argument: fix an
-          optimal cover that omits the line. Those exclusively-dependent points must be
-          covered by ordinary pair or singleton lines, each handling at most two of them,
+          optimal cover that omits the line. Those exclusively-dependent points lie on no
+          other productive line, so they must be covered by ordinary pair or singleton lines,
+          each handling at most two of them,
           requiring at least <em>k</em> ≥ 2 such lines. Replacing them with the forced line
           leaves some outside points uncovered, requiring at most ⌈<em>k</em>/2⌉ pair lines
           to restore coverage. The net cost change is Δ(<em>k</em>) = −<em>k</em> + 1 +
@@ -2728,7 +2729,7 @@ body.article-active #article { display: block; }
         <p>
           This project was built by an independent researcher in Norway with no prior
           operations research background, over roughly 300 hours, with Claude Code and
-          ChatGPT in Codex. The
+          ChatGPT 5.5 in Codex. The
           <a href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">full paper</a>
           and all certified data are publicly available.
         </p>
