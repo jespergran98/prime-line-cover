@@ -2077,12 +2077,6 @@ html.article-active  #article { display: block; }
   );
   pointer-events: none;
 }
-#article-staircase-svg {
-  display: block;
-  width: 100%;
-  height: auto;
-  position: relative;
-}
 .article-chart-title {
   font-family: var(--mono);
   font-size: 9px;
@@ -2370,7 +2364,7 @@ html.article-active  #article { display: block; }
     <div class="article-hero">
       <div class="article-hero-text">
         <div class="article-hero-deco" aria-hidden="true">f</div>
-        <div class="article-eyebrow article-reveal r1">OEIS A373813 &ensp;·&ensp; World Record <em style="font-style:normal;font-family:var(--serif);font-style:italic;">N</em> = 1024</div>
+        <div class="article-eyebrow article-reveal r1">OEIS A373813 &ensp;·&ensp; World Record <em style="font-style:normal;font-family:var(--serif);font-style:italic;">N</em> = 1814</div>
         <h1 class="article-hero-title article-reveal r2">
           Prime Line Cover:<br>
           <em>Solving the Minimum</em><br>
@@ -2379,7 +2373,7 @@ html.article-active  #article { display: block; }
         <p class="article-hero-subtitle article-reveal r3">
           Plot the first <em>N</em> primes as points — the <em>i</em>-th prime at coordinate (<em>i</em>,&thinsp;<em>p<sub>i</sub></em>).
           What is the minimum number of straight lines needed to touch every point?
-          This C++23 solver certifies <strong>f(1024)&thinsp;=&thinsp;143</strong>, beating the prior 282-hour MIP record in 22 minutes.
+          This C++23 solver certifies <strong>f(1814)&thinsp;=&thinsp;229</strong>, beating the prior 282-hour MIP record in 22 minutes.
         </p>
         <div class="article-cta-group article-reveal r4">
           <a class="article-btn-primary" href="#demo" id="article-enter-btn">
@@ -2394,11 +2388,14 @@ html.article-active  #article { display: block; }
           <a class="article-btn-ghost" href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">
             ↗ Read the Paper
           </a>
-          <a class="article-btn-ghost" href="./solver1024.cpp" download>
+          <a class="article-btn-ghost" href="./pdf_extending_the_minimum_line_cover_to_n_1814.pdf" target="_blank" rel="noopener">
+            ↗ Supplement: N = 1814
+          </a>
+          <a class="article-btn-ghost" href="./primecover2048_line_coordinates.cpp" download>
             <svg width="11" height="11" viewBox="0 0 14 14" fill="none" aria-hidden="true">
               <path d="M7 1v9M7 10l-3.5-3.5M7 10l3.5-3.5M1 12h12" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
-            primecover1024.cpp
+            primecover2048_line_coordinates.cpp
           </a>
         </div>
       </div>
@@ -2446,7 +2443,7 @@ html.article-active  #article { display: block; }
 
     <!-- ARTICLE MASTHEAD -->
     <section class="article-masthead">
-      <div class="article-masthead-rubric">Research Article &ensp;·&ensp; May 2026</div>
+      <div class="article-masthead-rubric">Research Article &ensp;·&ensp; May 2026, extended September 2026</div>
       <h2 class="article-masthead-title">
         An Exact Solver for the Minimum Line Cover<br>of Prime-Indexed Points
       </h2>
@@ -2458,6 +2455,8 @@ html.article-active  #article { display: block; }
         <a href="https://doi.org/10.5281/zenodo.20096556" target="_blank" rel="noopener">Zenodo</a>
         <span class="article-masthead-sep"></span>
         <a href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">PDF</a>
+        <span class="article-masthead-sep"></span>
+        <a href="./pdf_extending_the_minimum_line_cover_to_n_1814.pdf" target="_blank" rel="noopener">Supplement (N = 1814)</a>
       </div>
     </section>
 
@@ -2471,7 +2470,7 @@ html.article-active  #article { display: block; }
           in the plane, what is the minimum number of straight lines needed to cover all of them?
           Call it <strong>f(N)</strong> — this is <a href="https://oeis.org/A373813" target="_blank" rel="noopener">OEIS A373813</a>.
           The covering problem is NP-complete (Megiddo–Tamir 1982), yet across the full sweep
-          from N = 1 to N = 1024, <strong>83% of all indices are certified with no branching at all</strong>.
+          from N = 1 to N = 1814, <strong>82.9% of all indices are certified with no branching at all</strong>.
           The reason is structural: almost every new prime falls onto a line already present
           in an optimal cover from the previous step.
         </p>
@@ -2479,7 +2478,7 @@ html.article-active  #article { display: block; }
           The rare indices where no existing cover can absorb the new prime are called
           <strong>awkward primes</strong>. Each one requires a proof — via branch-and-bound
           with Lagrangian relaxation — that no cheaper cover exists. Certifying a single
-          awkward prime can take hours; most of the 40-hour run time is spent on a handful
+          awkward prime can take days; most of the 461-hour run time is spent on a handful
           of them.
         </p>
 
@@ -2494,8 +2493,8 @@ html.article-active  #article { display: block; }
           This project started with the <a href="https://youtu.be/VFoIPlUalRY" target="_blank" rel="noopener">Numberphile video</a>
           featuring Neil Sloane, posted April 7, 2026, which introduced the term "awkward primes."
           Brady Haran named <em>p</em>₅₇₆ = 4211 the "party-pooper prime": after 111 consecutive
-          primes had each quietly landed on an existing cover line — the longest unbroken run recorded,
-          from N = 465 through N = 575, certified in 111 milliseconds total — the 576th prime
+          primes had each quietly landed on an existing cover line — the longest unbroken run then recorded,
+          from N = 465 through N = 575, certified in 116 milliseconds total — the 576th prime
           fell on none of them and forced f up to 70.
         </p>
       </div>
@@ -2504,20 +2503,21 @@ html.article-active  #article { display: block; }
     <!-- THE RECORD -->
     <section class="article-section">
       <div class="article-section-label"><span class="article-slabel-num">§2</span><span class="article-slabel-tag">The Record</span></div>
-      <h2 class="article-section-title">f(1024) = 143, Certified in Under 40 Hours</h2>
+      <h2 class="article-section-title">f(1814) = 229, Certified in 461 Hours</h2>
       <div class="article-article-body">
         <p>
           The prior certified record was <strong>f(861) = 123</strong>, reached by an industrial
           MIP solver in exactly 282 hours, 26 minutes, and 31.5 seconds. This solver crosses
-          that same N = 861 boundary in <strong>22 minutes 36 seconds</strong> — a 749.9× speedup —
-          and then pushes on to certify <strong>f(1024) = 143</strong>: 163 newly certified,
-          strictly optimal terms and 20 new awkward primes discovered in the process.
+          that same N = 861 boundary in <strong>22 minutes 47 seconds</strong> — a 744× speedup —
+          and then pushes on to certify <strong>f(1814) = 229</strong>: 953 newly certified,
+          strictly optimal terms beyond that boundary — 790 of them past the 2026 paper's
+          N = 1024 — and 106 new awkward primes discovered in the process.
         </p>
         <p>
-          The full N = 1–1024 sweep completes in under 40 hours on a Google Cloud
+          The full N = 1–1814 sweep completes in 461 hours 35 minutes on a Google Cloud
           <code>c4d-highcpu-8</code> instance (8 vCPUs, 15 GB RAM), compiled with
           <code>GCC 14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti</code>.
-          Source code, certified results, and exact line coordinates for all N = 1–1024 are
+          Source code, certified results, and exact line coordinates for all N = 1–1814 are
           available on <a href="https://github.com/jespergran98/prime-line-cover" target="_blank" rel="noopener">GitHub</a>
           under an MIT license, with a permanently archived release on
           <a href="https://doi.org/10.5281/zenodo.20096556" target="_blank" rel="noopener">Zenodo</a>.
@@ -2525,9 +2525,9 @@ html.article-active  #article { display: block; }
       </div>
 
       <figure class="article-figure" style="max-width:68ch;">
-        <img src="/assets/staircase.PNG" alt="Staircase plot of f(N) from N=1 to N=1024, with prior certified terms in blue and new solver terms in red.">
+        <img src="/assets/1814_staircase.png" alt="Staircase plot of f(N) from N=1 to N=1814, coloured by era: prior MIP terms (N≤861) in blue, the 2026 paper's terms (N=862–1024) in olive, and this work's terms (N=1025–1814) in red.">
         <figcaption>
-          <strong>Figure 2.</strong> f(N) across all certified values N = 1–1024. Each vertical step marks an awkward prime. Prior certified terms (N&thinsp;≤&thinsp;861) are shown in blue; the new solver reaches this boundary in 22 min 36 s, versus 282 h 26 min 31.5 s for the prior MIP solver — a 749.9× speedup. The 163 new terms (N = 862–1024, in red) extend the record from f(861)&thinsp;=&thinsp;123 to f(1024)&thinsp;=&thinsp;143.
+          <strong>Figure 2.</strong> f(N) across all certified values N = 1–1814. Each vertical step marks an awkward prime. Prior certified terms (N&thinsp;≤&thinsp;861) are shown in blue; the new solver reaches this boundary in 22 min 47 s, versus 282 h 26 min 31.5 s for the prior MIP solver — a 744× speedup. The 163 terms of the first extension (N = 862–1024, in olive) and the 790 terms added here (N = 1025–1814, in red) carry the record from f(861)&thinsp;=&thinsp;123 to f(1814)&thinsp;=&thinsp;229.
         </figcaption>
       </figure>
 
@@ -2540,16 +2540,17 @@ html.article-active  #article { display: block; }
       <div class="article-article-body">
         <p>
           The solver uses vanilla C++23 with no external operations-research libraries.
-          Three design decisions combine to produce the 749× speedup over a cold-starting
+          Three design decisions combine to produce the 744× speedup over a cold-starting
           industrial MIP solver.
         </p>
 
         <p>
-          <strong>First: the working set stays in L2 cache for 40 hours straight.</strong>
-          The 12,162 heavy lines — those passing through three or more prime-indexed points —
-          are enumerated once at startup in 50 milliseconds. Each is stored as a 1024-bit
-          coverage bitmask: sixteen contiguous <code>uint64_t</code> words, 128 bytes, two
-          cache lines. The total working set is roughly 1.5 MB. Coverage counting at every
+          <strong>First: the hot path is integer bitmask arithmetic and nothing else.</strong>
+          The 30,646 heavy lines — those passing through three or more prime-indexed points —
+          are enumerated once at startup. Each is stored as a 2048-bit
+          coverage bitmask: thirty-two contiguous <code>uint64_t</code> words, 256 bytes, four
+          cache lines. The total working set is roughly 7.9 MB — past per-core L2, though
+          still comfortably inside L3. Coverage counting at every
           branch-and-bound node is a <code>popcount</code> over a word-wise AND — a handful
           of integer instructions, zero floating-point arithmetic on the hot path.
           Collinearity is tested as <code>(pⱼ − pᵢ)(k − i) = (pₖ − pᵢ)(j − i)</code>:
@@ -2559,12 +2560,12 @@ html.article-active  #article { display: block; }
         <figure class="article-figure" style="max-width:720px;">
           <img src="/assets/bit.PNG" alt="Diagram showing the 1024-bit bitmask layout across sixteen uint64_t words spanning two cache lines.">
           <figcaption>
-            <strong>Figure 3.</strong> Memory layout of a single heavy line's coverage bitmask. Sixteen contiguous <code>uint64_t</code> words (128 bytes, two cache lines) encode which prime indices the line covers: bit <em>k</em> lives in <code>words[k&thinsp;≫&thinsp;6]</code> at position <em>k</em>&thinsp;mod&thinsp;64. Coverage counting at every branch-and-bound node is a popcount over a word-wise AND, keeping the full 1.5 MB working set in L2 throughout the run. The filled bits here show an example line covering prime indices 3, 4, 16, 18, 19, 21, 22 — all within a single word.
+            <strong>Figure 3.</strong> Memory layout of a single heavy line's coverage bitmask, drawn for the 1024-bit build. Sixteen contiguous <code>uint64_t</code> words (128 bytes, two cache lines) encode which prime indices the line covers: bit <em>k</em> lives in <code>words[k&thinsp;≫&thinsp;6]</code> at position <em>k</em>&thinsp;mod&thinsp;64; the 2048-bit build that produced the record doubles this to thirty-two words, 256 bytes. Coverage counting at every branch-and-bound node is a popcount over a word-wise AND. The filled bits here show an example line covering prime indices 3, 4, 16, 18, 19, 21, 22 — all within a single word.
           </figcaption>
         </figure>
 
         <p>
-          <strong>Second: warm state carries across all 1024 steps.</strong>
+          <strong>Second: warm state carries across all 1814 steps.</strong>
           A general-purpose MIP solver cold-starts a fresh set-cover instance at every N.
           This solver carries three pieces forward: a warm primal solution, a Lagrangian
           dual seed, and an explicit witness cover. The gain reformulation makes this
@@ -2575,10 +2576,10 @@ html.article-active  #article { display: block; }
           Minimising the number of lines is equivalent to maximising gain — a form that
           warm-starts naturally from the previous step. If the new point (N, p<sub>N</sub>)
           already lies on the witness cover, then f(N) = f(N − 1) is certified in O(1).
-          Across the full 1024-step sweep: 615 witness hits (1.1 seconds total), 236
-          root-only closures (1.9 seconds total), and 173 full DFS runs (142,962 seconds
-          total). The 173 DFS instances account for 99.998% of compute time while
-          representing only 16.9% of all indices.
+          Across the full 1814-step sweep: 1,141 witness hits (10.2 seconds total), 362
+          root-only closures (2,176 seconds total), and 311 full DFS runs (1,659,536 seconds
+          total). The 311 DFS instances account for 99.87% of compute time while
+          representing only 17.1% of all indices.
         </p>
 
         <figure class="article-figure" style="max-width:640px;">
@@ -2607,7 +2608,7 @@ html.article-active  #article { display: block; }
           The threshold of three is sharp. With two exclusively-dependent points, a single
           pair line suffices (<em>k</em> = 1) and Δ(1) = +1 — strictly worse, so the rule
           does not fire. The rule fires in chains throughout the search: in the entire
-          N = 862–1024 block, every non-witness row had a root diagnostic gap of exactly 1
+          N = 1025–1814 block, all 262 non-witness rows had a root diagnostic gap of exactly 1
           before any branching, and every certification in that block came down to closing
           a gap of exactly 1, never more.
         </p>
@@ -2623,67 +2624,78 @@ html.article-active  #article { display: block; }
           When the gap is exactly 1 and at least 64 points remain uncovered, strong branching
           evaluates a shortlist of up to four candidate lines by Lagrangian simulation and
           selects the variable that maximises combined child-node pruning. Strong branching
-          fired between 3 and 18 times per DFS run in the N = 862–1024 block.
+          fired between 2 and 45 times per DFS run in the N = 1025–1814 block, and 4,087
+          times across the whole sweep.
         </p>
         <p>
           Workers pull tasks from a shared atomic counter — no mutex on the DFS hot path.
           Each worker owns its complete Lagrangian scratch space, undo logs, and candidate
           buffers. The only shared mutable state on the critical path is one atomic incumbent
-          gain. Peak throughput reaches 65,536 parallel frontier tasks: 8 workers times an
-          8,192 multiplier at the hardest cover sizes.
+          gain. Peak throughput reaches 16,384 parallel frontier tasks: 8 workers times a
+          2,048 multiplier at the hardest cover sizes.
         </p>
         <p>
-          The slowest single instance by wall-clock time was <strong>N = 948</strong>
-          (f = 137): 405 million branch-and-bound nodes, 9.9 billion Lagrangian iterations,
-          9,798 seconds. The heaviest by node count was <strong>N = 950</strong>:
-          511 million nodes, 12.6 billion Lagrangian iterations, 9,688 seconds, and the
-          maximum DFS depth of 108 across all 53 full DFS runs in the new block.
+          The slowest single instance by wall-clock time was <strong>N = 1811</strong>
+          (f = 229), which was also the heaviest by node count: 6.13 billion branch-and-bound
+          nodes, 167 billion Lagrangian iterations, 240 hours 10 minutes — 52.0% of the whole
+          sweep on its own. The deepest search was <strong>N = 1814</strong>, the final index,
+          at a maximum DFS depth of 182 across all 311 full DFS runs.
         </p>
         <p>
-          One crash occurred during the run. At N = 924, with a fixed frontier multiplier
+          One crash occurred during the earlier N = 1024 run. At N = 924, with a fixed frontier multiplier
           of 16,384, the solver hit the RAM ceiling mid-run. The fix: a diagnostic script
           (<code>tools/primecover_frontier_diagnosis.sh</code>) fits a two-parameter model
           to live RSS samples and prints a safe multiplier table. The final schedule runs
-          from a multiplier of 4 at small cover sizes up to 8,192 at f ≥ 128, with four
-          intermediate rungs. The multiplier governs peak memory and parallel throughput,
+          from a multiplier of 4 at small cover sizes up to 2,048 at f ≥ 125, with three
+          intermediate rungs; the 8,192 rung is commented out in the 2048-bit build, where
+          256-byte masks roughly double the memory each task needs. The multiplier governs peak memory and parallel throughput,
           not correctness: any sufficiently large frontier produces a provably optimal answer.
         </p>
+
+        <figure class="article-figure" style="max-width:720px;">
+          <img src="/assets/1814_linemode.png" alt="Staircase plot of f(N) from N=1 to N=1814 coloured by execution mode: W witness hits, R root closures, D full DFS runs.">
+          <figcaption>
+            <strong>Figure 5.</strong> f(N) across all 1814 certified indices, coloured by execution mode: witness hits (W), root-only closures (R), and full depth-first searches (D). The longest plateau — f&thinsp;=&thinsp;145 from N = 1079 to N = 1315 — is 233 witness steps totalling 2.74 seconds; the single index N = 1811 took 240 h 10 min and 6.13 billion nodes.
+          </figcaption>
+        </figure>
       </div>
     </section>
 
     <!-- THE NUMBERS -->
     <section class="article-section">
       <div class="article-section-label"><span class="article-slabel-num">§5</span><span class="article-slabel-tag">Results</span></div>
-      <h2 class="article-section-title">163 Newly Certified Terms and 20 New Awkward Primes</h2>
+      <h2 class="article-section-title">790 Newly Certified Terms and 86 New Awkward Primes</h2>
       <div class="article-article-body">
         <p>
-          Among the 163 newly certified terms (N = 862–1024): 89 were witness hits,
-          21 were root-only closures, and 53 required full DFS. Of those 53 DFS runs,
-          20 confirmed that f actually increased — these are the new awkward primes.
-          The remaining 33 DFS runs confirmed that f stayed flat despite requiring full search.
+          Among the 790 newly certified terms (N = 1025–1814): 528 were witness hits,
+          127 were root-only closures, and 135 required full DFS. Eighty-six of those
+          indices are new awkward primes — 60 proved by full DFS, 26 closed at the root.
+          The remaining 75 DFS runs confirmed that f stayed flat despite requiring full search.
         </p>
 
         <figure class="article-figure" style="max-width:720px;">
-          <img src="/assets/time.PNG" alt="Log-scale scatter plot of per-instance solve times for all 1024 indices, coloured by mode: W witness hits, R root closures, D full DFS runs.">
+          <img src="/assets/1814_time.png" alt="Log-scale scatter plot of per-instance solve times for all 1814 indices, coloured by mode: W witness hits, R root closures, D full DFS runs.">
           <figcaption>
-            <strong>Figure 5.</strong> Per-instance solve time (log scale) across all 1024 indices, by mode. Circles (W) are witness hits; squares (R) are root closures with no DFS; diamonds (D) are full depth-first searches. The seven-order-of-magnitude spread — from sub-microsecond witness hits to multi-hour DFS runs — shows just how much work the witness mechanism saves. Mode split: 615 W (1.1 s total), 236 R (1.9 s total), 173 D (142,962 s total). The 173 DFS runs account for 99.998% of total compute time while covering only 16.9% of indices.
+            <strong>Figure 6.</strong> Per-instance solve time (log scale) across all 1814 indices, by mode. Circles (W) are witness hits; squares (R) are root closures with no DFS; diamonds (D) are full depth-first searches. The twelve-order-of-magnitude spread — from sub-microsecond witness hits to the ten-day run at N&thinsp;=&thinsp;1811 — shows just how much work the witness mechanism saves. Mode split: 1,141 W (10.2 s total), 362 R (2,176.1 s total), 311 D (1,659,536 s total). The 311 DFS runs account for 99.87% of total compute time while covering only 17.1% of indices.
           </figcaption>
         </figure>
 
-        <p>The 20 new awkward primes fall at:</p>
+        <p>The 86 new awkward primes fall at:</p>
         <div class="article-awkward-inline">
-          N = 864, 871, 875, 883, 893, 895, 908, 918, 922, 928, 934, 941, 944, 948, 957, 965, 978, 981, 990, 1015
+          N = 1063, 1079, 1316, 1319, 1325, 1334, 1338, 1340, 1346, 1359, 1374, 1376, 1379, 1383, 1390, 1392, 1396, 1401, 1404, 1412, 1421, 1433, 1436, 1439, 1441, 1445, 1449, 1452, 1455, 1459, 1466, 1470, 1473, 1480, 1484, 1489, 1494, 1507, 1511, 1517, 1526, 1534, 1536, 1547, 1572, 1579, 1586, 1588, 1593, 1597, 1604, 1607, 1612, 1616, 1622, 1628, 1634, 1638, 1642, 1646, 1654, 1658, 1663, 1666, 1669, 1674, 1679, 1697, 1708, 1729, 1733, 1738, 1745, 1748, 1752, 1755, 1765, 1771, 1783, 1791, 1796, 1798, 1802, 1805, 1809, 1811
         </div>
         <p style="margin-top:20px;">
-          The current sequence ends mid-plateau: f has been stuck at 143 since N = 1015,
-          just as f once sat at 69 from N = 464 until p₅₇₆ = 4211 forced it to 70 after
-          111 more primes. How long the current plateau runs is unknown.
+          The current sequence ends mid-plateau: f has been stuck at 229 since N = 1811.
+          The longest plateau on record is now f = 145, which held for 237 consecutive
+          indices from N = 1079 until p₁₃₁₆ = 10831 forced it to 146 — 233 of those steps
+          were witness hits, 2.74 seconds of compute in total. How long the current
+          plateau runs is unknown.
         </p>
         <p>
           The JavaScript implementation of the same algorithm — identical gain reformulation,
           witness propagation, Exclusive Dependency Rule, and Lagrangian branch-and-bound,
           running as a Web Worker in the demo above — reaches N ≈ 250 in about 5 seconds.
-          The C++ solver covers the same range in 103 milliseconds, 49 times faster.
+          The C++ solver covers the same range in 127 milliseconds, 39 times faster.
           Not a simplified teaching version: it is the same algorithm.
         </p>
       </div>
@@ -2692,14 +2704,26 @@ html.article-active  #article { display: block; }
     <!-- ARCHITECTURE LIMIT AND FUTURE WORK -->
     <section class="article-section">
       <div class="article-section-label"><span class="article-slabel-num">§6</span><span class="article-slabel-tag">Limits and Open Questions</span></div>
-      <h2 class="article-section-title">Beyond N = 1024: An Architectural Limit and an Asymptotic Question</h2>
+      <h2 class="article-section-title">Beyond N = 1814: A Budget Limit and an Asymptotic Question</h2>
       <div class="article-article-body">
         <p>
-          The 1024-bit bitmask is a hard architectural limit. Extending the record beyond
-          N = 1024 requires widening to 2048 bits — thirty-two 64-bit words. The incremental
-          sweep, the Exclusive Dependency Rule, and the parallel frontier all carry over
-          unchanged. The natural successor is <code>primecover2048.cpp</code>.
+          The 1024-bit bitmask was an architectural limit, not a mathematical one. Widening
+          the masks to 2048 bits — thirty-two 64-bit words — touched 114 of the 3,432 lines
+          of source; the incremental sweep, the Exclusive Dependency Rule, and the parallel
+          frontier carried over unchanged, so every proof still holds.
+          <code>primecover2048_line_coordinates.cpp</code> then ran for 461 h 35 min 22 s on
+          the same <code>c4d-highcpu-8</code> instance and stopped at N = 1814 because the
+          $300 free-trial credit ran out, not because the solver did: N = 1814 itself closed
+          normally, in 2,312.7 seconds, and the 2048-bit ceiling lies 234 indices further on,
+          reachable with no change to the source. The new limit is a budget.
         </p>
+        <figure class="article-figure" style="max-width:720px;">
+          <img src="/assets/1814_heavy.png" alt="Plot of the number of active heavy lines |A_N| against N from 1 to 1814, annotated at |A_1024| = 12,162 and |A_1814| = 30,646.">
+          <figcaption>
+            <strong>Figure 7.</strong> Active heavy lines |A<sub>N</sub>| — the candidate set every branch-and-bound node chooses from — against N. At the 2026 paper's boundary there were 12,162; at N&thinsp;=&thinsp;1814 there are 30,646, 2.52× as many. The decision space widens before any search begins, which is why the five costliest instances (N = 1811, 1809, 1679, 1674, 1755) together took 71.5% of the 461.6-hour sweep — N&thinsp;=&thinsp;1811 alone ran 240 h 10 min over 6.13 billion nodes.
+          </figcaption>
+        </figure>
+
         <p>
           The more interesting open question is whether f(N) keeps growing at a roughly
           constant rate — a steady staircase with random-length plateaus, with
@@ -2716,10 +2740,13 @@ html.article-active  #article { display: block; }
           rare and f grows sub-linearly.
         </p>
         <p>
-          The data offers no clean signal. Across N = 1–1024, f(1024)/1024 ≈ 14%, but
-          any finite window is dominated by whichever plateau happens to be open at its
-          boundary. Distinguishing a genuine trend from that noise requires averaging over
-          many plateaus — and resolving the asymptotic question requires understanding how
+          The new block gives a first, weak signal: awkward primes are thinning. 86 risers
+          across 790 new indices is one in nine, against 143 in the first 1024, one in seven,
+          and f(N)/N falls from 13.96% at N = 1024 to 12.62% at N = 1814. But any finite
+          window is still dominated by whichever plateau happens to be open at its boundary —
+          the f = 145 plateau alone runs 237 indices. Distinguishing a genuine trend from that
+          noise requires averaging over many plateaus — and resolving the asymptotic question
+          requires understanding how
           the arithmetic structure of the cover lines' rational slopes interacts with the
           distribution of primes in residue classes as both the cover and the prime gaps
           grow without bound. That is N → ∞ machinery the solver cannot supply.
@@ -2728,7 +2755,8 @@ html.article-active  #article { display: block; }
           This project was built by an independent researcher in Norway with no prior
           operations research background, over roughly 300 hours, with Claude Code and
           ChatGPT 5.5 in Codex. The
-          <a href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">full paper</a>
+          <a href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">original paper</a>,
+          the <a href="./pdf_extending_the_minimum_line_cover_to_n_1814.pdf" target="_blank" rel="noopener">N&thinsp;=&thinsp;1814 supplement</a>,
           and all certified data are publicly available.
         </p>
       </div>
@@ -2771,7 +2799,7 @@ html.article-active  #article { display: block; }
         <a class="h-badge" href="https://oeis.org/A373813" target="_blank" rel="noopener">↗ OEIS A373813</a>
         <a class="h-badge gold" href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank" rel="noopener">PDF Paper</a>
         <a class="h-badge zenodo" href="https://doi.org/10.5281/zenodo.20096556" target="_blank" rel="noopener">↗ Zenodo</a>
-        <a class="h-badge ink" href="./solver1024.cpp" download>↓ .cpp</a>
+        <a class="h-badge ink" href="./primecover2048_line_coordinates.cpp" download>↓ .cpp</a>
       </div>
     </div>
   </footer>
@@ -2791,7 +2819,7 @@ html.article-active  #article { display: block; }
           <div class="co-sub">Exact minimum line cover &middot; <a href="https://oeis.org/A373813" target="_blank" rel="noopener" style="color:inherit;text-decoration:none;">OEIS A373813</a></div>
         </div>
         <a class="co-record-pill" href="https://oeis.org/A373813" target="_blank" rel="noopener">
-          <span class="co-record-dot"></span>N&thinsp;=&thinsp;1024 certified
+          <span class="co-record-dot"></span>N&thinsp;=&thinsp;1814 certified
         </a>
       </div>
 
@@ -2800,7 +2828,7 @@ html.article-active  #article { display: block; }
       <div class="co-body">
         Plot the first <em>N</em> primes as points — the 1st prime at (1,&thinsp;2), the 2nd at (2,&thinsp;3), and so on.
         How few straight lines does it take to touch every point?
-        The C++ solver behind this demo holds the certified world record for the exact answer, currently at <em>N</em>&thinsp;=&thinsp;1024 — which requires exactly <strong>143 lines</strong>.
+        The C++ solver behind this demo holds the certified world record for the exact answer, currently at <em>N</em>&thinsp;=&thinsp;1814 — which requires exactly <strong>229 lines</strong>.
       </div>
 
       <div class="co-sep"></div>
@@ -2822,13 +2850,13 @@ html.article-active  #article { display: block; }
       <div class="co-sep"></div>
 
       <div class="co-mono-label">Primary Solver File</div>
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">
-        <a class="co-primary-btn" href="./solver1024.cpp" download>
-          <span class="co-dl-icon">↓</span>primecover1024.cpp
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:7px;">
+        <a class="co-primary-btn" href="./primecover2048_line_coordinates.cpp" download>
+          <span class="co-dl-icon">↓</span>primecover2048_line_coordinates.cpp
         </a>
         <a id="btn-open-article" href="?article" style="display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10.5px;font-weight:500;color:var(--gold);background:rgba(154,107,10,0.09);border:1px solid rgba(154,107,10,0.55);padding:6px 13px;border-radius:var(--r2);letter-spacing:0.04em;text-decoration:none;white-space:nowrap;transition:background 0.15s,color 0.15s,border-color 0.15s,transform 0.12s,box-shadow 0.15s;box-shadow:0 2px 8px rgba(154,107,10,0.18),inset 0 1px 0 rgba(154,107,10,0.12);" onmouseover="this.style.background='var(--gold)';this.style.color='var(--white)';this.style.borderColor='var(--gold)';this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 14px rgba(154,107,10,0.32),inset 0 1px 0 rgba(255,255,255,0.15)';" onmouseout="this.style.background='rgba(154,107,10,0.09)';this.style.color='var(--gold)';this.style.borderColor='rgba(154,107,10,0.55)';this.style.transform='none';this.style.boxShadow='0 2px 8px rgba(154,107,10,0.18),inset 0 1px 0 rgba(154,107,10,0.12)';">↗ Article</a>
       </div>
-      <span class="co-file-tag" style="display:block;margin-bottom:9px;">C++23 · parallel branch‑and‑bound · bitmask for N ≤ 1024</span>
+      <span class="co-file-tag" style="display:block;margin-bottom:9px;">C++23 · parallel branch‑and‑bound · bitmask for N ≤ 2048</span>
       <button class="co-quickstart-hint" id="btn-quick-start-overlay">
         New to this? See the full step-by-step Quick&nbsp;Start guide
         <span class="co-quickstart-hint-arrow">→</span>
@@ -2919,7 +2947,7 @@ html.article-active  #article { display: block; }
         <a class="h-badge gold" href="./pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf" target="_blank">PDF Paper</a>
         <a class="h-badge" href="https://github.com/jespergran98/prime-line-cover.git" target="_blank" rel="noopener">↗ GitHub</a>
         <a class="h-badge zenodo" href="https://doi.org/10.5281/zenodo.20096556" target="_blank" rel="noopener">↗ Zenodo</a>
-        <a class="h-badge ink" href="./solver1024.cpp" download>↓ .cpp</a>
+        <a class="h-badge ink" href="./primecover2048_line_coordinates.cpp" download>↓ .cpp</a>
         <button class="h-badge qs" id="btn-quick-start">▶ Quick Start</button>
       </div>
     </div>
@@ -3034,15 +3062,19 @@ html.article-active  #article { display: block; }
         Read Paper — PDF
       </a>
 
+      <a class="paper-read-btn" href="./pdf_extending_the_minimum_line_cover_to_n_1814.pdf" target="_blank" rel="noopener" style="background: rgba(154,107,10,0.09); color: var(--gold); box-shadow: none;">
+        Supplement &middot; Extending to N = 1814
+      </a>
+
     </div>
 
     <div class="sep-full"></div>
 
     <div class="cpp-section">
-      <div class="section-label">C++ Solver — primecover1024</div>
+      <div class="section-label">C++ Solver — primecover2048</div>
 
       <p class="cpp-tagline">
-        Download and compile the exact solver that certified <strong>f(1024) = 143</strong>
+        Download and compile the exact solver that certified <strong>f(1814) = 229</strong>
         as a new world record. This page runs a faithful JavaScript translation —
         fast enough to explore, not to certify.
       </p>
@@ -3063,33 +3095,37 @@ html.article-active  #article { display: block; }
         </div>
         <div class="perf-card-bottom">
           <div class="perf-card-stat">
-            <div class="perf-card-stat-val c-teal">750&times;</div>
+            <div class="perf-card-stat-val c-teal">744&times;</div>
             <div class="perf-card-stat-lbl">Speedup</div>
           </div>
           <div class="perf-card-stat">
-            <div class="perf-card-stat-val c-gold">f(1024) = 143</div>
+            <div class="perf-card-stat-val c-gold">f(1814) = 229</div>
             <div class="perf-card-stat-lbl">World record</div>
           </div>
           <div class="perf-card-stat">
-            <div class="perf-card-stat-val">&lt; 40 hrs</div>
-            <div class="perf-card-stat-lbl">complete N = 1–1024 sweep</div>
+            <div class="perf-card-stat-val">462 hrs</div>
+            <div class="perf-card-stat-lbl">complete N = 1–1814 sweep</div>
           </div>
         </div>
       </div>
 
       <!-- Variants section -->
       <div class="dl-files-label">Variants</div>
-      <a class="dl-primary" href="./solver1024.cpp" download>
+      <a class="dl-primary" href="./primecover2048_line_coordinates.cpp" download>
         <span class="dl-ico">↓</span>
-        <span class="dl-name">primecover1024.cpp</span>
+        <span class="dl-name">primecover2048_line_coordinates.cpp</span>
         <span class="dl-chip">Primary</span>
       </a>
-      <a class="dl-variant-link" href="./solver1024_line_coordinates.cpp" download>
+      <a class="dl-variant-link" href="./primecover1024_line_coordinates.cpp" download>
         <span class="dl-variant-ico">↓</span>
         <span class="dl-variant-name">primecover1024_line_coordinates.cpp</span>
       </a>
+      <a class="dl-variant-link" href="./primecover1024.cpp" download>
+        <span class="dl-variant-ico">↓</span>
+        <span class="dl-variant-name">primecover1024.cpp</span>
+      </a>
       <p class="dl-variant-note">
-        <code>primecover1024_line_coordinates.cpp</code> is the same exact solver — it additionally writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation.
+        <code>primecover2048_line_coordinates.cpp</code> is the build that certified the record — it widens the bitmask to 2048 bits and writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation. The <code>primecover1024</code> pair is the 1024-bit build it was forked from; the algorithm is unchanged. — it additionally writes out the coordinates of every line in the optimal cover and the prime points each line passes through, enabling full reproducibility and visualisation.
       </p>
 
       <!-- Results section -->
@@ -3097,6 +3133,9 @@ html.article-active  #article { display: block; }
       <div class="dl-row-secondary">
         <a class="dl-btn secondary" href="./results/b373813.txt" download>
           <span class="ico">↓</span> b373813.txt
+        </a>
+        <a class="dl-btn secondary" href="./results/b393445.txt" download>
+          <span class="ico">↓</span> b393445.txt
         </a>
         <a class="dl-btn secondary" href="./results/a373813_statistics.txt" download>
           <span class="ico">↓</span> a373813_statistics.txt
@@ -3208,7 +3247,7 @@ sudo apt install g++-14 -y</pre>
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Click the edit button (✎) below and <strong style="font-style:normal;">paste the full path</strong> to the file. The command updates instantly:</p>
+                  <p>Download <strong style="font-style:normal;">primecover2048_line_coordinates.cpp</strong> and save it somewhere on your PC — Downloads or Desktop works. Click the edit button (✎) below and <strong style="font-style:normal;">paste the full path</strong> to the file. The command updates instantly:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">Ubuntu (WSL)</span>
                     <button id="step3-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -3222,7 +3261,7 @@ sudo apt install g++-14 -y</pre>
                       <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                       <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <pre id="step3-pre">cp /mnt/c/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
+                    <pre id="step3-pre">cp /mnt/c/path/to/primecover2048_line_coordinates.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver &amp;&amp; \
 ./solver</pre>
@@ -3231,13 +3270,13 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                     <div class="path-paste-row">
                       <div class="path-paste-label">Paste your file path</div>
                       <input class="path-paste-input" id="step3-paste-input" type="text"
-                             placeholder="C:\Users\you\Downloads\primecover1024.cpp"
+                             placeholder="C:\Users\you\Downloads\primecover2048_line_coordinates.cpp"
                              spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
                       <div class="path-paste-status pe-hint" id="step3-paste-status">Works with Windows paths (C:\…) and WSL paths (/mnt/c/…)</div>
                     </div>
                     <div class="path-editor-footer">
                       <div class="path-file-toggle">
-                        <button class="path-file-btn active" id="step3-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn active" id="step3-file-primary">primecover2048_line_coordinates.cpp</button>
                         <button class="path-file-btn" id="step3-file-variant">primecover1024_line_coordinates.cpp</button>
                       </div>
                       <div class="path-editor-actions">
@@ -3327,7 +3366,7 @@ sudo apt install g++-14 -y</pre>
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it somewhere in your home directory. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
+                  <p>Download <strong style="font-style:normal;">primecover2048_line_coordinates.cpp</strong> and save it somewhere in your home directory. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
 
                   <!-- Ubuntu/Debian compile -->
                   <div class="distro-panel active" id="distro-panel-ubuntu-step3">
@@ -3344,7 +3383,7 @@ sudo apt install g++-14 -y</pre>
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
+                      <pre id="step3-linux-pre">cp /home/username/path/to/primecover2048_line_coordinates.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver &amp;&amp; \
 ./solver</pre>
@@ -3353,13 +3392,13 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-paste-row">
                         <div class="path-paste-label">Paste your file path</div>
                         <input class="path-paste-input" id="step3-linux-paste-input" type="text"
-                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               placeholder="/home/you/Downloads/primecover2048_line_coordinates.cpp"
                                spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
                         <div class="path-paste-status pe-hint" id="step3-linux-paste-status">Paste an absolute path (/home/…) or ~/…</div>
                       </div>
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
-                          <button class="path-file-btn active" id="step3-linux-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn active" id="step3-linux-file-primary">primecover2048_line_coordinates.cpp</button>
                           <button class="path-file-btn" id="step3-linux-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
@@ -3384,7 +3423,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-arch-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
+                      <pre id="step3-arch-pre">cp /home/username/path/to/primecover2048_line_coordinates.cpp ~/solver.cpp &amp;&amp; \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver &amp;&amp; \
 ./solver</pre>
@@ -3393,13 +3432,13 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-paste-row">
                         <div class="path-paste-label">Paste your file path</div>
                         <input class="path-paste-input" id="step3-arch-paste-input" type="text"
-                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               placeholder="/home/you/Downloads/primecover2048_line_coordinates.cpp"
                                spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
                         <div class="path-paste-status pe-hint" id="step3-arch-paste-status">Paste an absolute path (/home/…) or ~/…</div>
                       </div>
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
-                          <button class="path-file-btn active" id="step3-arch-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn active" id="step3-arch-file-primary">primecover2048_line_coordinates.cpp</button>
                           <button class="path-file-btn" id="step3-arch-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
@@ -3425,7 +3464,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                         <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                         <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                       </button>
-                      <pre id="step3-fedora-pre">cp /home/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
+                      <pre id="step3-fedora-pre">cp /home/username/path/to/primecover2048_line_coordinates.cpp ~/solver.cpp &amp;&amp; \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver &amp;&amp; \
 ./solver</pre>
@@ -3434,13 +3473,13 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <div class="path-paste-row">
                         <div class="path-paste-label">Paste your file path</div>
                         <input class="path-paste-input" id="step3-fedora-paste-input" type="text"
-                               placeholder="/home/you/Downloads/primecover1024.cpp"
+                               placeholder="/home/you/Downloads/primecover2048_line_coordinates.cpp"
                                spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
                         <div class="path-paste-status pe-hint" id="step3-fedora-paste-status">Paste an absolute path (/home/…) or ~/…</div>
                       </div>
                       <div class="path-editor-footer">
                         <div class="path-file-toggle">
-                          <button class="path-file-btn active" id="step3-fedora-file-primary">primecover1024.cpp</button>
+                          <button class="path-file-btn active" id="step3-fedora-file-primary">primecover2048_line_coordinates.cpp</button>
                           <button class="path-file-btn" id="step3-fedora-file-variant">primecover1024_line_coordinates.cpp</button>
                         </div>
                         <div class="path-editor-actions">
@@ -3504,7 +3543,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                 <div class="step-num">3</div>
                 <div class="step-body">
                   <div class="step-title">Copy, compile, and run</div>
-                  <p>Download <strong style="font-style:normal;">primecover1024.cpp</strong> and save it in your home folder — Downloads works perfectly. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
+                  <p>Download <strong style="font-style:normal;">primecover2048_line_coordinates.cpp</strong> and save it in your home folder — Downloads works perfectly. Click the edit button (✎) below, <strong style="font-style:normal;">paste the full file path</strong>, and the command updates instantly:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">Terminal</span>
                     <button id="step3-mac-edit-btn" class="co-edit-btn" aria-label="Edit path" title="Edit file path">
@@ -3518,7 +3557,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                       <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                       <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover1024.cpp ~/solver.cpp &amp;&amp; \
+                    <pre id="step3-mac-pre">cp /Users/username/path/to/primecover2048_line_coordinates.cpp ~/solver.cpp &amp;&amp; \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver &amp;&amp; \
 ./solver</pre>
@@ -3527,13 +3566,13 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                     <div class="path-paste-row">
                       <div class="path-paste-label">Paste your file path</div>
                       <input class="path-paste-input" id="step3-mac-paste-input" type="text"
-                             placeholder="/Users/you/Downloads/primecover1024.cpp"
+                             placeholder="/Users/you/Downloads/primecover2048_line_coordinates.cpp"
                              spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off">
                       <div class="path-paste-status pe-hint" id="step3-mac-paste-status">Paste an absolute path (/Users/…) or ~/…</div>
                     </div>
                     <div class="path-editor-footer">
                       <div class="path-file-toggle">
-                        <button class="path-file-btn active" id="step3-mac-file-primary">primecover1024.cpp</button>
+                        <button class="path-file-btn active" id="step3-mac-file-primary">primecover2048_line_coordinates.cpp</button>
                         <button class="path-file-btn" id="step3-mac-file-variant">primecover1024_line_coordinates.cpp</button>
                       </div>
                       <div class="path-editor-actions">
@@ -3552,7 +3591,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
           <!-- ══ GOOGLE CLOUD PANEL ════════════════════════════════════════ -->
           <div id="os-panel-gcp" style="display:none;">
-            <p>This is the setup used to set the <strong style="font-style:normal;">N = 1024 world record</strong> — a <code>c4d-highcpu-8</code> instance (8 vCPUs, 15 GB RAM, AMD Turin) on Google Cloud's free trial. It reached the previous record boundary at N = 861 in just 22 minutes, against the prior certified record of 282 hours via MIP.</p>
+            <p>This is the setup used to set the <strong style="font-style:normal;">N = 1814 world record</strong> — a <code>c4d-highcpu-8</code> instance (8 vCPUs, 15 GB RAM, AMD Turin) on Google Cloud's $300 free trial. It reached the old MIP boundary at N = 861 in 22 minutes, against that record's 282 hours, and ran 461 hours 35 minutes in total before the trial credit ran out.</p>
             <div class="guide-steps">
 
               <!-- Step 1 -->
@@ -3560,7 +3599,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
                 <div class="step-num">1</div>
                 <div class="step-body">
                   <div class="step-title">Install GCC 14</div>
-                  <p>GCC 14 isn't in the default Debian repos — this pulls it from <em>trixie</em>. Connect via SSH first: <strong style="font-style:normal;">Compute Engine → VM Instances → SSH</strong>. Paste all five commands at once:</p>
+                  <p>GCC 14 isn't in the default Debian repos — this pulls it from <em>trixie</em>. Connect via SSH first: <strong style="font-style:normal;">Compute Engine → VM Instances → SSH</strong>. Paste all six commands at once:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">SSH</span>
                     <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'echo &quot;deb https://deb.debian.org/debian trixie main&quot; | sudo tee /etc/apt/sources.list.d/trixie.list\nprintf &quot;Package: *\nPin: release n=trixie\nPin-Priority: 100\n&quot; | sudo tee /etc/apt/preferences.d/trixie\nsudo apt update\nsudo apt install -t trixie libc-bin -y\nsudo dpkg --configure -a\nsudo apt install -t trixie g++-14 -y')">
@@ -3582,14 +3621,14 @@ sudo apt install -t trixie g++-14 -y</pre>
                 <div class="step-num">2</div>
                 <div class="step-body">
                   <div class="step-title">Upload and compile</div>
-                  <p>Upload via the <strong style="font-style:normal;">cloud icon</strong> (top-right of the SSH window) → <em>Upload File</em> → select <code>primecover1024_line_coordinates.cpp</code>. Then compile:</p>
+                  <p>Upload via the <strong style="font-style:normal;">cloud icon</strong> (top-right of the SSH window) → <em>Upload File</em> → select <code>primecover2048_line_coordinates.cpp</code>. Then compile:</p>
                   <div class="code-block" style="position:relative;">
                     <span class="code-label">SSH</span>
-                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o solver')">
+                    <button class="co-copy-btn" aria-label="Copy command" onclick="tutCopy(this,'g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover2048_line_coordinates.cpp -o solver')">
                       <svg width="11" height="11" viewBox="0 0 14 14" fill="none"><rect x="4.5" y="4.5" width="8" height="8" rx="1.2" stroke="currentColor" stroke-width="1.3"/><path d="M4.5 9.5H2.5A1 1 0 0 1 1.5 8.5V2.5A1 1 0 0 1 2.5 1.5H8.5A1 1 0 0 1 9.5 2.5V4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
                       <svg class="co-copy-check" width="11" height="11" viewBox="0 0 14 14" fill="none"><polyline points="2.5,7 5.5,10 11.5,3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </button>
-                    <pre>g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover1024_line_coordinates.cpp -o solver</pre>
+                    <pre>g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti primecover2048_line_coordinates.cpp -o solver</pre>
                   </div>
                   <p>Uses <code>znver5</code> (AMD Turin), not <code>native</code>.</p>
                 </div>
@@ -6614,14 +6653,14 @@ function tutCopy(btn, text) {
 <script>
 /* ── Windows/WSL step-3 path editor — paste-to-set ─────────────────────────
    Accepts:
-     • Windows native:  C:\Users\you\Downloads\primecover1024.cpp  (or folder)
+     • Windows native:  C:\Users\you\Downloads\primecover2048_line_coordinates.cpp  (or folder)
      • WSL path:        /mnt/c/Users/you/Downloads/
    The file name is stripped and controlled separately by the variant toggle.
    Paths with spaces are automatically single-quoted in the shell command.
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/mnt/c/path/to/';
-  var fileName = 'primecover1024.cpp';
+  var fileName = 'primecover2048_line_coordinates.cpp';
 
   /* ── Shell-safe quoting ─────────────────────────────────── */
   /* Wraps in single quotes if the path contains any character that the shell
@@ -6751,7 +6790,7 @@ function tutCopy(btn, text) {
   var fileVariant = document.getElementById('step3-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
-      fileName = 'primecover1024.cpp';
+      fileName = 'primecover2048_line_coordinates.cpp';
       filePrimary.classList.add('active');
       if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
@@ -6811,13 +6850,13 @@ function switchDistro(distro) {
 <script>
 /* ── Linux step-3 path editor — paste-to-set ───────────────────────────────
    Accepts:
-     • Absolute paths:     /home/you/Downloads/primecover1024.cpp  (or folder)
-     • Tilde-home paths:   ~/Downloads/  or  ~/Downloads/primecover1024.cpp
+     • Absolute paths:     /home/you/Downloads/primecover2048_line_coordinates.cpp  (or folder)
+     • Tilde-home paths:   ~/Downloads/  or  ~/Downloads/primecover2048_line_coordinates.cpp
    Paths with spaces are single-quoted in the generated shell command.
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/home/username/path/to/';
-  var fileName = 'primecover1024.cpp';
+  var fileName = 'primecover2048_line_coordinates.cpp';
 
   /* ── Shell-safe quoting ─────────────────────────────────── */
   /* Tilde paths (~/…) must NOT be wrapped in single quotes because the shell
@@ -6958,7 +6997,7 @@ function switchDistro(distro) {
   var fileVariant = document.getElementById('step3-linux-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
-      fileName = 'primecover1024.cpp';
+      fileName = 'primecover2048_line_coordinates.cpp';
       filePrimary.classList.add('active');
       if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
@@ -6982,7 +7021,7 @@ function switchDistro(distro) {
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/Users/username/path/to/';
-  var fileName = 'primecover1024.cpp';
+  var fileName = 'primecover2048_line_coordinates.cpp';
 
   function parseMacInput(raw) {
     raw = (raw || '').trim();
@@ -7114,7 +7153,7 @@ function switchDistro(distro) {
   var fileVariant = document.getElementById('step3-mac-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
-      fileName = 'primecover1024.cpp';
+      fileName = 'primecover2048_line_coordinates.cpp';
       filePrimary.classList.add('active');
       if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
@@ -7137,7 +7176,7 @@ function switchDistro(distro) {
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/home/username/path/to/';
-  var fileName = 'primecover1024.cpp';
+  var fileName = 'primecover2048_line_coordinates.cpp';
 
   /* ── Shell-safe quoting ─────────────────────────────────── */
   function shellSafePath(fullPath) {
@@ -7272,7 +7311,7 @@ function switchDistro(distro) {
   var fileVariant = document.getElementById('step3-arch-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
-      fileName = 'primecover1024.cpp';
+      fileName = 'primecover2048_line_coordinates.cpp';
       filePrimary.classList.add('active');
       if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
@@ -7294,7 +7333,7 @@ function switchDistro(distro) {
    ─────────────────────────────────────────────────────────────────────────── */
 (function () {
   var dirPath  = '/home/username/path/to/';
-  var fileName = 'primecover1024.cpp';
+  var fileName = 'primecover2048_line_coordinates.cpp';
 
   /* ── Shell-safe quoting ─────────────────────────────────── */
   function shellSafePath(fullPath) {
@@ -7427,7 +7466,7 @@ function switchDistro(distro) {
   var fileVariant = document.getElementById('step3-fedora-file-variant');
   if (filePrimary) {
     filePrimary.addEventListener('click', function () {
-      fileName = 'primecover1024.cpp';
+      fileName = 'primecover2048_line_coordinates.cpp';
       filePrimary.classList.add('active');
       if (fileVariant) fileVariant.classList.remove('active');
       if (inp && inp.value.trim()) handleInput(); else syncPre();
@@ -7719,124 +7758,6 @@ function switchDistro(distro) {
   }
   setInterval(resetAnim, 11000);
 
-  /* ── 5. Staircase chart ─────────────────────────────────── */
-  /* f(N) sequence — certified values for N=1..80 (representative slice) */
-  var F_VALS = [
-    1,1,1,1,2,2,2,2,2,2,2,2,2,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,
-    4,4,4,4,4,4,4,4,4,4,4,4,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,5,
-    5,5,5,5,5,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,6,
-    6,6,6,6,6,6,6,6,6,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,
-    7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,7,8
-  ];
-  /* Extend to 1024 using a realistic staircase approximation */
-  var F_FULL = [];
-  (function () {
-    /* Use the known certified values up to 1024 represented as a step function */
-    /* Steps at: 1,14,24,42,66,101,141,196,261,337,425,525,639,766,860,924,1015 → f values */
-    var steps = [
-      [1,1],[14,3],[24,4],[42,5],[66,6],[101,7],[141,8],[196,9],
-      [261,10],[337,11],[425,12],[464,13],[576,14],[639,15],[693,16],
-      [766,17],[817,18],[861,19],[875,20],[924,21],[941,22],[978,23],[1015,24],[1024,25]
-    ];
-    /* Scale f values to match known f(1024)=143 */
-    /* Rough linear approximation: f(N) ≈ 0.14*N for large N */
-    var fCur = 1, sIdx = 0;
-    for (var n = 1; n <= 1024; n++) {
-      /* More realistic: use the known shape */
-      var fApprox = Math.round(0.1396484375 * n);
-      if (fApprox < 1) fApprox = 1;
-      if (fApprox > 143) fApprox = 143;
-      F_FULL.push(fApprox);
-    }
-    /* Ensure f(1024)=143 and known values */
-    F_FULL[1023] = 143;
-    F_FULL[860] = 123; /* prior record */
-  })();
-
-  var svgEl = document.getElementById('article-staircase-svg');
-  if (svgEl) {
-    var cW = 820, cH = 180;
-    var cPL = 36, cPR = 14, cPT = 10, cPB = 28;
-    var cPlotW = cW - cPL - cPR, cPlotH = cH - cPT - cPB;
-    var fMax = 143, fMin = 1, nMax = 1024;
-
-    function cx(n) { return cPL + ((n - 1) / (nMax - 1)) * cPlotW; }
-    function cfy(f) { return cPT + cPlotH - ((f - fMin) / (fMax - fMin)) * cPlotH; }
-
-    /* Build staircase path */
-    var pathD = 'M ' + cx(1).toFixed(1) + ' ' + cfy(F_FULL[0]).toFixed(1);
-    for (var ni = 1; ni < F_FULL.length; ni++) {
-      var xNow = cx(ni + 1).toFixed(1);
-      var yNow = cfy(F_FULL[ni]).toFixed(1);
-      var yPrev = cfy(F_FULL[ni - 1]).toFixed(1);
-      pathD += ' L ' + xNow + ' ' + yPrev + ' L ' + xNow + ' ' + yNow;
-    }
-
-    /* Grid lines */
-    var chartHtml = '';
-    var fTicks = [20,40,60,80,100,120,143];
-    fTicks.forEach(function (ft) {
-      var gy = cfy(ft).toFixed(1);
-      chartHtml += '<line x1="' + cPL + '" y1="' + gy + '" x2="' + (cW - cPR) + '" y2="' + gy
-        + '" stroke="rgba(24,38,58,0.06)" stroke-width="0.8"/>';
-      chartHtml += '<text x="' + (cPL - 4) + '" y="' + gy + '" font-family="var(--mono)" font-size="7"'
-        + ' fill="rgba(24,38,58,0.35)" text-anchor="end" dominant-baseline="middle">' + ft + '</text>';
-    });
-    var nTicks = [200,400,600,800,861,1024];
-    nTicks.forEach(function (nt) {
-      var gx = cx(nt).toFixed(1);
-      chartHtml += '<line x1="' + gx + '" y1="' + cPT + '" x2="' + gx + '" y2="' + (cPT + cPlotH)
-        + '" stroke="rgba(24,38,58,0.06)" stroke-width="0.8"/>';
-      chartHtml += '<text x="' + gx + '" y="' + (cPT + cPlotH + 10) + '" font-family="var(--mono)" font-size="7"'
-        + ' fill="rgba(24,38,58,0.35)" text-anchor="middle">' + nt + '</text>';
-    });
-
-    /* Axes */
-    chartHtml += '<line x1="' + cPL + '" y1="' + cPT + '" x2="' + cPL + '" y2="' + (cPT + cPlotH)
-      + '" stroke="rgba(24,38,58,0.25)" stroke-width="1"/>';
-    chartHtml += '<line x1="' + cPL + '" y1="' + (cPT + cPlotH) + '" x2="' + (cW - cPR) + '" y2="' + (cPT + cPlotH)
-      + '" stroke="rgba(24,38,58,0.25)" stroke-width="1"/>';
-
-    /* Staircase: prior certified in blue, new in teal */
-    var splitN = 861;
-    var pathPrior = 'M ' + cx(1).toFixed(1) + ' ' + cfy(F_FULL[0]).toFixed(1);
-    for (var ni2 = 1; ni2 < splitN && ni2 < F_FULL.length; ni2++) {
-      var xp = cx(ni2 + 1).toFixed(1);
-      var yp = cfy(F_FULL[ni2]).toFixed(1);
-      var ypPrev = cfy(F_FULL[ni2 - 1]).toFixed(1);
-      pathPrior += ' L ' + xp + ' ' + ypPrev + ' L ' + xp + ' ' + yp;
-    }
-    var pathNew = 'M ' + cx(splitN).toFixed(1) + ' ' + cfy(F_FULL[splitN - 1]).toFixed(1);
-    for (var ni3 = splitN; ni3 < F_FULL.length; ni3++) {
-      var xn = cx(ni3 + 1).toFixed(1);
-      var yn = cfy(F_FULL[ni3]).toFixed(1);
-      var ynPrev = cfy(F_FULL[ni3 - 1]).toFixed(1);
-      pathNew += ' L ' + xn + ' ' + ynPrev + ' L ' + xn + ' ' + yn;
-    }
-
-    chartHtml += '<path d="' + pathPrior + '" stroke="#2A5499" stroke-width="1.4" fill="none" opacity="0.75"/>';
-    chartHtml += '<path d="' + pathNew + '" stroke="#14736A" stroke-width="1.6" fill="none" opacity="0.9"/>';
-
-    /* Annotation: N=861 */
-    var ann861x = cx(861).toFixed(1);
-    var ann861y = cfy(F_FULL[860]).toFixed(1);
-    chartHtml += '<line x1="' + ann861x + '" y1="' + cPT + '" x2="' + ann861x + '" y2="' + (cPT + cPlotH)
-      + '" stroke="rgba(163,50,40,0.35)" stroke-width="0.8" stroke-dasharray="3,2"/>';
-    chartHtml += '<text x="' + (parseFloat(ann861x) + 4) + '" y="' + (cPT + 14) + '" font-family="var(--mono)" font-size="7"'
-      + ' fill="rgba(163,50,40,0.7)">N=861 prior record</text>';
-
-    /* f(1024)=143 label */
-    chartHtml += '<text x="' + (cW - cPR - 4) + '" y="' + (cfy(143) - 5).toFixed(1) + '" font-family="var(--mono)" font-size="7.5"'
-      + ' fill="rgba(20,115,106,0.85)" text-anchor="end" font-weight="500">f(1024)=143 ★</text>';
-
-    /* Legend */
-    chartHtml += '<rect x="' + (cW - 170) + '" y="' + (cPT + cPlotH - 30) + '" width="8" height="3" rx="1" fill="#2A5499" opacity="0.75"/>';
-    chartHtml += '<text x="' + (cW - 158) + '" y="' + (cPT + cPlotH - 26) + '" font-family="var(--mono)" font-size="7" fill="rgba(24,38,58,0.5)">Prior certified (N≤861)</text>';
-    chartHtml += '<rect x="' + (cW - 170) + '" y="' + (cPT + cPlotH - 18) + '" width="8" height="3" rx="1" fill="#14736A" opacity="0.9"/>';
-    chartHtml += '<text x="' + (cW - 158) + '" y="' + (cPT + cPlotH - 14) + '" font-family="var(--mono)" font-size="7" fill="rgba(24,38,58,0.5)">New terms (N=862–1024)</text>';
-
-    svgEl.innerHTML = chartHtml;
-  }
 
   /* ── 6. Intersection Observer for scroll reveals ────────── */
   if ('IntersectionObserver' in window) {

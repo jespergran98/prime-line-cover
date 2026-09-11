@@ -26,10 +26,10 @@
 // OVERVIEW
 // =============================================================================
 // Certifies f(N), the minimum number of straight lines covering the first N
-// prime points (i, p_i), for every N from 1 to 2048. Extends the prior
-// certified boundary from N=861 to N=1024 — adding 163 new terms and 20 new
-// awkward primes to OEIS A373813 — at roughly 750x the speed of the previous
-// solver. Extended to N=2048 with a 2048-bit bitmask (32 words).
+// prime points (i, p_i), for every N from 1 to 2048. Widening the coverage
+// bitmask to 2048 bits (32 words) carried the certified boundary from N=1024
+// to N=1814, certifying f(1814)=229 at p_1814=15551 — adding 790 new terms
+// and 86 new awkward primes to OEIS A373813.
 //
 //   Repository    https://github.com/jespergran98/prime-line-cover
 //   Interactive   https://prime-line-cover.vercel.app
@@ -52,22 +52,25 @@
 // PERFORMANCE
 // =============================================================================
 // The prior certified record (N=861) required 282 hours using a general-
-// purpose MIP solver. This solver reaches N=861 in ~22 minutes and completes
-// the full sweep to N=1024 — certifying f(1024)=143 as the new world record —
-// in under 40 hours on a Google Cloud c4d-highcpu-8 instance (8 vCPUs, 15 GB).
-// The bitmask is widened to 2048 bits (32 words) to support the sweep to N=2048.
+// purpose MIP solver. This solver reaches N=861 in 22 min 47 s — a 744x
+// speedup — and runs on to certify f(1814)=229 in 461 h 35 min 22 s on a
+// Google Cloud c4d-highcpu-8 instance (8 vCPUs, 15 GB). The sweep stopped at
+// N=1814 because the free-trial credit funding the instance ran out, not
+// because of any limit in the source: the 2048-bit ceiling lies 234 indices
+// further on. One index dominates the cost — N=1811 alone took 240 h 10 min,
+// 52% of the whole run.
 //
 // =============================================================================
 // ALGORITHM
 // =============================================================================
 // Phase 1 — Heavy-line enumeration (~50 ms, once at startup):
-//   A heavy line passes through at least 3 prime points. Roughly 12,162 exist
-//   for the sweep to N=1024; the full sweep to N=2048 yields approximately
-//   30,000. All are enumerated upfront, each stored as a 2048-bit coverage
-//   bitmask (thirty-two 64-bit words). A line becomes active at step N once
-//   its third-smallest point index is reached; coverage queries reduce to
-//   popcount operations over fixed-width bitmasks, keeping the working set
-//   in L1/L2.
+//   A heavy line passes through at least 3 prime points. 12,162 are active at
+//   N=1024 and 30,646 at N=1814. All are enumerated upfront, each stored as a
+//   2048-bit coverage bitmask (thirty-two 64-bit words). A line becomes active
+//   at step N once its third-smallest point index is reached; coverage queries
+//   reduce to popcount operations over fixed-width bitmasks. At 256 bytes per
+//   mask the working set reaches 7.85 MB by N=1814 — past per-core L2, but
+//   still comfortably inside L3.
 //
 // Phase 2 — Incremental sweep (N = kStartN to kExecutionLimit):
 //   Three pieces of warm state carry forward from step to step:
