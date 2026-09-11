@@ -7,12 +7,12 @@ authors:
     given-names: Jesper Gran
     affiliation: "Independent Researcher, Norway"
     email: "jesgranbusiness@gmail.com"
-version: "1.0.4"
+version: "1.1.0"
 identifiers:
   - type: doi
     value: "10.5281/zenodo.20096556"
-    description: "Zenodo archive of version 1.0.4"
-date-released: 2026-05-09
+    description: "Zenodo concept DOI — always resolves to the latest release"
+date-released: 2026-09-11
 repository-code: "https://github.com/jespergran98/prime-line-cover"
 license: MIT
 abstract: >
