@@ -55,32 +55,33 @@ In the video, Brady Haran and Neil Sloane (founder of the OEIS) call the primes 
 
 Despite the enormous number of possible line combinations (which grows exponentially with N), this solver computes the optimal cover for the first 800 prime points in **less than 60 seconds** on a 10-year-old laptop.
 
-On a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB RAM), it reaches the previous world-record boundary at N = 861 in **just 22 minutes** – obliterating the prior certified record, which required **282 hours, 26 minutes, and 31.5 seconds** using a general-purpose mixed-integer programming (MIP) solver.
+On a Google Cloud `c4d-highcpu-8` instance (8 vCPUs, 15 GB RAM), it reaches the boundary of the old record at N = 861 in **22 minutes and 47 seconds** – a 744-fold speedup, obliterating that prior certified record, which required **282 hours, 26 minutes, and 31.5 seconds** using a general-purpose mixed-integer programming (MIP) solver.
 
-For larger N up to 1024, the hardest instances take about an hour on the same hardware – but the incremental sweep is so efficient that most N are solved in milliseconds. The current certified world record stands at **N = 1024**, also computed on that machine.
+For larger N the cost concentrates in a handful of instances: N = 1811 alone took **240 hours and 10 minutes** on the same hardware, 52% of the whole run – but the incremental sweep is so efficient that most N are solved in milliseconds. The current certified world record stands at **N = 1814**, where f(1814) = 229 and p_1814 = 15551, also computed on that machine. That sweep ran **461 hours, 35 minutes, and 22 seconds** – 19.2 days – and stopped only because the $300 free-trial credit ran out; the first 1024 indices, the entire previous record, account for just 47.5 of those hours.
 
-A concrete illustration of that efficiency: the 111-step plateau at f = 69 (N = 465–575) — 111 consecutive primes each silently falling onto an existing optimal line — was certified entirely in **111 milliseconds**. The full breakdown across N = 1–1024: **615 witness hits** (constant-time certification), **236 root-only closures** (no branching), **173 full branch-and-bound searches**. On all 74 non-witness steps in the new N = 862–1024 block, the root gap ub − lb was exactly 1 before the first branch.
+A concrete illustration of that efficiency: the longest known plateau, f = 145 holding for 237 consecutive indices (N = 1079–1315), contains 233 primes that silently fall onto an existing optimal line — all 233 certified in a combined **2.74 seconds** — and its closer is p_1316 = 10831. The earlier plateau at f = 69 (N = 464–575) is now only the second longest; its closer p_576 = 4211 keeps the nickname the "party-pooper prime". The full breakdown across N = 1–1814: **1,141 witness hits** (constant-time certification), **362 root-only closures** (no branching), **311 full branch-and-bound searches** — 62.9%, 20.0% and 17.1% of the indices, with the branch-and-bound searches accounting for 99.87% of the wall-clock. Mode assignment is build-dependent and is not part of the optimality certificate: over N = 1–1024 this run recorded 613 / 235 / 176, differing from the published 1024 run at seven indices, while f(N) agrees at all 1024 indices. On all 262 non-witness steps in the new N = 1025–1814 block, the root gap ub − lb was exactly 1 before the first branch.
 
-**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1024. The full certified results for N = 1 through 1024 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS); the indices at which f(N) increases — the awkward primes — are catalogued as [A393445](https://oeis.org/A393445).
+**What this repository does:** It finds the **exact minimum number of lines** needed for any N up to 1814. The full certified results for N = 1 through 1814 are included. The sequence of these minimum numbers is called [A373813](https://oeis.org/A373813) in the On-Line Encyclopedia of Integer Sequences (OEIS); the indices at which f(N) increases — the awkward primes — are catalogued as [A393445](https://oeis.org/A393445).
 
 ## Solver Features
 
-Two versions are provided:
+Three versions are provided:
 
 - **`primecover1024.cpp`** – core solver, outputs compact statistics for each N (time, search nodes, bounds, etc.).
 - **`primecover1024_line_coordinates.cpp`** – identical solver that additionally writes out the exact coordinates of every line in the optimal cover (for full reproducibility and visualisation).
+- **`primecover2048_line_coordinates.cpp`** – the current record solver: the line-coordinates solver with the coverage bitmasks widened from 1024 to 2048 bits (114 of 3,432 lines touched). The algorithm is byte-for-byte unchanged; there is no stats-only 2048 variant.
 
-Both implement the exact algorithm described in the accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf). Key features:
+All three implement the exact algorithm described in the accompanying paper [`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf); the mask widening and the N = 1814 run are documented in the supplement [`pdf_extending_the_minimum_line_cover_to_n_1814.pdf`](https://prime-line-cover.vercel.app/pdf_extending_the_minimum_line_cover_to_n_1814.pdf). Key features:
 
 - **Integer arithmetic throughout** – collinearity is checked via one integer multiply-compare; coverage counting is popcount over word-wise AND. No floating point anywhere on the hot path.
 - **Heavy-line enumeration** – all lines containing at least three points of the final horizon are pre-computed once.
-- **Bitmask representation** – supports up to N = 1024 points using 16x64-bit words.
+- **Bitmask representation** – supports up to N = 2048 points using 32x64-bit words in `primecover2048_line_coordinates.cpp` (the `1024` solvers use 16 words).
 - **Exclusive Dependency Rule** – unconditional forcing of certain heavy lines (proved optimal).
 - **Lagrangian relaxation** – provides tight lower bounds for pruning, with projected subgradient ascent and coordinate-descent polish.
 - **Frontier decomposition** – the search tree is split into many independent tasks and processed in parallel over all CPU cores.
 - **Incremental warm-start** – carries a witness cover, a warm heavy-line set, and a warm dual seed from one N to the next, making the sweep extremely efficient.
 
-The solver is optimised for **N <= 1024** (hence the `1024` in the filename).
+Each solver is optimised for the N in its filename: **N <= 1024** for the `1024` pair, **N <= 2048** for `primecover2048_line_coordinates.cpp`. The certified sweep stops at N = 1814 because the Google Cloud free-trial credit ran out, not because of any limit in the source — the 2048-bit ceiling is still 234 indices away and reaching it needs only more compute.
 
 ---
 
@@ -98,9 +99,11 @@ The JavaScript port is **single-threaded** and therefore slower than the native 
 
 ## Paper
 
-**[`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf)** — 31 pages.
+**[`pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf`](pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf)** — 32 pages. Still accurate about the architecture; only its numbers are superseded by the N = 1814 run.
 
-The paper describes every component of the solver from mathematical foundations to implementation details. Here is exactly what each section covers:
+**[`pdf_extending_the_minimum_line_cover_to_n_1814.pdf`](pdf_extending_the_minimum_line_cover_to_n_1814.pdf)** — 12 pages. The supplement covering the extension of the record to N = 1814 (f(1814) = 229, p = 15551): the 2048-bit mask widening, the 461 h 35 min sweep, and the 790 newly certified terms.
+
+The main paper describes every component of the solver from mathematical foundations to implementation details. Here is exactly what each section covers:
 
 **§1 Introduction** — States the problem, summarises the prior certified record (N = 861, 282 hours via MIP), lists the paper's concrete outcomes (f(1024) = 143 certified, 163 new OEIS terms, 20 new awkward primes, optimality proven for every reported value), sketches the NP-completeness of the general problem, and gives a section-by-section roadmap.
 
@@ -122,18 +125,20 @@ The paper describes every component of the solver from mathematical foundations 
 
 ## Results
 
-The repository contains result files in the `results/` folder, recording the computed cover costs (all for N = 1 to 1024):
+The repository contains result files in the `results/` folder, recording the computed cover costs (all for N = 1 to 1814):
 
-- **`B373813.txt`** – simple two-column format: `N` and the optimal number of lines (easy for plotting). Part of [OEIS A373813](https://oeis.org/A373813).
-- **`A373813_STATISTICS.txt`** – detailed statistics for each N (time, search nodes, bounds, etc.). Generated by `primecover1024.cpp`.
-- **`A373813_ALL_LINES.txt`** – the full list of line coordinates (in `(x, y)` format) for each optimal cover. Generated by `primecover1024_line_coordinates.cpp`.
-- **`B393445.txt`** – simple two-column format: sequential index and prime value, listing only the awkward primes where the line count increases. Part of [OEIS A393445](https://oeis.org/A393445).
+- **`b373813.txt`** – simple two-column format: `N` and the optimal number of lines (easy for plotting), 1814 rows. Part of [OEIS A373813](https://oeis.org/A373813).
+- **`a373813_statistics.txt`** – detailed statistics for each N (time, search nodes, bounds, etc.), one line per N for N = 1..1814. Derived from `a373813_all_lines.txt` by `results/tools/convert_to_a373813_statistics.py`.
+- **`a373813_all_lines.txt`** – the full list of line coordinates (in `(x, y)` format) for each optimal cover, N = 1..1814 (~24 MB). The authoritative record, generated by `primecover2048_line_coordinates.cpp`.
+- **`b393445.txt`** – simple two-column format: sequential index and prime value, listing only the awkward primes where the line count increases: 229 entries, ending at index 229, p = 15511. Part of [OEIS A393445](https://oeis.org/A393445).
 
-Three Python converter scripts are also included in `results/` to derive the above files from the raw solver output:
+The superseded N = 1024 record is preserved byte-for-byte in `results/archive_1024/`, under the same four filenames, so the two records diff directly.
 
-- **`convert_to_b373813.py`** – reads `A373813_ALL_LINES.txt` and extracts the `N` and `lines` fields from every Stats block, producing the compact two-column `B373813.txt`.
-- **`convert_to_a373813_statistics.py`** – reads `A373813_ALL_LINES.txt` and extracts the full Stats line for every prime, producing the clean one-line-per-prime `A373813_STATISTICS.txt`.
-- **`convert_to_b393445.py`** – reads `A373813_ALL_LINES.txt`, tracks the running maximum line count, and outputs only the primes where the line count strictly increases, producing `B393445.txt`.
+Three Python converter scripts are also included in `results/tools/` to derive the above files from the raw solver output:
+
+- **`convert_to_b373813.py`** – reads `a373813_all_lines.txt` and extracts the `N` and `lines` fields from every Stats block, producing the compact two-column `b373813.txt`.
+- **`convert_to_a373813_statistics.py`** – reads `a373813_all_lines.txt` and extracts the full Stats line for every prime, producing the clean one-line-per-prime `a373813_statistics.txt`.
+- **`convert_to_b393445.py`** – reads `a373813_all_lines.txt`, tracks the running maximum line count, and outputs only the primes where the line count strictly increases, producing `b393445.txt`.
 
 ---
 
@@ -171,10 +176,10 @@ sudo apt install g++-14 -y
 
 **Step 3 — Copy, compile, and run**
 
-Download `primecover1024.cpp` and save it to a location you'll remember — your Downloads folder or Desktop works well. Then replace the path in the command below with where you saved it, and paste the whole thing into your Ubuntu terminal:
+Download `primecover2048_line_coordinates.cpp` and save it to a location you'll remember — your Downloads folder or Desktop works well. Then replace the path in the command below with where you saved it, and paste the whole thing into your Ubuntu terminal:
 
 ```bash
-cp /mnt/c/Users/YourName/Downloads/primecover1024.cpp ~/solver.cpp && \
+cp /mnt/c/Users/YourName/Downloads/primecover2048_line_coordinates.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver && \
 ./solver
@@ -184,7 +189,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
+For the previous 1024-bit solvers, replace `primecover2048_line_coordinates.cpp` in the `cp` command above with `primecover1024.cpp` (statistics only) or `primecover1024_line_coordinates.cpp` — the rest of the command stays the same.
 
 ---
 
@@ -220,12 +225,12 @@ sudo dnf install gcc-c++ -y
 
 **Step 3 — Copy, compile, and run**
 
-Download `primecover1024.cpp` and save it somewhere in your home directory — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into your terminal:
+Download `primecover2048_line_coordinates.cpp` and save it somewhere in your home directory — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into your terminal:
 
 *Ubuntu / Debian*
 
 ```bash
-cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+cp /home/username/Downloads/primecover2048_line_coordinates.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver && \
 ./solver
@@ -234,7 +239,7 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 *Arch / Manjaro* — the compiler binary is `g++`, not `g++-14`:
 
 ```bash
-cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+cp /home/username/Downloads/primecover2048_line_coordinates.cpp ~/solver.cpp && \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver && \
 ./solver
@@ -243,7 +248,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 *Fedora / RHEL* — likewise, use `g++`:
 
 ```bash
-cp /home/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+cp /home/username/Downloads/primecover2048_line_coordinates.cpp ~/solver.cpp && \
 g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver && \
 ./solver
@@ -253,7 +258,7 @@ g++ -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
+For the previous 1024-bit solvers, replace `primecover2048_line_coordinates.cpp` in the `cp` command above with `primecover1024.cpp` (statistics only) or `primecover1024_line_coordinates.cpp` — the rest of the command stays the same.
 
 ---
 
@@ -281,10 +286,10 @@ Homebrew installs `g++-14` into its bin directory and adds it to your PATH autom
 
 **Step 3 — Copy, compile, and run**
 
-Download `primecover1024.cpp` and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:
+Download `primecover2048_line_coordinates.cpp` and save it somewhere in your home folder — your Downloads folder works well. Then replace the path below with where you saved it and paste the whole command into Terminal:
 
 ```bash
-cp /Users/username/Downloads/primecover1024.cpp ~/solver.cpp && \
+cp /Users/username/Downloads/primecover2048_line_coordinates.cpp ~/solver.cpp && \
 g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   solver.cpp -o solver && \
 ./solver
@@ -294,15 +299,15 @@ g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
 
 The solver starts printing results immediately — one line per N.
 
-For the line-coordinates version, replace `primecover1024.cpp` with `primecover1024_line_coordinates.cpp` in the `cp` command above — the rest of the command stays the same.
+For the previous 1024-bit solvers, replace `primecover2048_line_coordinates.cpp` in the `cp` command above with `primecover1024.cpp` (statistics only) or `primecover1024_line_coordinates.cpp` — the rest of the command stays the same.
 
 ---
 
 ### Google Cloud <a name="google-cloud"></a>
 
-Google Cloud offers a **$300 free trial (90 days)** for new accounts — enough to run the full N = 1–1024 sweep comfortably. This guide uses `primecover1024_line_coordinates.cpp`, which outputs the exact line coordinates of each optimal cover alongside the standard statistics — recommended for longer runs.
+Google Cloud offers a **$300 free trial (90 days)** for new accounts — the credit that funded the full N = 1–1814 record sweep, 461 hours and 35 minutes of continuous solving. The sweep stopped when the credit ran out, not because the solver reached a limit. This guide uses `primecover2048_line_coordinates.cpp` — the solver that set the N = 1814 record, and the only 2048-bit build — which outputs the exact line coordinates of each optimal cover alongside the standard statistics.
 
-> **Recommended instance:** `c4d-highcpu-8` — 8 vCPUs, 15 GB RAM, AMD Turin — the instance used to set the N = 1024 world record, on the free trial.
+> **Recommended instance:** `c4d-highcpu-8` — 8 vCPUs, 15 GB RAM, AMD Turin — the instance used to set the N = 1814 world record, on the free trial.
 When creating the VM, set *Series* to **C4D**, *Machine type* to **c4d-highcpu-8**, and *Minimum CPU platform* to **AMD Turin**.
 
 **Step 1 — Install GCC 14**
@@ -320,11 +325,11 @@ sudo apt install -t trixie g++-14 -y
 
 **Step 2 — Upload and compile**
 
-Use the cloud icon (top-right of the SSH window) → **Upload File** → select `primecover1024_line_coordinates.cpp`. Then compile:
+Use the cloud icon (top-right of the SSH window) → **Upload File** → select `primecover2048_line_coordinates.cpp`. Then compile:
 
 ```bash
 g++-14 -std=c++23 -O3 -march=znver5 -pthread -fno-exceptions -fno-rtti \
-  primecover1024_line_coordinates.cpp -o solver
+  primecover2048_line_coordinates.cpp -o solver
 ```
 
 **Step 3 — Launch**
@@ -353,7 +358,7 @@ To download results: cloud icon → **Download File** → `output.log`.
 Each line of output corresponds to one value of N and looks like this:
 
 ```
-N=1015 prime=8081 lines=143 time=610.359s mode=D active=12012 nodes=14491781 frontier=65536 ub0=143 lb_floor=142 lb_cov=91 lb=142 gap=1 ub_raw=149 lb_raw=130 gap_raw=19 root_ub_frac=0.331 warm_size=130 greedy_heavy=125 prod=12012 pinc=40315 forced_root=0 forced=19218 lag_iters=383323440 polish_sweeps=2993045 lag_prune=6759783 strong_branch=14 depth=93
+N=1015 prime=8081 lines=143 time=377.238s mode=D active=12012 nodes=14300557 frontier=16384 ub0=143 lb_floor=142 lb_cov=91 lb=142 gap=1 ub_raw=148 lb_raw=130 gap_raw=18 root_ub_frac=0.331 warm_size=130 greedy_heavy=125 prod=12012 pinc=40315 forced_root=0 forced=18750 lag_iters=363411620 polish_sweeps=2889110 lag_prune=6636420 strong_branch=14 depth=96
 ```
 
 ### Primary fields
@@ -401,7 +406,7 @@ These fields are non‑zero only in mode D (full branch‑and‑bound).
 | `frontier` | Number of independent subtasks generated by root pre‑expansion and dispatched to the parallel thread pool; 1 means the single‑threaded fallback ran. |
 | `lag_iters` | Total projected subgradient ascent iterations executed across every Lagrangian bound evaluation in the solve, summed over all threads and nodes. |
 | `polish_sweeps` | Total coordinate‑descent polish sweeps applied to the Lagrangian dual solution; each sweep is a single pass tightening all dual variables, triggered only when the bound is within 0.5 of the pruning threshold. |
-| `lag_prune` | Total DFS nodes pruned because the Lagrangian gain upper bound proved the node could not improve upon the incumbent, summed across all threads. |
+| `lag_prune` | Total DFS nodes pruned because the Lagrangian gain upper bound proved the node could not improve upon the incumbent, summed across all threads. **Erratum:** in the N = 1814 sweep this counter was still a 32-bit `int` and overflowed at the single hardest index, logging `lag_prune=-1423934502` at N = 1811; the true value there is 2,871,032,794 and the sweep total is 10,562,920,000 rather than the 6,267,952,704 the log sums to. The counter is write-only diagnostics — it never feeds a bound or a prune decision — so no certified f(N) is affected. Widened to `long long` in `primecover2048_line_coordinates.cpp`; the published logs are left exactly as the run produced them. |
 | `strong_branch` | Total DFS nodes at which strong branching was invoked. This requires: at least 2 candidate lines in the shortlist, the node gap ≤ 1, at least 64 points remain uncovered, and the current depth ≤ 6. Up to 4 candidate lines are scored by simulating the include branch to select the variable that best prunes both child subtrees. |
 | `depth` | Maximum DFS recursion depth reached across all parallel worker threads. |
 | `forced` | Total heavy lines unconditionally forced into the solution by the Exclusive Dependency Rule across all nodes (root preprocessing pass + all DFS nodes) and all threads — a line is forced when it is the sole productive heavy line available to at least 3 of its active points. |
@@ -420,20 +425,20 @@ These fields are valid for all modes (W, R, and D) and describe the problem stru
 
 ## Configuration Options
 
-The solver's behaviour can be adjusted by modifying constants in the `config` namespace inside `primecover1024.cpp`:
+The solver's behaviour can be adjusted by modifying constants in the `config` namespace inside `primecover2048_line_coordinates.cpp`:
 
 | Constant | Default | Description |
 |----------|---------|-------------|
-| `kBitCapacity`          | 1024 | Hard limit on N (bitset size). Do not increase beyond 1024 without changing the bitmask type. |
+| `kBitCapacity`          | 2048 | Hard limit on N (bitset size). `kBitWords` is derived from it (2048 / 64 = 32). Do not increase beyond 2048 without widening the bitmask type. |
 | `kStartN`               | 1    | Starting N for the sweep. Increase to resume mid-sequence. |
-| `kExecutionLimit`       | 1024 | Maximum N to compute (capped by `kBitCapacity`). |
+| `kExecutionLimit`       | 2048 | Maximum N to compute (capped by `kBitCapacity`). |
 | `kPerNTimeLimitSeconds` | 0    | Per-instance time limit in seconds (0 = no limit). If exceeded, the solver prints `[stopped]` and exits. |
 
-By default the solver runs from N = 1 up to N = 1024. To change that, edit `kStartN` and `kExecutionLimit` at the top of the source file.
+By default the solver runs from N = 1 up to N = 2048. To change that, edit `kStartN` and `kExecutionLimit` at the top of the source file. The published sweep stopped at N = 1814 because its compute budget ran out, not because of any limit in the source: the remaining 234 indices up to the 2048-bit ceiling need no source change, only more compute.
 
 ## Performance Tuning
 
-The solver uses all available CPU cores (`std::thread::hardware_concurrency()`) automatically. The options below are relevant for serious attempts (N > ~850).
+The solver uses all available CPU cores (`std::thread::hardware_concurrency()`) automatically. The options below start to matter once the cost ladder reaches its larger rungs (N > ~850), and they matter most for an attempt past the current record at N = 1814.
 
 ### Frontier multiplier
 
@@ -443,22 +448,22 @@ The solver decomposes the search tree into independent tasks and distributes the
 frontier size  =  CPU threads  ×  frontier_multiplier
 ```
 
-Larger multipliers increase parallelism but also memory usage. The multiplier is selected automatically via a cost ladder in `primecover1024.cpp`:
+Larger multipliers increase parallelism but also memory usage. The multiplier is selected automatically via a cost ladder in `primecover2048_line_coordinates.cpp`:
 
 ```cpp
 const unsigned frontier_multiplier =
 //  current_best_cost() >= 143 ? 131072U  // rarely feasible
 //: current_best_cost() >= 138 ?  32768U  // days–weeks
 //: current_best_cost() >= 133 ?  16384U  // only if diagnostic confirms it is safe
-    current_best_cost() >= 128 ?   8192U  // safe on c4d-highcpu-8 (15 GB)
-  : current_best_cost() >= 125 ?   2048U  // safe on personal i9 9900k
+//  current_best_cost() >= 128 ?   8192U  // needs ~30 GB with 256-byte masks; disabled for the 15 GB record run
+    current_best_cost() >= 125 ?   2048U  // safe on c4d-highcpu-8 (15 GB) and on a personal i9 9900k
   : current_best_cost() >= 121 ?    512U  // safe on most machines
   : current_best_cost() >= 113 ?    128U  // safe
   : current_best_cost() >= 93  ?     16U  // sub-second
                                :      4U; // trivial
 ```
 
-The defaults are conservative and safe. **For a world-record attempt (N > ~850) you should measure your machine's per-task RAM usage and unlock the highest multiplier that fits in your available memory.** Per-task cost varies significantly between machines — ~184 KB/task on the reference cloud instance, ~125 KB/task on some desktops — so do not guess.
+The defaults are conservative and safe. As shipped, the ladder tops out at `2048U` — 16,384 tasks on the 8-thread reference instance — and that is the ceiling the entire N = 1–1814 sweep ran under on 15 GB. **For an attempt past the current record at N = 1814 you should measure your machine's per-task RAM usage and unlock the highest multiplier that fits in your available memory.** Per-task cost varies significantly between machines — for the 1024-bit build, ~184 KB/task on the reference cloud instance and ~125 KB/task on some desktops — and the 2048-bit build roughly doubles that, since every heavy-line mask is 256 bytes instead of 128. Do not guess.
 
 ### Frontier diagnosis tool
 
@@ -467,11 +472,11 @@ The defaults are conservative and safe. **For a world-record attempt (N > ~850) 
 ```
 Multiplier   Tasks        Est. RAM     Status
 ──────────   ──────────   ──────────   ────────────────────
-  131072U →  1,048,576  →  193.2 GB   ✗  UNSAFE
-   32768U →    262,144  →   48.5 GB   ✗  UNSAFE
-   16384U →    131,072  →   24.4 GB   ✗  UNSAFE
-    8192U →     65,536  →   12.3 GB   ✓  SAFE
-    2048U →     16,384  →    3.2 GB   ✓  SAFE
+  131072U →  1,048,576  →  386.4 GB   ✗  UNSAFE
+   32768U →    262,144  →   97.0 GB   ✗  UNSAFE
+   16384U →    131,072  →   48.8 GB   ✗  UNSAFE
+    8192U →     65,536  →   24.6 GB   ✗  UNSAFE
+    2048U →     16,384  →    6.4 GB   ✓  SAFE
     ...
 ```
 
@@ -479,27 +484,27 @@ Multiplier   Tasks        Est. RAM     Status
 
 To use it:
 
-1. Open `tools/primecover_frontier_diagnosis.sh` and set `SOURCE_PATH` on line 101 to the path of your `primecover1024.cpp` file.
+1. Open `tools/primecover_frontier_diagnosis.sh` and set `SOURCE_PATH` on line 101 to the path of your `primecover2048_line_coordinates.cpp` file.
 2. Run the script:
    ```bash
    bash tools/primecover_frontier_diagnosis.sh
    ```
 3. When the safety table appears, find the highest multiplier marked **✓ SAFE**.
-4. In `primecover1024.cpp`, find the `frontier_multiplier` ladder and apply the edit shown below (example: unlocking `16384U`):
+4. In `primecover2048_line_coordinates.cpp`, find the `frontier_multiplier` ladder and apply the edit shown below (example: unlocking `8192U`, the rung the record run had to leave disabled):
 
    ```cpp
    // Before:
-   //: current_best_cost() >= 133 ? 16384U
-       current_best_cost() >= 128 ?  8192U
+   //  current_best_cost() >= 128 ?  8192U
+       current_best_cost() >= 125 ?  2048U
 
    // After:
-       current_best_cost() >= 133 ? 16384U
-     : current_best_cost() >= 128 ?  8192U
+       current_best_cost() >= 128 ?  8192U
+     : current_best_cost() >= 125 ?  2048U
    ```
 
-   Remove the `//` and `:` from the line you are enabling, then add a `:` before the line that was previously the first active condition. Recompile and run.
+   Remove the leading `//` from the line you are enabling (and its `:`, if it has one), then add a `:` before the line that was previously the first active condition. Recompile and run.
 
-The diagnostic only needs to run once per machine. It is not needed for runs up to N ≈ 850 — the default settings are safe there.
+The diagnostic only needs to run once per machine. It is not needed for runs up to N ≈ 850 — the default settings are safe there — and as shipped the ladder tops out at `2048U`, the ceiling that carried the entire N = 1–1814 sweep on a 15 GB instance. Run it when you want to re-enable `8192U`, which in the 2048-bit build needs roughly 30 GB.
 
 ### CPU architecture flag
 
@@ -522,17 +527,21 @@ To give WSL higher CPU priority while the solver is running, open **PowerShell a
 
 | File | Description |
 |------|-------------|
-| `primecover1024.cpp` | Main solver source code (stats-only output). |
-| `primecover1024_line_coordinates.cpp` | Same solver, but outputs full line coordinates. |
-| `results/B373813.txt` | Two-column `N` and optimal lines (space-separated), N = 1..1024. Part of [OEIS A373813](https://oeis.org/A373813). |
-| `results/A373813_STATISTICS.txt` | Detailed statistics for each N (time, search nodes, bounds, etc.), from `primecover1024.cpp`. |
-| `results/A373813_ALL_LINES.txt` | Full line-by-line coordinates of each optimal cover, from `primecover1024_line_coordinates.cpp`. |
-| `results/B393445.txt` | Two-column sequential index and prime value, listing only the awkward primes where the line count increases. Part of [OEIS A393445](https://oeis.org/A393445). |
-| `results/convert_to_b373813.py` | Converter script: extracts `N` and `lines` from every Stats block in `A373813_ALL_LINES.txt` to produce `B373813.txt`. |
-| `results/convert_to_a373813_statistics.py` | Converter script: extracts the full Stats line for every prime from `A373813_ALL_LINES.txt` to produce `A373813_STATISTICS.txt`. |
-| `results/convert_to_b393445.py` | Converter script: extracts only the primes where the line count strictly increases from `A373813_ALL_LINES.txt` to produce `B393445.txt`. |
+| `primecover1024.cpp` | Solver source code for N <= 1024 (stats-only output). Used for the superseded N = 1024 record. |
+| `primecover1024_line_coordinates.cpp` | Same solver, but outputs full line coordinates. Produced the superseded N = 1024 record. |
+| `primecover2048_line_coordinates.cpp` | Current record solver: the same algorithm with 2048-bit masks (`kBitCapacity = 2048`, `kBitWords = 32`). Outputs full line coordinates; there is no stats-only variant. Produced the certified N = 1814 record. |
+| `results/b373813.txt` | Two-column `N` and optimal lines (space-separated), N = 1..1814. Part of [OEIS A373813](https://oeis.org/A373813). |
+| `results/a373813_statistics.txt` | Detailed statistics for each N (time, search nodes, bounds, etc.), N = 1..1814. Derived from `a373813_all_lines.txt` by `results/tools/convert_to_a373813_statistics.py`. |
+| `results/a373813_all_lines.txt` | Full line-by-line coordinates of each optimal cover, N = 1..1814, from `primecover2048_line_coordinates.cpp` (~24 MB). The authoritative sweep log; the other three data files are derived from it. |
+| `results/b393445.txt` | Two-column sequential index and prime value, listing only the awkward primes where the line count increases — 229 of them up to N = 1814. Part of [OEIS A393445](https://oeis.org/A393445). |
+| `results/archive_1024/` | The superseded N = 1024 record, preserved byte-for-byte as published under the same four filenames, so the two records diff directly. |
+| `results/LICENSE` | CC0 1.0 Universal dedication covering everything under `results/` — the data is public domain, unlike the MIT-licensed code. |
+| `results/tools/convert_to_b373813.py` | Converter script: extracts `N` and `lines` from every Stats block in `a373813_all_lines.txt` to produce `b373813.txt`. |
+| `results/tools/convert_to_a373813_statistics.py` | Converter script: extracts the full Stats line for every prime from `a373813_all_lines.txt` to produce `a373813_statistics.txt`. |
+| `results/tools/convert_to_b393445.py` | Converter script: extracts only the primes where the line count strictly increases from `a373813_all_lines.txt` to produce `b393445.txt`. |
 | `index.html` | Self-contained interactive demo (JavaScript port of the solver). Deploy as a static site or open locally — no build step required. See [Interactive Demo](#interactive-demo). |
-| `pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm. |
+| `pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf` | Mathematical paper describing the problem and the algorithm (32 pages). The architecture it documents is unchanged; its numbers describe the superseded N = 1024 record. |
+| `pdf_extending_the_minimum_line_cover_to_n_1814.pdf` | Supplement paper (12 pages) documenting the extension of the certified record to N = 1814. |
 | `tools/primecover_frontier_diagnosis.sh` | Frontier diagnosis script: compiles and runs the solver, displays a live dashboard, and produces a per-multiplier RAM safety table to help you unlock the highest safe frontier multiplier for your hardware. See [Performance Tuning](#performance-tuning). |
 | `CITATION.cff` | Citation metadata in Citation File Format (CFF). Recognised automatically by GitHub, Zenodo, and Zotero. |
 | `old_solvers/` | Earlier milestone variants of the solver, preserved for reproducibility. Provided as-is; not actively maintained. |
@@ -547,7 +556,7 @@ Built by Jesper Gran Mikkelsen, an independent researcher in Norway with no prio
 
 ## Citation
 
-If you use this code or the computed results in your work, please cite the accompanying paper.
+If you use this code or the computed results in your work, please cite the accompanying papers — the original solver paper and the N = 1814 supplement that extends the record.
 
 A [`CITATION.cff`](CITATION.cff) file is included in the repository — GitHub, Zenodo, and Zotero can read it automatically. For manual use, the BibTeX entry is:
 

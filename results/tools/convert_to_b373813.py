@@ -2,15 +2,15 @@
 # convert_to_b373813.py
 # =============================================================================
 # SPDX-License-Identifier: CC0-1.0
-# This file is dedicated to the public domain. See LICENSE in this directory.
+# This file is dedicated to the public domain. See ../LICENSE.
 #
-# Converts A373813_ALL_LINES.txt into the compact B373813.txt format.
+# Converts a373813_all_lines.txt into the compact b373813.txt format.
 #
-# A373813_ALL_LINES.txt is a detailed log where each entry describes one prime
+# a373813_all_lines.txt is a detailed log where each entry describes one prime
 # number: how many lines (intervals) were needed to cover all integers up to
 # that prime. Each entry contains a Stats block with fields like N= and lines=.
 #
-# WR was ran on primecover1024_line_coordinates.cpp and converted to the b file.
+# WR was ran on primecover2048_line_coordinates.cpp and converted to the b file.
 #
 # This script reads through that file, extracts the index (N) and line count
 # (lines) from every Stats block, and outputs one row per prime:
@@ -27,7 +27,7 @@
 # -----------------------------------------------------------------------------
 # USAGE (single command — update the path to match your setup):
 #
-#   cp /mnt/c/Math/prime-line-cover/results/convert_to_b373813.py . && python3 convert_to_b373813.py /mnt/c/Math/prime-line-cover/results/A373813_ALL_LINES.txt > /mnt/c/Math/prime-line-cover/results/B373813.txt
+#   cp /mnt/c/Math/prime-line-cover/results/tools/convert_to_b373813.py . && python3 convert_to_b373813.py /mnt/c/Math/prime-line-cover/results/a373813_all_lines.txt > /mnt/c/Math/prime-line-cover/results/b373813.txt
 # =============================================================================
 
 import re
@@ -48,6 +48,6 @@ def convert(input_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 convert_to_b373813.py A373813_ALL_LINES.txt", file=sys.stderr)
+        print("Usage: python3 convert_to_b373813.py a373813_all_lines.txt", file=sys.stderr)
         sys.exit(1)
     convert(sys.argv[1])

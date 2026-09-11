@@ -19,7 +19,7 @@
 #  HOW TO USE IT
 #  ─────────────
 #  1. ⚠️  IMPORTANT: Edit the SOURCE_PATH below on line 101 – change the
-#     example path to the actual location of your primecover1024.cpp file.
+#     example path to the actual location of your primecover2048_line_coordinates.cpp file.
 #
 #  2. Copy paste this entire script directly into your terminal and hit Enter.
 #     (Or save it to a file and run it with bash /full/path/to/script.sh)
@@ -29,18 +29,21 @@
 #     Example: if "8192U" shows ✓ SAFE but "16384U" shows ✗ UNSAFE,
 #     then 8192U is your safe maximum.
 #
-#  4. Set that multiplier in primecover1024.cpp:
+#  4. Set that multiplier in primecover2048_line_coordinates.cpp:
 #     - Find the "frontier_multiplier" ladder.
 #     - Uncomment the line with your safe multiplier (remove // at the start).
-#     - Add a colon (:) right before the line that previously started with "current_best_cost() >= 128 ?"
+#     - Add a colon (:) right before the line that previously started with "current_best_cost() >= 125 ?"
 #     - Save, recompile, and run normally.
-#     Example (changing from 8192U to 16384U):
+#     Example (changing from 2048U to 8192U):
 #         Before:
-#         //: current_best_cost() >= 133 ? 16384U
-#             current_best_cost() >= 128 ? 8192U
+#         //  current_best_cost() >= 128 ?  8192U
+#             current_best_cost() >= 125 ?  2048U
 #         After:
-#             current_best_cost() >= 133 ? 16384U
-#           : current_best_cost() >= 128 ? 8192U
+#             current_best_cost() >= 128 ?  8192U
+#           : current_best_cost() >= 125 ?  2048U
+#     Note: primecover2048_line_coordinates.cpp ships with the 8192U rung
+#     commented out. The N = 1814 run kept 2048U as the top rung, capping the
+#     frontier at 8 × 2048 = 16,384 tasks on the 15 GB c4d-highcpu-8 instance.
 #
 #  🔒 Cleanup: The script automatically kills the solver on Ctrl+C or terminal close.
 #      If a stale process remains, run: pkill -f "./primecover"
@@ -94,11 +97,11 @@
 #  CONFIGURATION  –  set your path here before running
 # =============================================================================
 
-# Path to your primecover1024.cpp source file.
+# Path to your primecover2048_line_coordinates.cpp source file.
 # WSL users: Windows drives are mounted under /mnt/, so:
-#   C:\Users\yourname\project\primecover1024.cpp
-#   becomes:  /mnt/c/Users/yourname/project/primecover1024.cpp
-SOURCE_PATH="/mnt/c/path/to/primecover1024.cpp"
+#   C:\Users\yourname\project\primecover2048_line_coordinates.cpp
+#   becomes:  /mnt/c/Users/yourname/project/primecover2048_line_coordinates.cpp
+SOURCE_PATH="/mnt/c/path/to/primecover2048_line_coordinates.cpp"
 
 # =============================================================================
 
@@ -530,7 +533,7 @@ print_table() {
 #  MAIN
 # =============================================================================
 cp "$SOURCE_PATH" ~/primecover.cpp
-g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions \
+g++-14 -std=c++23 -O3 -march=native -pthread -fno-exceptions -fno-rtti \
   -o primecover primecover.cpp || { echo "Build failed."; exit 1; }
 
 (

@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this software or the certified results, please cite the accompanying paper."
+message: "If you use this software or the certified results, please cite the accompanying papers."
 type: software
 title: "prime-line-cover: Exact Minimum Line Cover Solver for Prime Points"
 authors:
@@ -16,36 +16,42 @@ date-released: 2026-05-09
 repository-code: "https://github.com/jespergran98/prime-line-cover"
 license: MIT
 abstract: >
-  An exact branch-and-bound solver for the minimum line cover of prime-indexed
-  points (OEIS A373813). The minimum number of straight lines covering N prime
-  points (k, p_k) defines f(N); every line through three or more such points
-  encodes an exact arithmetic coincidence among prime values, making f(N)
-  computationally hard to certify exactly as N grows. The solver certifies
-  f(1024) = 143 as the new computational record, extending the prior certified
-  boundary from N = 861 — reached in approximately 282 hours via a
-  general-purpose MIP solver — to N = 1024 with 163 newly certified, strictly
-  optimal terms, in under 40 hours on a Google Cloud c4d-highcpu-8 instance
-  (8 vCPUs, 15 GB RAM); the N = 861 milestone is reached in approximately 22
-  minutes. At startup, all 12,162 heavy lines (those through at least three
-  prime points) are enumerated in 50 ms and stored as 1024-bit bitmasks; the
-  incremental sweep carries forward a primal warm-start solution, a Lagrangian
-  dual seed, and a witness cover from f(N-1) at each step. If the witness
-  covers the new point (N, p_N), optimality is certified instantly (mode W);
-  otherwise a cover-inequality floor is established at the root and exact
-  branch-and-bound is invoked — root bound closure (mode R) or full parallel
-  search (mode D). Per-node pruning uses a Lagrangian gain bound tightened by
-  projected subgradient descent with coordinate-descent polishing. The
-  Exclusive Dependency Rule forces into the partial solution any productive
-  heavy line for which at least three uncovered points each lie on no other
-  productive heavy line — without loss of optimality. When the lower bound is
-  within one of the incumbent and at least 64 points remain uncovered, strong
-  branching evaluates at most four candidate lines via Lagrangian simulation;
-  independent subproblems are dispatched to worker threads via a shared atomic
-  task queue. The 163-term extension identifies 20 new awkward primes (N = 864
-  through 1015, cover sizes 124 to 143; OEIS A393445). Every reported value is certified
-  optimal; the solver has no heuristic stopping rule. Because the 1024-bit mask
-  is the architectural limit, extending the record beyond N = 1024 requires a
-  wider solver variant.
+  An exact branch-and-bound solver for the minimum line cover of
+  prime-indexed points (OEIS A373813). The minimum number of straight
+  lines covering N prime points (k, p_k) defines f(N); every line through
+  three or more such points encodes an exact arithmetic coincidence among
+  prime values, making f(N) computationally hard to certify exactly as N
+  grows. The solver certifies f(1814) = 229 as the current computational
+  record, extending the prior certified boundary from N = 861 — reached in
+  approximately 282 hours via a general-purpose MIP solver — first to N =
+  1024 in under 40 hours, and then to N = 1814 with 790 further certified,
+  strictly optimal terms in 461 hours 35 minutes on a Google Cloud
+  c4d-highcpu-8 instance (8 vCPUs, 15 GB RAM); the N = 861 milestone is
+  reached in approximately 22 minutes. At startup, all heavy lines (those
+  through at least three prime points) are enumerated in 50 ms and stored
+  as 2048-bit bitmasks, of which 30,646 are active at N = 1814; the
+  incremental sweep carries forward a primal warm-start solution, a
+  Lagrangian dual seed, and a witness cover from f(N-1) at each step. If
+  the witness covers the new point (N, p_N), optimality is certified
+  instantly (mode W); otherwise a cover-inequality floor is established at
+  the root and exact branch-and-bound is invoked — root bound closure
+  (mode R) or full parallel search (mode D). Per-node pruning uses a
+  Lagrangian gain bound tightened by projected subgradient descent with
+  coordinate-descent polishing. The Exclusive Dependency Rule forces into
+  the partial solution any productive heavy line for which at least three
+  uncovered points each lie on no other productive heavy line — without
+  loss of optimality. When the lower bound is within one of the incumbent
+  and at least 64 points remain uncovered, strong branching evaluates at
+  most four candidate lines via Lagrangian simulation; independent
+  subproblems are dispatched to worker threads via a shared atomic task
+  queue. The 790-term extension identifies 86 new awkward primes (N = 1063
+  through 1811, cover sizes 144 to 229; OEIS A393445), bringing the total
+  at or below N = 1814 to 229. Every reported value is certified optimal;
+  the solver has no heuristic stopping rule. The sweep stopped at N = 1814
+  because the Google Cloud free-trial credit funding the instance was
+  exhausted, not because of an architectural limit; the 2048-bit mask
+  leaves 234 further indices reachable with more compute and no source
+  change.
 keywords:
   - prime points
   - minimum line cover
@@ -67,9 +73,21 @@ preferred-citation:
       given-names: Jesper Gran
       affiliation: "Independent Researcher, Norway"
       email: "jesgranbusiness@gmail.com"
-  title: "An Exact Solver for the Minimum Line Cover of Prime-Indexed Points"
+  title: "Extending the Exact Minimum Line Cover of Prime-Indexed Points to N = 1814"
   year: 2026
-  month: 5
-  url: "https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf"
+  month: 9
+  url: "https://prime-line-cover.vercel.app/pdf_extending_the_minimum_line_cover_to_n_1814.pdf"
   doi: "10.5281/zenodo.20096556"
   notes: "MSC 2020: 05B40 (Coverings, packings, tilings), 11A41 (Primes), 68W40 (Analysis of algorithms), 90C57 (Polyhedral combinatorics, branch-and-bound, integer programming)"
+references:
+  - type: unpublished
+    authors:
+      - family-names: Mikkelsen
+        given-names: Jesper Gran
+        affiliation: "Independent Researcher, Norway"
+        email: "jesgranbusiness@gmail.com"
+    title: "An Exact Solver for the Minimum Line Cover of Prime-Indexed Points"
+    year: 2026
+    month: 5
+    url: "https://prime-line-cover.vercel.app/pdf_exact_solver_for_minimum_line_cover_of_prime_points.pdf"
+    notes: "The original paper, superseded on numbers by the N = 1814 supplement but still current on solver architecture and proofs."

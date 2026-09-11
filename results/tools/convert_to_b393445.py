@@ -2,13 +2,15 @@
 # convert_to_b393445.py
 # =============================================================================
 # SPDX-License-Identifier: CC0-1.0
-# This file is dedicated to the public domain. See LICENSE in this directory.
+# This file is dedicated to the public domain. See ../LICENSE.
 #
-# Converts A373813_ALL_LINES.txt into the compact B393445.txt format.
+# Converts a373813_all_lines.txt into the compact b393445.txt format.
 #
-# A373813_ALL_LINES.txt is a detailed log where each entry describes one prime
+# a373813_all_lines.txt is a detailed log where each entry describes one prime
 # number: how many lines (intervals) were needed to cover all integers up to
 # that prime. Each entry contains a Stats block with fields like prime= and lines=.
+#
+# WR was ran on primecover2048_line_coordinates.cpp and converted to the b file.
 #
 # An "awkward prime" is a prime where the line count increases compared to the
 # previous prime — i.e., a new minimum number of lines is required for the
@@ -32,7 +34,7 @@
 # -----------------------------------------------------------------------------
 # USAGE (single command — update the path to match your setup):
 #
-#   cp /mnt/c/Math/prime-line-cover/results/convert_to_b393445.py . && python3 convert_to_b393445.py /mnt/c/Math/prime-line-cover/results/A373813_ALL_LINES.txt > /mnt/c/Math/prime-line-cover/results/B393445.txt
+#   cp /mnt/c/Math/prime-line-cover/results/tools/convert_to_b393445.py . && python3 convert_to_b393445.py /mnt/c/Math/prime-line-cover/results/a373813_all_lines.txt > /mnt/c/Math/prime-line-cover/results/b393445.txt
 # =============================================================================
 
 import re
@@ -61,6 +63,6 @@ def convert(input_path):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python3 convert_to_b393445.py A373813_ALL_LINES.txt", file=sys.stderr)
+        print("Usage: python3 convert_to_b393445.py a373813_all_lines.txt", file=sys.stderr)
         sys.exit(1)
     convert(sys.argv[1])
