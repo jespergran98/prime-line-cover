@@ -118,10 +118,10 @@
 //     line set) state has already been reached at weakly higher accumulated
 //     gain are discarded before dispatch.
 //
-//     In practice the maximum DFS depth across the full sweep is 108, and node
-//     counts at the hardest instances reach the hundreds of millions — far below
-//     the 2^|A_N| worst case with |A_N| ~ 9,000-12,000 at new awkward primes
-//     for N ≤ 1024, rising to an estimated ~20,000-30,000 for N ≤ 2048.
+//     In practice the maximum DFS depth over the N=1814 sweep is 182, and node
+//     counts at the hardest instances reach 6.13 billion (N=1811) — far below
+//     the 2^|A_N| worst case, with |A_N| ~ 9,000-12,000 at new awkward primes
+//     for N ≤ 1024 and 30,646 active heavy lines by N=1814.
 //
 //     Residual: points not covered by any selected heavy line are closed with
 //     light lines at a cost of ceil(residual / 2).
@@ -1412,8 +1412,12 @@ std::vector<ExactGainSolver::Task> ExactGainSolver::build_frontier(Task root, Wo
     //   65,536 tasks (multiplier 8192U) → RSS ≈ 11.6 GB → ~187 KB per task.
     //  131,072 tasks (multiplier 16384U) → extrapolated RSS ≈ 23.4 GB → unsafe.
     //
-    //   The safe maximum multiplier on this machine is 8192U.
-    //   Multiplier 16384U would need ~23.4 GB and exceeds the 15 GB available.
+    //   Those figures are from the 1024-bit build. Widening the coverage mask to
+    //   2048 bits — 256 bytes per heavy line instead of 128 — roughly doubles the
+    //   per-task cost, so 8192U no longer fits in 15 GB. That rung is commented
+    //   out in the ladder below, and the whole N=1814 sweep ran with 2048U as the
+    //   top rung, capping the frontier at 8 x 2048 = 16,384 tasks. Re-enabling
+    //   8192U needs roughly 30 GB.
     //
     // -------------------------------------------------------------------------
     // Per‑task memory varies greatly between different computers. For example:
@@ -1458,8 +1462,8 @@ std::vector<ExactGainSolver::Task> ExactGainSolver::build_frontier(Task root, Wo
     //  current_best_cost() >= 143 ? 131072U  // rarely feasible (weeks to months estimate)
     //: current_best_cost() >= 138 ? 32768U   // rarely feasible (days to weeks estimate)
     //: current_best_cost() >= 133 ? 16384U   // only if your diagnostic command says it is safe (hours to days estimate)
-    //  current_best_cost() >= 128 ?  8192U   // safe on wr run - c4d‑highcpu‑8 (15 GB) (330–5545s)
-        current_best_cost() >= 125 ?  2048U   // safe on personal i9 9900k (133–1253s)
+    //  current_best_cost() >= 128 ?  8192U   // needs ~30 GB with 256‑byte masks - disabled for the 15 GB WR run
+        current_best_cost() >= 125 ?  2048U   // top rung of the N=1814 WR run; also safe on a personal i9 9900k
       : current_best_cost() >= 121 ?   512U   // safe on most machines (25–515s)
       : current_best_cost() >= 113 ?   128U   // safe (3.5–45s)
       : current_best_cost() >= 93  ?    16U   // safe (sub‑second)
